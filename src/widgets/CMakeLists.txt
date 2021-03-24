@@ -7,5 +7,6 @@ set(kdenlive_SRCS
   widgets/positionwidget.cpp
   widgets/progressbutton.cpp
   widgets/geometrywidget.cpp
+  widgets/custommenu.cpp
   PARENT_SCOPE
 )
