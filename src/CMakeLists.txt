@@ -151,7 +151,7 @@ target_link_libraries(kdenliveLib
 if(BUILD_COVERAGE)
   target_link_libraries(kdenliveLib gcov)
 endif()
-set_property(TARGET kdenliveLib PROPERTY CXX_STANDARD 14)
+set_property(TARGET kdenliveLib PROPERTY CXX_STANDARD 17)
 add_definitions(${qt5gui_definitions} -DQT_STRICT_ITERATORS -DQT_NO_CAST_FROM_BYTEARRAY)
 
 # Optional deps
