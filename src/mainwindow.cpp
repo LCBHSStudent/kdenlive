@@ -72,6 +72,8 @@
 #include "lib/localeHandling.h"
 #include "profiles/profilerepository.hpp"
 #include "widgets/progressbutton.h"
+#include "widgets/custommenu.h"
+#include "widgets/customtooltip.h"
 #include <config-kdenlive.h>
 #include "dialogs/textbasededit.h"
 #include "project/dialogs/temporarydata.h"
@@ -104,7 +106,6 @@
 #include "kdenlive_debug.h"
 #include <QAction>
 #include <QFileDialog>
-#include <QMenu>
 #include <QMenuBar>
 #include <QStatusBar>
 #include <QStyleFactory>
@@ -151,6 +152,16 @@ void MainWindow::init(const QString &mltPath)
     actionCollection()->addAction(QStringLiteral("themes_menu"), themeManager);
     connect(themeManager, &ThemeManager::themeChanged, this, &MainWindow::slotThemeChanged);
 
+    qDebug() << menuBar()->size();
+    qApp->setStyleSheet(qApp->styleSheet() + QString(R"(
+        * {
+            font-family: 'Microsoft yahei';
+        }
+    )"));
+    CustomToolTip::installToolTip(this);
+    
+    menuBar()->setMinimumHeight(50);
+    
     if (!KdenliveSettings::widgetstyle().isEmpty() && QString::compare(desktopStyle, KdenliveSettings::widgetstyle(), Qt::CaseInsensitive) != 0) {
         // User wants a custom widget style, init
         doChangeStyle();
@@ -179,6 +190,7 @@ void MainWindow::init(const QString &mltPath)
             KdenliveSettings::setWidgetstyle(QStringLiteral("Default"));
         }
     }
+    
 
     // Add default style action
     QAction *defaultStyle = new QAction(i18n("Default"), stylesGroup);
@@ -481,11 +493,11 @@ void MainWindow::init(const QString &mltPath)
     bool firstRun = readOptions();
 
     // Build effects menu
-    m_effectsMenu = new QMenu(i18n("Add Effect"), this);
+    m_effectsMenu = new CustomMenu(i18n("Add Effect"), this);
     m_effectActions = new KActionCategory(i18n("Effects"), actionCollection());
     m_effectList2->reloadEffectMenu(m_effectsMenu, m_effectActions);
 
-    m_transitionsMenu = new QMenu(i18n("Add Transition"), this);
+    m_transitionsMenu = new CustomMenu(i18n("Add Transition"), this);
     m_transitionActions = new KActionCategory(i18n("Transitions"), actionCollection());
 
     auto *scmanager = new ScopeManager(this);
@@ -505,7 +517,7 @@ void MainWindow::init(const QString &mltPath)
     // widgetlist->setText(i18n("Favorite Effects"));
     widgetlist->setToolTip(i18n("Favorite Effects"));
     widgetlist->setIcon(QIcon::fromTheme(QStringLiteral("favorite")));
-    auto *menu = new QMenu(this);
+    auto *menu = new CustomMenu(this);
     menu->addAction(widgetlist);
 
     auto *basketButton = new QToolButton(this);
@@ -523,11 +535,11 @@ void MainWindow::init(const QString &mltPath)
     toolButtonAction->setDefaultWidget(basketButton);
     addAction(QStringLiteral("favorite_effects"), toolButtonAction);
     connect(toolButtonAction, &QAction::triggered, basketButton, &QToolButton::showMenu);
-    connect(m_effectBasket, &EffectBasket::activateAsset, menu, &QMenu::close);
+    connect(m_effectBasket, &EffectBasket::activateAsset, menu, &CustomMenu::close);
 
     // Render button
     ProgressButton *timelineRender = new ProgressButton(i18n("Render"), 100, this);
-    auto *tlrMenu = new QMenu(this);
+    auto *tlrMenu = new CustomMenu(this);
     timelineRender->setMenu(tlrMenu);
     connect(this, &MainWindow::setRenderProgress, timelineRender, &ProgressButton::setProgress);
     auto *renderButtonAction = new QWidgetAction(this);
@@ -538,7 +550,7 @@ void MainWindow::init(const QString &mltPath)
 
     // Timeline preview button
     ProgressButton *timelinePreview = new ProgressButton(i18n("Rendering preview"), 1000, this);
-    auto *tlMenu = new QMenu(this);
+    auto *tlMenu = new CustomMenu(this);
     timelinePreview->setMenu(tlMenu);
     connect(this, &MainWindow::setPreviewProgress, timelinePreview, &ProgressButton::setProgress);
     auto *previewButtonAction = new QWidgetAction(this);
@@ -576,7 +588,7 @@ void MainWindow::init(const QString &mltPath)
     loadClipActions();
 
     // Timeline clip menu
-    auto *timelineClipMenu = new QMenu(this);
+    auto *timelineClipMenu = new CustomMenu(this);
     timelineClipMenu->addAction(actionCollection()->action(QStringLiteral("edit_copy")));
     timelineClipMenu->addAction(actionCollection()->action(QStringLiteral("paste_effects")));
     timelineClipMenu->addAction(actionCollection()->action(QStringLiteral("delete_effects")));
@@ -589,7 +601,7 @@ void MainWindow::init(const QString &mltPath)
     timelineClipMenu->addAction(actionCollection()->action(QStringLiteral("extract_clip")));
     timelineClipMenu->addAction(actionCollection()->action(QStringLiteral("save_to_bin")));
 
-    QMenu *markerMenu = static_cast<QMenu *>(factory()->container(QStringLiteral("marker_menu"), this));
+    CustomMenu *markerMenu = static_cast<CustomMenu *>(factory()->container(QStringLiteral("marker_menu"), this));
     timelineClipMenu->addMenu(markerMenu);
 
     timelineClipMenu->addAction(actionCollection()->action(QStringLiteral("set_audio_align_ref")));
@@ -599,24 +611,24 @@ void MainWindow::init(const QString &mltPath)
     timelineClipMenu->addAction(actionCollection()->action(QStringLiteral("cut_timeline_clip")));
 
     // Timeline composition menu
-    auto *compositionMenu = new QMenu(this);
+    auto *compositionMenu = new CustomMenu(this);
     compositionMenu->addAction(actionCollection()->action(QStringLiteral("edit_item_duration")));
     compositionMenu->addAction(actionCollection()->action(QStringLiteral("edit_copy")));
     compositionMenu->addAction(actionCollection()->action(QStringLiteral("delete_timeline_clip")));
 
     // Timeline main menu
-    auto *timelineMenu = new QMenu(this);
+    auto *timelineMenu = new CustomMenu(this);
     timelineMenu->addAction(actionCollection()->action(QStringLiteral("edit_paste")));
     timelineMenu->addAction(actionCollection()->action(QStringLiteral("insert_space")));
     timelineMenu->addAction(actionCollection()->action(QStringLiteral("delete_space")));
     timelineMenu->addAction(actionCollection()->action(QStringLiteral("delete_space_all_tracks")));
     timelineMenu->addAction(actionCollection()->action(QStringLiteral("add_guide")));
     timelineMenu->addAction(actionCollection()->action(QStringLiteral("edit_guide")));
-    QMenu *guideMenu = new QMenu(i18n("Go to Guide..."), this);
+    CustomMenu *guideMenu = new CustomMenu(i18n("Go to Guide..."), this);
     timelineMenu->addMenu(guideMenu);
 
     // Timeline ruler menu
-    auto *timelineRulerMenu = new QMenu(this);
+    auto *timelineRulerMenu = new CustomMenu(this);
     timelineRulerMenu->addAction(actionCollection()->action(QStringLiteral("add_guide")));
     timelineRulerMenu->addAction(actionCollection()->action(QStringLiteral("edit_guide")));
     timelineRulerMenu->addMenu(guideMenu);
@@ -624,12 +636,12 @@ void MainWindow::init(const QString &mltPath)
     timelineRulerMenu->addAction(actionCollection()->action(QStringLiteral("add_subtitle")));
 
     //Timeline subtitle menu
-    auto *timelineSubtitleMenu = new QMenu(this);
+    auto *timelineSubtitleMenu = new CustomMenu(this);
     timelineSubtitleMenu->addAction(actionCollection()->action(QStringLiteral("edit_copy")));
     timelineSubtitleMenu->addAction(actionCollection()->action(QStringLiteral("delete_subtitle_clip")));
 
     // Timeline headers menu
-    auto *timelineHeadersMenu = new QMenu(this);
+    auto *timelineHeadersMenu = new CustomMenu(this);
     timelineHeadersMenu->addAction(actionCollection()->action(QStringLiteral("insert_track")));
     timelineHeadersMenu->addAction(actionCollection()->action(QStringLiteral("delete_track")));
     timelineHeadersMenu->addAction(actionCollection()->action(QStringLiteral("show_track_record")));
@@ -648,7 +660,7 @@ void MainWindow::init(const QString &mltPath)
     connect(normalize_channels, &QAction::triggered, this, &MainWindow::slotNormalizeAudioChannel);
     timelineHeadersMenu->addAction(normalize_channels);
 
-    QMenu *thumbsMenu = new QMenu(i18n("Thumbnails"), this);
+    CustomMenu *thumbsMenu = new CustomMenu(i18n("Thumbnails"), this);
     auto *thumbGroup = new QActionGroup(this);
     QAction *inFrame = new QAction(i18n("In Frame"), thumbGroup);
     inFrame->setData(QStringLiteral("2"));
@@ -667,9 +679,9 @@ void MainWindow::init(const QString &mltPath)
     noFrame->setCheckable(true);
     thumbsMenu->addAction(noFrame);
 
-    QMenu *openGLMenu = static_cast<QMenu *>(factory()->container(QStringLiteral("qt_opengl"), this));
+    CustomMenu *openGLMenu = static_cast<CustomMenu *>(factory()->container(QStringLiteral("qt_opengl"), this));
 #if defined(Q_OS_WIN)
-    connect(openGLMenu, &QMenu::triggered, [&](QAction *ac) {
+    connect(openGLMenu, &CustomMenu::triggered, [&](QAction *ac) {
         KdenliveSettings::setOpengl_backend(ac->data().toInt());
         if (KMessageBox::questionYesNo(this, i18n("Kdenlive needs to be restarted to change this setting. Do you want to proceed?")) != KMessageBox::Yes) {
             return;
@@ -682,34 +694,34 @@ void MainWindow::init(const QString &mltPath)
     }
 #endif
     // Connect monitor overlay info menu.
-    QMenu *monitorOverlay = static_cast<QMenu *>(factory()->container(QStringLiteral("monitor_config_overlay"), this));
-    connect(monitorOverlay, &QMenu::triggered, this, &MainWindow::slotSwitchMonitorOverlay);
+    CustomMenu *monitorOverlay = static_cast<CustomMenu *>(factory()->container(QStringLiteral("monitor_config_overlay"), this));
+    connect(monitorOverlay, &CustomMenu::triggered, this, &MainWindow::slotSwitchMonitorOverlay);
 
-    m_projectMonitor->setupMenu(static_cast<QMenu *>(factory()->container(QStringLiteral("monitor_go"), this)), monitorOverlay, m_playZone, m_loopZone, nullptr,
+    m_projectMonitor->setupMenu(static_cast<CustomMenu *>(factory()->container(QStringLiteral("monitor_go"), this)), monitorOverlay, m_playZone, m_loopZone, nullptr,
                                 m_loopClip);
-    m_clipMonitor->setupMenu(static_cast<QMenu *>(factory()->container(QStringLiteral("monitor_go"), this)), monitorOverlay, m_playZone, m_loopZone,
-                             static_cast<QMenu *>(factory()->container(QStringLiteral("marker_menu"), this)));
+    m_clipMonitor->setupMenu(static_cast<CustomMenu *>(factory()->container(QStringLiteral("monitor_go"), this)), monitorOverlay, m_playZone, m_loopZone,
+                             static_cast<CustomMenu *>(factory()->container(QStringLiteral("marker_menu"), this)));
 
-    QMenu *clipInTimeline = static_cast<QMenu *>(factory()->container(QStringLiteral("clip_in_timeline"), this));
+    CustomMenu *clipInTimeline = static_cast<CustomMenu *>(factory()->container(QStringLiteral("clip_in_timeline"), this));
     clipInTimeline->setIcon(QIcon::fromTheme(QStringLiteral("go-jump")));
     pCore->bin()->setupGeneratorMenu();
 
     connect(pCore->monitorManager(), &MonitorManager::updateOverlayInfos, this, &MainWindow::slotUpdateMonitorOverlays);
 
     // Setup and fill effects and transitions menus.
-    QMenu *m = static_cast<QMenu *>(factory()->container(QStringLiteral("video_effects_menu"), this));
-    connect(m, &QMenu::triggered, this, &MainWindow::slotAddEffect);
-    connect(m_effectsMenu, &QMenu::triggered, this, &MainWindow::slotAddEffect);
-    connect(m_transitionsMenu, &QMenu::triggered, this, &MainWindow::slotAddTransition);
+    CustomMenu *m = static_cast<CustomMenu *>(factory()->container(QStringLiteral("video_effects_menu"), this));
+    connect(m, &CustomMenu::triggered, this, &MainWindow::slotAddEffect);
+    connect(m_effectsMenu, &CustomMenu::triggered, this, &MainWindow::slotAddEffect);
+    connect(m_transitionsMenu, &CustomMenu::triggered, this, &MainWindow::slotAddTransition);
 
-    m_timelineContextMenu = new QMenu(this);
+    m_timelineContextMenu = new CustomMenu(this);
 
     m_timelineContextMenu->addAction(actionCollection()->action(QStringLiteral("insert_space")));
     m_timelineContextMenu->addAction(actionCollection()->action(QStringLiteral("delete_space")));
     m_timelineContextMenu->addAction(actionCollection()->action(QStringLiteral("delete_space_all_tracks")));
     m_timelineContextMenu->addAction(actionCollection()->action(KStandardAction::name(KStandardAction::Paste)));
 
-    // QMenu *markersMenu = static_cast<QMenu *>(factory()->container(QStringLiteral("marker_menu"), this));
+    // CustomMenu *markersMenu = static_cast<CustomMenu *>(factory()->container(QStringLiteral("marker_menu"), this));
 
     /*m_timelineClipActions->addMenu(markersMenu);
     m_timelineClipActions->addSeparator();
@@ -941,9 +953,9 @@ bool MainWindow::queryClose()
 
 void MainWindow::loadGenerators()
 {
-    QMenu *addMenu = static_cast<QMenu *>(factory()->container(QStringLiteral("generators"), this));
+    CustomMenu *addMenu = static_cast<CustomMenu *>(factory()->container(QStringLiteral("generators"), this));
     Generators::getGenerators(KdenliveSettings::producerslist(), addMenu);
-    connect(addMenu, &QMenu::triggered, this, &MainWindow::buildGenerator);
+    connect(addMenu, &CustomMenu::triggered, this, &MainWindow::buildGenerator);
 }
 
 void MainWindow::buildGenerator(QAction *action)
@@ -974,12 +986,12 @@ void MainWindow::saveNewToolbarConfig()
     loadDockActions();
     loadClipActions();
     pCore->bin()->rebuildMenu();
-    QMenu *monitorOverlay = static_cast<QMenu *>(factory()->container(QStringLiteral("monitor_config_overlay"), this));
+    CustomMenu *monitorOverlay = static_cast<CustomMenu *>(factory()->container(QStringLiteral("monitor_config_overlay"), this));
     if (monitorOverlay) {
-        m_projectMonitor->setupMenu(static_cast<QMenu *>(factory()->container(QStringLiteral("monitor_go"), this)), monitorOverlay, m_playZone, m_loopZone,
+        m_projectMonitor->setupMenu(static_cast<CustomMenu *>(factory()->container(QStringLiteral("monitor_go"), this)), monitorOverlay, m_playZone, m_loopZone,
                                     nullptr, m_loopClip);
-        m_clipMonitor->setupMenu(static_cast<QMenu *>(factory()->container(QStringLiteral("monitor_go"), this)), monitorOverlay, m_playZone, m_loopZone,
-                                 static_cast<QMenu *>(factory()->container(QStringLiteral("marker_menu"), this)));
+        m_clipMonitor->setupMenu(static_cast<CustomMenu *>(factory()->container(QStringLiteral("monitor_go"), this)), monitorOverlay, m_playZone, m_loopZone,
+                                 static_cast<CustomMenu *>(factory()->container(QStringLiteral("marker_menu"), this)));
     }
 }
 
@@ -1138,7 +1150,7 @@ void MainWindow::setupActions()
     clipTypeGroup->addAction(splitView2);
     connect(clipTypeGroup, &QActionGroup::triggered, this, &MainWindow::slotUpdateTimelineView);
 
-    auto tlsettings = new QMenu(this);
+    auto tlsettings = new CustomMenu(this);
     tlsettings->setIcon(QIcon::fromTheme(QStringLiteral("configure")));
     tlsettings->addAction(m_compositeAction);
     tlsettings->addAction(mixedView);
@@ -2338,7 +2350,7 @@ void MainWindow::connectDocument()
     }, Qt::DirectConnection);
     connect(trackView, &Timeline::zoneMoved, this, &MainWindow::slotZoneMoved);
     trackView->projectView()->setContextMenu(m_timelineContextMenu, m_timelineClipActions, m_timelineContextTransitionMenu, m_clipTypeGroup,
-    static_cast<QMenu *>(factory()->container(QStringLiteral("marker_menu"), this)));
+    static_cast<CustomMenu *>(factory()->container(QStringLiteral("marker_menu"), this)));
     */
 
     getMainTimeline()->controller()->clipActions = kdenliveCategoryMap.value(QStringLiteral("timelineselection"))->actions();
@@ -2409,7 +2421,7 @@ void MainWindow::slotEditKeys()
     if (schemesList) {
         foreach (QPushButton *button, dialog.findChildren<QPushButton *>()) {
             if (button->text() == i18n("More Actions")) {
-                QMenu *moreActionsMenu = button->menu();
+                auto moreActionsMenu = button->menu();
                 moreActionsMenu->addAction(i18n("Download New Keyboard Schemes..."), this, [this, schemesList] { slotGetNewKeyboardStuff(schemesList); });
                 break;
             }
@@ -3187,7 +3199,7 @@ void MainWindow::slotPasteEffects()
 void MainWindow::slotClipInTimeline(const QString &clipId, const QList<int> &ids)
 {
     Q_UNUSED(clipId)
-    QMenu *inTimelineMenu = static_cast<QMenu *>(factory()->container(QStringLiteral("clip_in_timeline"), this));
+    CustomMenu *inTimelineMenu = static_cast<CustomMenu *>(factory()->container(QStringLiteral("clip_in_timeline"), this));
     QList<QAction *> actionList;
     for (int i = 0; i < ids.count(); ++i) {
         QString track = getMainTimeline()->controller()->getTrackNameFromIndex(pCore->getItemTrack(ObjectId(ObjectType::TimelineClip, ids.at(i))));
@@ -3844,7 +3856,7 @@ void MainWindow::slotUpdateDockLocation(Qt::DockWidgetArea dockLocationArea)
 
 void MainWindow::slotUpdateMonitorOverlays(int id, int code)
 {
-    QMenu *monitorOverlay = static_cast<QMenu *>(factory()->container(QStringLiteral("monitor_config_overlay"), this));
+    CustomMenu *monitorOverlay = static_cast<CustomMenu *>(factory()->container(QStringLiteral("monitor_config_overlay"), this));
     if (!monitorOverlay) {
         return;
     }
@@ -3882,7 +3894,7 @@ void MainWindow::doChangeStyle()
 {
     QString newStyle = KdenliveSettings::widgetstyle();
     if (newStyle.isEmpty() || newStyle == QStringLiteral("Default")) {
-        newStyle = defaultStyle("Breeze");
+        newStyle = defaultStyle("Classic");
     }
     QApplication::setStyle(QStyleFactory::create(newStyle));
 }
@@ -3988,9 +4000,9 @@ void MainWindow::rebuildTimlineToolBar()
 
 void MainWindow::showTimelineToolbarMenu(const QPoint &pos)
 {
-    QMenu menu;
+    CustomMenu menu;
     menu.addAction(actionCollection()->action(KStandardAction::name(KStandardAction::ConfigureToolbars)));
-    QMenu *contextSize = new QMenu(i18n("Icon Size"));
+    CustomMenu *contextSize = new CustomMenu(i18n("Icon Size"));
     menu.addMenu(contextSize);
     auto *sizeGroup = new QActionGroup(contextSize);
     int currentSize = m_timelineToolBar->iconSize().width();
@@ -4066,7 +4078,7 @@ void MainWindow::showTimelineToolbarMenu(const QPoint &pos)
             }
         }
     }
-    connect(contextSize, &QMenu::triggered, this, &MainWindow::setTimelineToolbarIconSize);
+    connect(contextSize, &CustomMenu::triggered, this, &MainWindow::setTimelineToolbarIconSize);
     menu.exec(m_timelineToolBar->mapToGlobal(pos));
     contextSize->deleteLater();
 }

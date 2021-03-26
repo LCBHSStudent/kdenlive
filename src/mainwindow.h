@@ -60,6 +60,7 @@ class TimelineTabs;
 class TimelineWidget;
 class TimelineContainer;
 class Transition;
+class CustomMenu;
 
 class MltErrorEvent : public QEvent
 {
@@ -214,9 +215,9 @@ private:
 
     KActionCategory *m_effectActions;
     KActionCategory *m_transitionActions;
-    QMenu *m_effectsMenu;
-    QMenu *m_transitionsMenu;
-    QMenu *m_timelineContextMenu;
+    CustomMenu *m_effectsMenu;
+    CustomMenu *m_transitionsMenu;
+    CustomMenu *m_timelineContextMenu;
     QList<QAction *> m_timelineClipActions;
     KDualAction *m_useTimelineZone;
 

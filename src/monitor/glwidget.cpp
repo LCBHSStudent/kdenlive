@@ -39,6 +39,7 @@
 #include "monitorproxy.h"
 #include "profiles/profilemodel.hpp"
 #include "timeline2/view/qml/timelineitems.h"
+#include "widgets/customtooltip.h"
 #include <mlt++/Mlt.h>
 #include <lib/localeHandling.h>
 
@@ -746,6 +747,7 @@ void GLWidget::mousePressEvent(QMouseEvent *event)
 
 void GLWidget::mouseMoveEvent(QMouseEvent *event)
 {
+    CustomToolTip::hideToolTip();
     if ((rootObject() != nullptr) && rootObject()->objectName() != QLatin1String("root") && !(event->modifiers() & Qt::ControlModifier) &&
         !(event->buttons() & Qt::MiddleButton)) {
         event->ignore();

@@ -31,6 +31,7 @@ the Free Software Foundation, either version 3 of the License, or
 #include "timeline2/view/timelinewidget.h"
 #include "dialogs/subtitleedit.h"
 #include "dialogs/textbasededit.h"
+#include "widgets/customtooltip.h"
 #include <mlt++/MltRepository.h>
 
 #include <KMessageBox>
@@ -78,6 +79,7 @@ bool Core::build(bool testMode)
     }
     m_self.reset(new Core());
     m_self->initLocale();
+    qApp->installEventFilter(m_self.get());
 
     qRegisterMetaType<audioShortVector>("audioShortVector");
     qRegisterMetaType<QVector<double>>("QVector<double>");
@@ -1039,3 +1041,27 @@ void Core::updateMasterZones()
     }
 }
 
+bool Core::eventFilter(QObject* target, QEvent* e) {
+    (void) target;
+    
+    switch (e->type()) {
+    case QEvent::ToolTip: {
+        auto he = dynamic_cast<QHelpEvent*>(e);
+        auto wo = dynamic_cast<QWidget*>(target);
+        if (!he || !wo) {
+            return false;
+        }
+        auto&& toolTip = wo->toolTip();
+        if (toolTip.isEmpty()) {
+            CustomToolTip::hideToolTip();
+        } else {
+            CustomToolTip::showToolTip(wo->toolTip(), he->globalX() + 4, he->globalY() + 10);
+        }
+        
+        return true;
+    }
+    default: {
+        return false;
+    }
+    }
+}

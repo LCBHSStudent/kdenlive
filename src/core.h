@@ -249,6 +249,9 @@ public:
     void setWidgetKeyBinding(const QString &mess = QString());
     KSharedDataCache audioThumbCache;
 
+protected:
+    bool eventFilter(QObject*, QEvent*) override;
+    
 private:
     explicit Core();
     static std::unique_ptr<Core> m_self;
