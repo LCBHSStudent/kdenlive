@@ -17,7 +17,7 @@ CustomMenu::CustomMenu(const QString& title, QWidget* parent)
 
 void CustomMenu::updateAppearance() {
     auto* se = new QGraphicsDropShadowEffect(this);
-    se->setOffset(-3, 0);
+    se->setOffset(0, 0);
     se->setBlurRadius(6);
     se->setColor(QColor(36, 35, 44));
     

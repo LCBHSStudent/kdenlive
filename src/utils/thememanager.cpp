@@ -56,7 +56,7 @@ ThemeManager::ThemeManager(QObject *parent)
         } else {
             existing << ac->text();
             if (schemePath.isEmpty()) {
-                if (ac->data().toString().endsWith(QLatin1String("BreezeDark.colors"))) {
+                if (ac->data().toString().endsWith(QLatin1String("Classic.colors"))) {
                     themesMenu->setActiveAction(ac);
                     scheme = ac->text();
                 }
