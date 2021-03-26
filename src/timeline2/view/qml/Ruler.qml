@@ -103,7 +103,7 @@ Item {
         color: 'orange'
         visible: rulerRoot.workingPreview > -1
     }
-    
+
     // Guides
     Repeater {
         model: guidesModel
@@ -165,7 +165,7 @@ Item {
                         onPositionChanged: {
                             if (pressed) {
                                 var newFrame = Math.round(model.frame + (mouseX - xOffset) / timeline.scaleFactor)
-                                newFrame = controller.suggestSnapPoint(newFrame, root.snapping)
+                                newFrame = controller.suggestSnapPoint(newFrame, mouse.modifiers & Qt.ShiftModifier ? -1 : root.snapping)
                                 timeline.moveGuideWithoutUndo(markerBase.markerId,  newFrame)
                             }
                         }
@@ -250,11 +250,11 @@ Item {
         model: effectZones
         Rectangle {
             x: effectZones[index].x * timeline.scaleFactor
-            height: Math.ceil(zoneHeight/4)
+            height: zoneHeight - 1
             width: (effectZones[index].y - effectZones[index].x) * timeline.scaleFactor
             color: "blueviolet"
             anchors.bottom: parent.bottom
-            anchors.bottomMargin: zoneHeight - height - 1
+            opacity: 0.4
         }
     }
 
