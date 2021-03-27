@@ -102,6 +102,7 @@
 #include <kns3/downloaddialog.h>
 #include <kns3/knewstuffaction.h>
 #include <ktogglefullscreenaction.h>
+#include <kwidgetsaddons_version.h>
 
 #include "kdenlive_debug.h"
 #include <QAction>
@@ -1175,7 +1176,11 @@ void MainWindow::setupActions()
     } else {
         m_timeFormatButton->setCurrentItem(0);
     }
+#if KWIDGETSADDONS_VERSION < QT_VERSION_CHECK(5,78,0)
     connect(m_timeFormatButton, static_cast<void (KSelectAction::*)(int)>(&KSelectAction::triggered), this, &MainWindow::slotUpdateTimecodeFormat);
+#else
+    connect(m_timeFormatButton, &KSelectAction::indexTriggered, this, &MainWindow::slotUpdateTimecodeFormat);
+#endif
     m_timeFormatButton->setToolBarMode(KSelectAction::MenuMode);
     m_timeFormatButton->setToolButtonPopupMode(QToolButton::InstantPopup);
     addAction(QStringLiteral("timeline_timecode"), m_timeFormatButton);
@@ -1523,7 +1528,11 @@ void MainWindow::setupActions()
     monitorGamma->addAction(i18n("Rec. 709 (TV)"));
     addAction(QStringLiteral("mlt_gamma"), monitorGamma);
     monitorGamma->setCurrentItem(KdenliveSettings::monitor_gamma());
+#if KWIDGETSADDONS_VERSION < QT_VERSION_CHECK(5,78,0)
     connect(monitorGamma, static_cast<void (KSelectAction::*)(int)>(&KSelectAction::triggered), this, &MainWindow::slotSetMonitorGamma);
+#else
+    connect(monitorGamma, &KSelectAction::indexTriggered, this, &MainWindow::slotSetMonitorGamma);
+#endif
     actionCollection()->setShortcutsConfigurable(monitorGamma, false);
 
     addAction(QStringLiteral("switch_trim"), i18n("Trim Mode"), this, SLOT(slotSwitchTrimMode()), QIcon::fromTheme(QStringLiteral("cursor-arrow")));
@@ -2218,11 +2227,11 @@ void MainWindow::slotUpdateMousePosition(int pos)
         switch (m_timeFormatButton->currentItem()) {
         case 0:
             m_timeFormatButton->setText(pCore->currentDoc()->timecode().getTimecodeFromFrames(pos) + QStringLiteral(" / ") +
-                                        pCore->currentDoc()->timecode().getTimecodeFromFrames(getMainTimeline()->controller()->duration()));
+                                        pCore->currentDoc()->timecode().getTimecodeFromFrames(getMainTimeline()->controller()->duration() - 1));
             break;
         default:
             m_timeFormatButton->setText(
-                QStringLiteral("%1 / %2").arg(pos, 6, 10, QLatin1Char('0')).arg(getMainTimeline()->controller()->duration(), 6, 10, QLatin1Char('0')));
+                QStringLiteral("%1 / %2").arg(pos, 6, 10, QLatin1Char('0')).arg(getMainTimeline()->controller()->duration() - 1, 6, 10, QLatin1Char('0')));
         }
     }
 }
@@ -3913,7 +3922,7 @@ bool MainWindow::isTabbedWith(QDockWidget *widget, const QString &otherWidget)
 void MainWindow::updateDockTitleBars(bool isTopLevel)
 {
     QList<QTabBar *> tabbars = findChildren<QTabBar *>();
-    for (QTabBar *tab : tabbars) {
+    for (QTabBar *tab : qAsConst(tabbars)) {
         tab->setAcceptDrops(true);
         tab->setChangeCurrentOnDrag(true);
     }

@@ -71,7 +71,9 @@ Rectangle {
                 resizeActive = true
             }
             onExited: {
-                resizeActive = false
+                if (!pressed) {
+                    resizeActive = false
+                }
             }
             onReleased: {
                 updateZone(startZone, Qt.point(frameIn, frameOut), true)
