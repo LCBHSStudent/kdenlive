@@ -21,6 +21,7 @@ public:
             padding-right: 6px;
             padding-bottom: 1px;
             font-size: 14px; 
+            font-family: 'Microsoft YaHei';    
             color: "#FFFFFF"
         }
 	)";
