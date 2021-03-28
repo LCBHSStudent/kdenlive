@@ -9,5 +9,6 @@ set(kdenlive_SRCS
   widgets/geometrywidget.cpp
   widgets/custommenu.cpp
   widgets/customtooltip.cpp
+  widgets/topnavigationbar.cpp
   PARENT_SCOPE
 )
