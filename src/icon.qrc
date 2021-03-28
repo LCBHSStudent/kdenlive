@@ -1,5 +1,5 @@
 <RCC>
-    <qresource prefix="/ui">
+    <qresource prefix="/classic">
         <file alias="/components/ptcontroller/add.png">../data/icon/components/ptcontroller/add.png</file>
         <file alias="/components/ptcontroller/add_to_track.png">../data/icon/components/ptcontroller/add_to_track.png</file>
         <file alias="/components/ptcontroller/adjust_speed.png">../data/icon/components/ptcontroller/adjust_speed.png</file>
