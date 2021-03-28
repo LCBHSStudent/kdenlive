@@ -2269,7 +2269,7 @@ void TitleWidget::setXml(const QDomDocument &doc, const QString &id)
         delete m_missingMessage;
         m_missingMessage = nullptr;
     }
-    m_count = m_titledocument.loadFromXml(doc, m_startViewport, m_endViewport, &duration, m_projectTitlePath);
+    m_count = m_titledocument.loadFromXml(doc, m_scene, m_startViewport, m_endViewport, &duration, m_projectTitlePath);
     adjustFrameSize();
     if (m_titledocument.invalidCount() > 0) {
         m_missingMessage = new KMessageWidget(this);
@@ -2327,6 +2327,7 @@ void TitleWidget::setXml(const QDomDocument &doc, const QString &id)
     backgroundAlpha->blockSignals(true);
     backgroundColor->blockSignals(true);
     backgroundAlpha->setValue(background_color.alpha());
+    bgAlphaSlider->setValue(background_color.alpha());
     background_color.setAlpha(255);
     backgroundColor->setColor(background_color);
     backgroundAlpha->blockSignals(false);
@@ -3474,7 +3475,7 @@ void TitleWidget::slotPatternDblClicked(const QModelIndex& idx)
 
     QList<QGraphicsItem *> items;
     int width, height, duration, missing;
-    TitleDocument::loadFromXml(doc, items, width, height, nullptr, nullptr, &duration, missing);
+    TitleDocument::loadFromXml(doc, items, width, height, nullptr, nullptr, nullptr, &duration, missing);
 
     for (QGraphicsItem *item : qAsConst(items)) {
         item->setZValue(m_count++);
