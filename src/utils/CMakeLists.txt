@@ -6,6 +6,7 @@ set(kdenlive_SRCS
   utils/otioconvertions.cpp
   utils/thememanager.cpp
   utils/thumbnailcache.cpp
+  utils/framelesswindowhelper.cpp
   PARENT_SCOPE
 )
 
