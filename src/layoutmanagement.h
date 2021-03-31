@@ -49,9 +49,9 @@ private:
     std::pair<QString, QString> saveLayout(QString layout, QString suggestedName);
     /** @brief Populates the "load layout" menu. */
     void initializeLayouts();
-    QWidget *m_container;
-    QButtonGroup *m_containerGrp;
-    QHBoxLayout *m_containerLayout;
+//    QWidget *m_container;
+//    QButtonGroup *m_containerGrp;
+//    QHBoxLayout *m_containerLayout;
     KSelectAction *m_loadLayout;
     QList <QAction *> m_layoutActions;
 

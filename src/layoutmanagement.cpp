@@ -58,21 +58,21 @@ LayoutManagement::LayoutManagement(QObject *parent)
         m_layoutActions <<layoutActions->addAction("load_layout" + QString::number(i), load);
     }
     MainWindow *main = pCore->window();
-    m_container = new QWidget(main);
-    m_containerGrp = new QButtonGroup(m_container);
-    connect(m_containerGrp, QOverload<QAbstractButton *>::of(&QButtonGroup::buttonClicked), this, &LayoutManagement::activateLayout);
-    auto *l1 = new QVBoxLayout;
-    l1->addStretch();
-    m_containerLayout = new QHBoxLayout;
-    m_containerLayout->setSpacing(0);
-    m_containerLayout->setContentsMargins(0, 0, 0, 0);
-    l1->addLayout(m_containerLayout);
-    m_container->setLayout(l1);
+//    m_container = new QWidget(main);
+//    m_containerGrp = new QButtonGroup(m_container);
+//    connect(m_containerGrp, QOverload<QAbstractButton *>::of(&QButtonGroup::buttonClicked), this, &LayoutManagement::activateLayout);
+//    auto *l1 = new QVBoxLayout;
+//    l1->addStretch();
+//    m_containerLayout = new QHBoxLayout;
+//    m_containerLayout->setSpacing(0);
+//    m_containerLayout->setContentsMargins(0, 0, 0, 0);
+//    l1->addLayout(m_containerLayout);
+//    m_container->setLayout(l1);
     KColorScheme scheme(main->palette().currentColorGroup(), KColorScheme::Button);
     QColor bg = scheme.background(KColorScheme::AlternateBackground).color();
     QString style = QString("padding-left: %4; padding-right: %4;background-color: rgb(%1,%2,%3);").arg(bg.red()).arg(bg.green()).arg(bg.blue()).arg(main->fontInfo().pixelSize()/2);
-    m_container->setStyleSheet(style);
-    main->menuBar()->setCornerWidget(m_container, Qt::TopRightCorner);
+//    m_container->setStyleSheet(style);
+//    main->menuBar()->setCornerWidget(m_container, Qt::TopRightCorner);
     initializeLayouts();
 }
 
@@ -82,14 +82,14 @@ void LayoutManagement::initializeLayouts()
         return;
     }
     QString current;
-    if (m_containerGrp->checkedButton()) {
-        current = m_containerGrp->checkedButton()->text();
-    }
+//    if (m_containerGrp->checkedButton()) {
+//        current = m_containerGrp->checkedButton()->text();
+//    }
     MainWindow *main = pCore->window();
     // Delete existing buttons
-    while (auto item = m_containerLayout->takeAt(0)) {
-      delete item->widget();
-    }
+//    while (auto item = m_containerLayout->takeAt(0)) {
+//      delete item->widget();
+//    }
     
     // Load default base layouts
     KConfig defaultConfig(QStringLiteral("kdenlivedefaultlayouts.rc"), KConfig::CascadeConfig, QStandardPaths::AppDataLocation);
@@ -157,17 +157,17 @@ void LayoutManagement::initializeLayouts()
             QString translatedName = translatedLayoutNames.contains(layoutName) ? translatedLayoutNames.value(layoutName) : layoutName;
             load->setText(i18n("Layout %1: %2", i, translatedName));
             if (i < 6) {
-                auto *lab = new QPushButton(translatedName, m_container);
-                lab->setProperty("layoutid", layoutName);
-                lab->setFocusPolicy(Qt::NoFocus);
-                lab->setCheckable(true);
-                lab->setFlat(true);
-                lab->setFont(main->menuBar()->font());
-                m_containerGrp->addButton(lab);
-                m_containerLayout->addWidget(lab);
-                if (!current.isEmpty() && current == layoutName) {
-                    lab->setChecked(true);
-                }
+//                auto *lab = new QPushButton(translatedName, m_container);
+//                lab->setProperty("layoutid", layoutName);
+//                lab->setFocusPolicy(Qt::NoFocus);
+//                lab->setCheckable(true);
+//                lab->setFlat(true);
+//                lab->setFont(main->menuBar()->font());
+//                m_containerGrp->addButton(lab);
+//                m_containerLayout->addWidget(lab);
+//                if (!current.isEmpty() && current == layoutName) {
+//                    lab->setChecked(true);
+//                }
             }
         }
 
@@ -222,20 +222,20 @@ bool LayoutManagement::loadLayout(const QString &layoutId, bool selectButton)
     pCore->window()->restoreState(state);
     if (selectButton) {
         // Activate layout button
-        QList<QAbstractButton *>buttons = m_containerGrp->buttons();
-        bool buttonFound = false;
-        for (auto *button : qAsConst(buttons)) {
-            if (button->property("layoutid").toString() == layoutId) {
-                QSignalBlocker bk(m_containerGrp);
-                button->setChecked(true);
-                buttonFound = true;
-            }
-        }
-        if (!buttonFound && m_containerGrp->checkedButton()) {
-            m_containerGrp->setExclusive(false);
-            m_containerGrp->checkedButton()->setChecked(false);
-            m_containerGrp->setExclusive(true);
-        }
+//        QList<QAbstractButton *>buttons = m_containerGrp->buttons();
+//        bool buttonFound = false;
+//        for (auto *button : qAsConst(buttons)) {
+//            if (button->property("layoutid").toString() == layoutId) {
+//                QSignalBlocker bk(m_containerGrp);
+//                button->setChecked(true);
+//                buttonFound = true;
+//            }
+//        }
+//        if (!buttonFound && m_containerGrp->checkedButton()) {
+//            m_containerGrp->setExclusive(false);
+//            m_containerGrp->checkedButton()->setChecked(false);
+//            m_containerGrp->setExclusive(true);
+//        }
     }
     emit updateTitleBars();
     return true;
@@ -284,11 +284,11 @@ std::pair<QString, QString> LayoutManagement::saveLayout(QString layout, const Q
 
 void LayoutManagement::slotSaveLayout()
 {
-    QAbstractButton *button = m_containerGrp->checkedButton();
+//    QAbstractButton *button = m_containerGrp->checkedButton();
     QString saveName;
-    if (button) {
-        saveName = button->text();
-    }
+//    if (button) {
+//        saveName = button->text();
+//    }
 
     QByteArray st = pCore->window()->saveState();
     if (!pCore->window()->timelineVisible()) {
@@ -298,13 +298,13 @@ void LayoutManagement::slotSaveLayout()
 
     // Activate layout button
     if(names.first != nullptr) {
-        QList<QAbstractButton *>buttons = m_containerGrp->buttons();
-        for (auto *button : qAsConst(buttons)) {
-            if (button->text() == names.first) {
-                QSignalBlocker bk(m_containerGrp);
-                button->setChecked(true);
-            }
-        }
+//        QList<QAbstractButton *>buttons = m_containerGrp->buttons();
+//        for (auto *button : qAsConst(buttons)) {
+//            if (button->text() == names.first) {
+//                QSignalBlocker bk(m_containerGrp);
+//                button->setChecked(true);
+//            }
+//        }
     }
 
 }
@@ -316,9 +316,9 @@ void LayoutManagement::slotManageLayouts()
     KConfigGroup order(config, "Order");
     QStringList names = order.entryMap().values();
     QString current;
-    if (m_containerGrp->checkedButton()) {
-        current = m_containerGrp->checkedButton()->text();
-    }
+//    if (m_containerGrp->checkedButton()) {
+//        current = m_containerGrp->checkedButton()->text();
+//    }
     QDialog d(pCore->window());
     QDialogButtonBox *buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok);
     auto *l = new QVBoxLayout;
