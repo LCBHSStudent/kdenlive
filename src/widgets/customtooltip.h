@@ -28,11 +28,14 @@ public:
 	
 protected:
 	void paintEvent(QPaintEvent*) override;
+    void resizeEvent(QResizeEvent*) override;
 	
 private: 
 	inline static CustomToolTip* s_instance = nullptr;
 	
 	QTimer* m_timer;
+    int     m_targetX;
+    int     m_targetY;
 };
 
 #endif // CUSTOMTOOLTIP_H

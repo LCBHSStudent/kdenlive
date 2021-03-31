@@ -5,6 +5,10 @@
 #include <QPainter>
 #include <QPainterPath>
 
+#include "macros.hpp"
+#include "core.h"
+#include "mainwindow.h"
+
 CustomToolTip::CustomToolTip(QWidget* parent)
     : QLabel(parent)
     , m_timer(new QTimer)
@@ -27,14 +31,15 @@ void CustomToolTip::installToolTip(QWidget*) {
     });
 }
 	
-void CustomToolTip::showToolTip(const QString& text, int x, int y) {
+void CustomToolTip::showToolTip(const QString& text, int x, int y) {    
     if (s_instance) {
         if (s_instance->text() != text || s_instance->isHidden()) {
-            s_instance->move(x, y);
+            s_instance->m_targetX = x;
+            s_instance->m_targetY = y;
+            
             s_instance->setText(text);
             s_instance->hide();
             s_instance->show();
-            s_instance->raise();
             
             s_instance->m_timer->stop();
             s_instance->m_timer->start(3000);
@@ -50,6 +55,14 @@ void CustomToolTip::hideToolTip() {
     } else {
         return;
     }
+}
+
+void CustomToolTip::resizeEvent(QResizeEvent *) {
+    static auto pW = pCore->window();
+    s_instance->move(
+        qBound(pW->x(), m_targetX, pW->x() + pW->width() - width()),
+        qBound(pW->y(), m_targetY, pW->y() + pW->height() - height())
+    );
 }
 
 void CustomToolTip::paintEvent(QPaintEvent* e) {
