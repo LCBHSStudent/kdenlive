@@ -12,25 +12,19 @@ public:
 
         inline static const QString menuItemSheet = R"(
             QMenu::item {
-                padding-top: 8px;
-                padding-left: 27px;
-                padding-right: 25px;
-                padding-bottom: 8px;
-            } 
-            QMenu::item:non-exclusive {
-                padding-top: 8px;
-                padding-left: 27px;
-                padding-right: 25px;
-                padding-bottom: 8px;
-            }
+                padding-top: 7px;
+                padding-left: 30px;
+                padding-right: 33px;
+                padding-bottom: 7px;
+            }    
             QMenu::item:non-exclusive {
                 padding-top: 8px;
                 padding-left: 0px;
-                padding-right: 25px;
-                padding-bottom: 8px;
-            }        
+                padding-right: 33px;
+                padding-bottom: 7px;
+            }
             QMenu::item:selected {
-                background-color: #7781F4;
+                background-color: #997781F4;
             }
 			QMenu::icon {
                 position: absolute;
@@ -48,8 +42,8 @@ public:
                 font-weight:normal;
             } 
             QMenu::right-arrow {
-                image: url(:/icons/menu/rightarrow.png); 
-                padding: 20px;
+                image: url(:/classic/controllers/indicator-rightarrow.png); 
+                padding: 19px;
             }  
             QMenu{
                 font-family: 'Microsoft yahei'; 
