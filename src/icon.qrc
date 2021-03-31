@@ -133,5 +133,7 @@
         <file alias="/controllers/window_minimum_14x14.png">../data/icon/controllers/window_minimum_14x14.png</file>
         <file alias="/smartip_icon_22x22.png">../data/icon/smartip_icon_22x22.png</file>
         <file alias="/smartip_icon_490x488.png">../data/icon/smartip_icon_490x488.png</file>
+        <file alias="/controllers/checkbox_noborder_unchecked.png">../data/icon/controllers/checkbox_noborder_unchecked.png</file>
+        <file alias="/controllers/indicator-rightarrow.png">../data/icon/controllers/indicator-rightarrow.png</file>
     </qresource>
 </RCC>
