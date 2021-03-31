@@ -3,6 +3,8 @@
 #include <QMouseEvent>
 #include <QDebug>
 
+#include "macros.hpp"
+
 TopNavigationBar::TopNavigationBar(QWidget* parent)
     : QLabel(parent)
     , m_currentTab(EDITOR)
@@ -24,12 +26,12 @@ void TopNavigationBar::mousePressEvent(QMouseEvent* e) {
     auto&& x = e->pos().x();
     
     if (x >= width() / 2) {
-        if (m_currentTab != MATERIAL_DATABASE) {
+        if (m_currentTab == MATERIAL_DATABASE) {
             m_currentTab = EDITOR;
             emit tabChanged(EDITOR);
         }
     } else {
-        if (m_currentTab != EDITOR) {
+        if (m_currentTab == EDITOR) {
             m_currentTab = MATERIAL_DATABASE;
             emit tabChanged(MATERIAL_DATABASE);
         }
