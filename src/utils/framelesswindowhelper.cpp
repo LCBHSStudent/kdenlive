@@ -6,7 +6,11 @@
 #include <QHoverEvent>
 #include <QApplication>
 #include <QDesktopWidget>
- 
+#include <QScreen>
+
+#include "macros.hpp"
+#include <QDebug>
+
 /*****
  * FramelessHelperPrivate
  * 存储界面对应的数据集合，以及是否可移动、可缩放属性
@@ -44,34 +48,32 @@ void CursorPosCalculator::reset() {
 void CursorPosCalculator::recalculate(const QPoint &gMousePos, const QRect &frameRect) {
     int globalMouseX = gMousePos.x();
     int globalMouseY = gMousePos.y();
-    
+
     int frameX = frameRect.x();
     int frameY = frameRect.y();
-    
+
     int frameWidth = frameRect.width();
     int frameHeight = frameRect.height();
     
     m_bOnLeftEdge = (globalMouseX >= frameX &&
-                     globalMouseX <= frameX + m_nBorderWidth &&
-                     globalMouseY >= frameY + m_nTitleHeight);
-    
-    
+                  globalMouseX <= frameX + m_nBorderWidth );
+
+
     m_bOnRightEdge = (globalMouseX >= frameX + frameWidth - m_nBorderWidth &&
-                      globalMouseX <= frameX + frameWidth &&
-                      globalMouseY >= frameY + m_nTitleHeight);
-    
+                   globalMouseX <= frameX + frameWidth);
+
     m_bOnTopEdge = (globalMouseY >= frameY &&
-                    globalMouseY <= frameY + m_nBorderWidth);
-    
+                 globalMouseY <= frameY + m_nBorderWidth );
+
     m_bOnBottomEdge = (globalMouseY >= frameY + frameHeight - m_nBorderWidth &&
-                       globalMouseY <= frameY + frameHeight);
-    
+                    globalMouseY <= frameY + frameHeight);
+
     m_bOnTopLeftEdge = m_bOnTopEdge && m_bOnLeftEdge;
     m_bOnBottomLeftEdge = m_bOnBottomEdge && m_bOnLeftEdge;
     m_bOnTopRightEdge = m_bOnTopEdge && m_bOnRightEdge;
     m_bOnBottomRightEdge = m_bOnBottomEdge && m_bOnRightEdge;
-    
-    m_bOnEdges = m_bOnLeftEdge || m_bOnRightEdge || m_bOnTopEdge || m_bOnBottomEdge;
+
+    m_bOnEdges = m_bOnLeftEdge || m_bOnRightEdge || m_bOnTopEdge || m_bOnBottomEdge;  
 }
  
  
@@ -148,7 +150,7 @@ void WidgetData::setMax(bool bMax) {
     if(m_bMax != bMax) {
         if(bMax) {
             m_rect = m_pWidget->geometry();
-            m_pWidget->setGeometry(QApplication::desktop()->availableGeometry());
+            m_pWidget->setGeometry(m_pWidget->screen()->availableGeometry());
         }
         else {
             if(m_rect.x() == 0 && m_rect.y() == 0) {
@@ -176,7 +178,7 @@ void WidgetData::updateCursorShape(const QPoint &gMousePos) {
         return;
     }
     
-    m_moveMousePos.recalculate(gMousePos, m_pWidget->frameGeometry());
+    m_moveMousePos.recalculate(gMousePos, m_pWidget->geometry());
     
     if(m_moveMousePos.m_bOnTopLeftEdge || m_moveMousePos.m_bOnBottomRightEdge) {
         m_pWidget->setCursor( Qt::SizeFDiagCursor );
@@ -206,19 +208,19 @@ void WidgetData::resizeWidget(const QPoint &gMousePos) {
     QRect origRect;
     
     if (d->m_bRubberBandOnResize)
-        origRect = m_pRubberBand->frameGeometry();
+        origRect = m_pRubberBand->geometry();
     else
-        origRect = m_pWidget->frameGeometry();
-    
+        origRect = m_pWidget->geometry();
+
     int left = origRect.left();
     int top = origRect.top();
     int right = origRect.right();
     int bottom = origRect.bottom();
     origRect.getCoords(&left, &top, &right, &bottom);
-    
+
     int minWidth = m_pWidget->minimumWidth();
     int minHeight = m_pWidget->minimumHeight();
-    
+
     if (m_pressedMousePos.m_bOnTopLeftEdge)
     {
         left = gMousePos.x();
@@ -255,9 +257,9 @@ void WidgetData::resizeWidget(const QPoint &gMousePos) {
     {
         bottom = gMousePos.y();
     }
-    
+
     QRect newRect(QPoint(left, top), QPoint(right, bottom));
-    
+
     if (newRect.isValid())
     {
         if (minWidth > newRect.width())
@@ -274,7 +276,7 @@ void WidgetData::resizeWidget(const QPoint &gMousePos) {
             else
                 newRect.setBottom(origRect.bottom());
         }
-        
+
         if (d->m_bRubberBandOnResize)
         {
             m_pRubberBand->setGeometry(newRect);
@@ -283,7 +285,7 @@ void WidgetData::resizeWidget(const QPoint &gMousePos) {
         {
             m_pWidget->setGeometry(newRect);
         }
-    }
+    }  
 }
  
 void WidgetData::moveWidget(const QPoint& gMousePos) {
@@ -300,7 +302,7 @@ void WidgetData::handleMousePressEvent(QMouseEvent *event) {
         m_bLeftButtonPressed = true;
         m_bLeftButtonTitlePressed = event->pos().y() < m_moveMousePos.m_nTitleHeight;
         
-        QRect frameRect = m_pWidget->frameGeometry();
+        QRect frameRect = m_pWidget->geometry();
         m_pressedMousePos.recalculate(event->globalPos(), frameRect);
         
         m_ptDragPos = event->globalPos() - frameRect.topLeft();
@@ -503,4 +505,8 @@ bool FramelessHelper::isMax(QWidget *w) {
         return data->isMax();
     }
     return false;
+}
+
+void FramelessHelper::exportedEventFilter(QWidget* topLevelWidget, QEvent* e) {
+    (void) eventFilter(topLevelWidget, e);
 }

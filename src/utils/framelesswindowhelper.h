@@ -122,6 +122,7 @@ public:
  
     void setMax(QWidget *w,bool bMax);
     bool isMax(QWidget *w);
+    void exportedEventFilter(QWidget*, QEvent*);
 protected:
     // 事件过滤，进行移动、缩放等
     virtual bool eventFilter(QObject *obj, QEvent *event);
