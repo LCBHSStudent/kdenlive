@@ -23,6 +23,9 @@ TopNavigationBar::TopNavigationBar(QWidget* parent)
 }
 
 void TopNavigationBar::mousePressEvent(QMouseEvent* e) {
+    if (e->button() != Qt::LeftButton) {
+        return;
+    }
     auto&& x = e->pos().x();
     
     if (x >= width() / 2) {
