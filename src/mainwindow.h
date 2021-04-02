@@ -61,6 +61,7 @@ class TimelineWidget;
 class TimelineContainer;
 class Transition;
 class CustomMenu;
+class FramelessHelper;
 
 class MltErrorEvent : public QEvent
 {
@@ -176,10 +177,13 @@ protected:
     void saveProperties(KConfigGroup &config) override;
 
     void saveNewToolbarConfig() override;
+    bool eventFilter(QObject*, QEvent*) override;
+    void resizeEvent(QResizeEvent*) override;
 
 private:
     /** @brief Sets up all the actions and attaches them to the collection. */
     void setupActions();
+    void setupMenuBar();
 
     OtioConvertions m_otioConvertions;
     KColorSchemeManager *m_colorschemes;
@@ -260,6 +264,15 @@ private:
     TimelineContainer *m_timelineToolBarContainer;
     QLabel *m_trimLabel;
     QActionGroup *m_scaleGroup;
+    
+    CustomMenu  *m_fileMenu     = nullptr,
+                *m_editMenu     = nullptr,
+                *m_cutMenu      = nullptr,
+                *m_settingMenu  = nullptr,
+                *m_helpMenu     = nullptr;
+    
+    FramelessHelper* m_framelessHelper = nullptr;
+    QFrame* m_windCtrlBtnFrame = nullptr;
 
     /** @brief initialize startup values, return true if first run. */
     bool readOptions();

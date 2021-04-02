@@ -69,11 +69,13 @@
 //#include "utils/resourcewidget_old.h" //TODO
 #include "utils/thememanager.h"
 #include "utils/otioconvertions.h"
+#include "utils/framelesswindowhelper.h"
 #include "lib/localeHandling.h"
 #include "profiles/profilerepository.hpp"
 #include "widgets/progressbutton.h"
 #include "widgets/custommenu.h"
 #include "widgets/customtooltip.h"
+#include "widgets/topnavigationbar.h"
 #include <config-kdenlive.h>
 #include "dialogs/textbasededit.h"
 #include "project/dialogs/temporarydata.h"
@@ -107,6 +109,7 @@
 #include "kdenlive_debug.h"
 #include <QAction>
 #include <QFileDialog>
+#include <QInternal>
 #include <QMenuBar>
 #include <QStatusBar>
 #include <QStyleFactory>
@@ -117,6 +120,8 @@
 #include <QScreen>
 #include <QStandardPaths>
 #include <QVBoxLayout>
+
+#include "macros.hpp"
 
 static const char version[] = KDENLIVE_VERSION;
 namespace Mlt {
@@ -137,7 +142,32 @@ static QString defaultStyle(const char *fallback = nullptr)
 {
     KSharedConfigPtr kdeGlobals = KSharedConfig::openConfig(QStringLiteral("kdeglobals"), KConfig::NoGlobals);
     KConfigGroup cg(kdeGlobals, "KDE");
+    qDebug() << cg.readEntry("widgetStyle", fallback);
+    
+    
     return cg.readEntry("widgetStyle", fallback);
+}
+
+static bool eventDebugCallback(void** data) {
+    QEvent *event = reinterpret_cast<QEvent *>(data[1]);
+
+    if (event->type() == QEvent::KeyPress ||
+        event->type() == QEvent::KeyRelease
+    ) {
+        QObject *receiver = reinterpret_cast<QObject *>(data[0]);
+        qDebug() << event << "->" << receiver;
+
+    } else if (
+//        event->type() == QEvent::Drop ||
+//        event->type() == QEvent::MouseButtonRelease ||
+        event->type() == QEvent::MouseButtonPress ||
+        event->type() == QEvent::ContextMenu
+    ) {
+        QObject *receiver = reinterpret_cast<QObject *>(data[0]);
+        qDebug() << event << "->" << receiver;
+    }
+
+    return false;
 }
 
 MainWindow::MainWindow(QWidget *parent)
@@ -153,23 +183,21 @@ void MainWindow::init(const QString &mltPath)
     actionCollection()->addAction(QStringLiteral("themes_menu"), themeManager);
     connect(themeManager, &ThemeManager::themeChanged, this, &MainWindow::slotThemeChanged);
 
-    qDebug() << menuBar()->size();
-    qApp->setStyleSheet(qApp->styleSheet() + QString(R"(
-        * {
-            font-family: 'Microsoft yahei';
-        }
-    )"));
     CustomToolTip::installToolTip(this);
-    
-    menuBar()->setMinimumHeight(50);
     
     if (!KdenliveSettings::widgetstyle().isEmpty() && QString::compare(desktopStyle, KdenliveSettings::widgetstyle(), Qt::CaseInsensitive) != 0) {
         // User wants a custom widget style, init
         doChangeStyle();
     }
 
+    if (!qEnvironmentVariableIsEmpty("EVENT_DEBUG")) {
+        QInternal::registerCallback(QInternal::EventNotifyCallback, eventDebugCallback);        
+    }
+    
     // Widget themes for non KDE users
     KActionMenu *stylesAction = new KActionMenu(i18n("Style"), this);
+    stylesAction->setDefaultWidget(new CustomMenu(this));
+    
     auto *stylesGroup = new QActionGroup(stylesAction);
 
     // GTK theme does not work well with Kdenlive, and does not support color theming, so avoid it
@@ -574,6 +602,31 @@ void MainWindow::init(const QString &mltPath)
             }
         }
     }
+    
+    setupMenuBar();
+    
+//    int i = 0;
+//    for (auto child: menuBar()->children()) {
+//        qDebug() << child;
+//        switch(i) {
+//        case 0:
+//            qDebug() << dynamic_cast<QToolButton*>(child)->text();
+//            break;
+//        case 1:
+//            qDebug() << dynamic_cast<QWidget*>(child)->rect();
+//            break;
+//        case 2:
+//            qDebug() << dynamic_cast<QAction*>(child)->text();
+//            break;
+//        case 3:
+//            qDebug() << dynamic_cast<QMenu*>(child)->title();
+//            break;
+//        default:
+//            break;
+//        }
+
+//        i++;
+//    } 
 
     m_timelineToolBar->setToolButtonStyle(Qt::ToolButtonFollowStyle);
     m_timelineToolBar->setProperty("otherToolbar", true);
@@ -830,6 +883,25 @@ void MainWindow::init(const QString &mltPath)
         }
     });
     // m_messageLabel->setMessage(QStringLiteral("This is a beta version. Always backup your data"), MltError);
+    
+    setWindowFlags(
+        windowFlags() |
+        Qt::FramelessWindowHint |
+        Qt::WindowCloseButtonHint |
+        Qt::WindowMinimizeButtonHint |
+        Qt::WindowMaximizeButtonHint |
+        Qt::WindowFullscreenButtonHint |
+        Qt::WindowTitleHint
+    );
+    
+    // 设置无边框窗口辅助类
+    m_framelessHelper = new FramelessHelper(this);
+    m_framelessHelper->activateOn(this);                  // 激活当前窗体
+    m_framelessHelper->setWidgetMovable(true);            // 设置窗体可移动
+    m_framelessHelper->setWidgetResizable(true);          // 设置窗体可缩放
+    
+    // 设置顶端导航栏
+    new TopNavigationBar(menuBar());
 }
 
 void MainWindow::slotThemeChanged(const QString &name)
@@ -4381,6 +4453,785 @@ void MainWindow::slotSpeechRecognition()
         slotEditSubtitle();
     }
     getCurrentTimeline()->controller()->subtitleSpeechRecognition();
+}
+
+void MainWindow::setupMenuBar() {
+    menuBar()->deleteLater();
+    auto menuBar = new QMenuBar(this);
+    
+    std::array<QString, 3> ctrlBtnIcons = {
+        "minimum", "maximum", "close"
+    };
+    
+    // create window controller buttons
+    {
+        const QSize btnGroupSize(162, 49);
+        
+        m_windCtrlBtnFrame  = new QFrame(this);
+        m_windCtrlBtnFrame->setWindowFlag(Qt::WindowStaysOnTopHint);
+        m_windCtrlBtnFrame->setFixedSize(btnGroupSize);
+        auto frameLayout    = new QHBoxLayout(m_windCtrlBtnFrame);
+        frameLayout->setContentsMargins(0, 0, 0, 0);
+        frameLayout->setSpacing(0);
+        
+        using BtnType = QPushButton;
+        std::array<BtnType*, 3> ctrlBtnGroup = {};
+        const char* btnQSS = R"(
+            QPushButton {
+                background-color: transparent;
+                border-width: 0px;
+                border-color: transparent;
+                border-radius: 0px;
+            }
+            QPushButton::hover {
+                background-color: #FF3E3D4C;
+            }
+        )";
+        
+        for (decltype(ctrlBtnGroup.size()) i = 0; i < ctrlBtnGroup.size(); i++) {
+            auto btn = ctrlBtnGroup.at(i);
+            
+            LOG_DEBUG() << ctrlBtnGroup.at(i);
+            
+//            btn = new std::remove_pointer<decltype(btn)>::type(m_windCtrlBtnFrame);
+            btn = new BtnType(m_windCtrlBtnFrame);
+            btn->setFixedSize(btnGroupSize.width() / 3, btnGroupSize.height());
+            btn->setIcon(QIcon(":/classic/controllers/window_"+ ctrlBtnIcons[i] +"_14x14.png"));
+            btn->setStyleSheet(btnQSS);
+            
+            frameLayout->addWidget(btn, Qt::AlignLeft | Qt::AlignTop);
+            
+            if (i == 0) {
+                connect(btn, &BtnType::clicked, this, &MainWindow::showMinimized);
+            } else if (i == 1) {
+                connect(btn, &BtnType::clicked, [this] {
+                    m_framelessHelper->setMax(this, !m_framelessHelper->isMax(this));
+                });
+            } else if (i == 2) {
+                connect(btn, &BtnType::clicked, this, &MainWindow::close);
+            }
+        }
+        
+        m_windCtrlBtnFrame->setLayout(frameLayout);
+    }
+    
+    menuBar->setFixedHeight(50);
+    menuBar->setStyleSheet(R"(
+        QMenuBar {
+            padding-left: 110px;
+            padding-right: 0px;
+            padding-top: 0px;
+            padding-bottom: 0px;
+        }
+        
+        QMenuBar::item {
+            height: 50px;
+            padding-left: 20px;
+            padding-right: 20px;
+            padding-top: 16px;
+            padding-bottom: 15px;
+
+            font-size: 14px;
+            font-family: Microsoft Yahei;
+        }
+
+        QMenuBar::item:selected {
+            background: #FF3E3D4C;
+        }
+    )");
+    setMenuBar(menuBar);
+    menuBar->installEventFilter(this);
+    
+    m_fileMenu      = new CustomMenu(i18n("文件"), this);
+    m_editMenu      = new CustomMenu(i18n("编辑"), this);
+    m_cutMenu       = new CustomMenu(i18n("剪辑"), this);
+    m_settingMenu   = new CustomMenu(i18n("设置"), this);
+    m_helpMenu      = new CustomMenu(i18n("帮助"), this);
+    
+    // create left top icon-text label
+    {
+        auto ltLabel = new QWidget(menuBar);
+        ltLabel->setFixedSize(110, 50);
+        
+        auto iconLabel = new QLabel(menuBar);
+        iconLabel->setPixmap(QPixmap(":/classic/smartip_icon_22x22.png"));
+        
+        auto textLabel = new QLabel(menuBar);
+        textLabel->setText(i18n("NAME"));
+        textLabel->setStyleSheet("QLabel { color: #E6FFFFFF; font-size: 14px; font-family: 'Microsoft YaHei'; }");
+        
+        auto ltLabelLayout = new QHBoxLayout(ltLabel);
+        ltLabelLayout->addWidget(iconLabel, Qt::AlignVCenter);
+        ltLabelLayout->addWidget(textLabel, Qt::AlignVCenter);
+        ltLabelLayout->setContentsMargins(20, 0, 17, 0);
+        ltLabel->setLayout(ltLabelLayout);
+        ltLabel->move(0, 0);
+    }
+
+    
+    menuBar->addMenu(m_fileMenu);
+    menuBar->addMenu(m_editMenu);
+    menuBar->addMenu(m_cutMenu);
+    menuBar->addMenu(m_settingMenu);
+    menuBar->addMenu(m_helpMenu);
+    
+    // add contents
+    // 文件菜单
+    {
+        
+        for (auto action: actionCollection()->actions()) {
+            LOG_DEBUG() << action->text() << action->icon();
+        }
+        
+        auto createNew = new QAction(tr("新建"),m_fileMenu);
+        createNew->setShortcut(QKeySequence(Qt::CTRL+Qt::Key_N));
+        m_fileMenu->addAction(createNew);
+        
+        auto openProject = new QAction(tr("打开项目"), m_fileMenu);
+        m_fileMenu->addAction(openProject);
+        openProject->setShortcut(QKeySequence(Qt::CTRL+Qt::Key_O));
+
+        auto leadIn = new CustomMenu(m_fileMenu);
+        leadIn->setTitle("导入");
+        auto inFromPlayList=new QAction(tr("从播放列表导入"),leadIn);
+        auto inFromMylib=new QAction(tr("从我的素材库导入"),leadIn);
+        auto inFromLocal=new QAction(tr("从本地导入"),leadIn);
+        
+        connect(inFromLocal, SIGNAL(triggered()), this, SIGNAL(leadinRequested()));
+        
+        leadIn->addAction(inFromPlayList);
+        leadIn->addAction(inFromMylib);
+        leadIn->addAction(inFromLocal);
+
+        m_fileMenu->addMenu(leadIn);
+        m_fileMenu->addSeparator();
+
+        auto save = new QAction(tr("保存"), m_fileMenu);
+        m_fileMenu->addAction(save);
+        save->setShortcut(QKeySequence(Qt::CTRL+Qt::Key_S));
+
+        auto saveAs = new QAction(tr("另存为"), m_fileMenu);
+        m_fileMenu->addAction(saveAs);
+        saveAs->setShortcut(QKeySequence(Qt::CTRL+Qt::SHIFT+Qt::Key_S));
+        m_fileMenu->addSeparator();
+
+        auto leadOut = new QAction(tr("导出"), m_fileMenu);
+        m_fileMenu->addAction(leadOut);
+        leadOut->setShortcut(QKeySequence(Qt::CTRL+Qt::Key_E));
+		connect(leadOut, SIGNAL(triggered()), this, SLOT(onEncodeTriggered()));
+
+        auto packProjectFiles = new QAction(tr("打包项目文件"),m_fileMenu);
+        m_fileMenu->addAction(packProjectFiles);
+
+        m_fileMenu->addSeparator();
+        
+        auto _exit = new QAction(tr("退出"), m_fileMenu);
+        _exit->setShortcut(QKeySequence(Qt::CTRL + Qt::SHIFT + Qt::Key_Q));
+        m_fileMenu->addAction(_exit);
+//        auto saveAsBackup = new QAction(tr("存储为副本"), m_fileMenu);
+//        m_fileMenu->addAction(saveAsBackup);
+
+        connect(createNew,SIGNAL(triggered()),this,SLOT(on_actionNew_triggered()));
+        connect(openProject,SIGNAL(triggered()),this,SLOT(openProject()));
+        connect(save,SIGNAL(triggered()),this,SLOT(on_actionSave_triggered()));
+        connect(saveAs,SIGNAL(triggered()),this,SLOT(on_actionSave_As_triggered()));
+        connect(_exit,SIGNAL(triggered()),this,SLOT(close()));
+    
+        packProjectFiles->setEnabled(false);
+        inFromPlayList->setEnabled(false);
+        inFromMylib->setEnabled(false);
+    }
+    
+    // 编辑菜单
+    {
+        auto undo = new QAction(tr("撤销"), m_editMenu);
+        m_editMenu->addAction(undo);
+        undo->setShortcut(QKeySequence(Qt::CTRL+Qt::Key_Z));
+        
+        auto redo = new QAction(tr("重做"), m_editMenu);
+        m_editMenu->addAction(redo);
+        redo->setShortcut(QKeySequence(Qt::CTRL+Qt::Key_Y));
+        m_editMenu->addSeparator();
+        
+        auto shear = new QAction(tr("剪切"), m_editMenu);
+        m_editMenu->addAction(shear);
+        shear->setShortcut(QKeySequence(Qt::CTRL+Qt::Key_X));
+        
+        auto copy = new QAction(tr("复制"), m_editMenu);
+        m_editMenu->addAction(copy);
+        copy->setShortcut(QKeySequence(Qt::CTRL+Qt::Key_C));
+
+        auto copyAnVideoSetting =new QAction(tr("复制调整效果"),m_editMenu);
+        m_editMenu->addAction(copyAnVideoSetting);
+        copyAnVideoSetting->setShortcut(QKeySequence(Qt::CTRL+Qt::ALT+Qt::Key_C));
+
+        
+        auto paste = new QAction(tr("粘贴"), m_editMenu);
+        m_editMenu->addAction(paste);
+        paste->setShortcut(QKeySequence(Qt::CTRL+Qt::Key_V));
+
+        
+        auto pasteInsert = new QAction(tr("粘贴插入"), m_editMenu);
+        m_editMenu->addAction(pasteInsert);
+        pasteInsert->setShortcut(QKeySequence(Qt::CTRL+Qt::SHIFT+Qt::Key_V));
+
+        auto pasteAudioSetting = new QAction(tr("粘贴调整效果"),m_editMenu);
+        m_editMenu->addAction(pasteAudioSetting);
+        pasteAudioSetting->setShortcut(QKeySequence(Qt::CTRL+Qt::ALT+Qt::Key_V));
+
+
+//        auto pasteEffectAndAdjustion = new QAction(tr("粘贴效果和调整"), m_editMenu);
+//        m_editMenu->addAction(pasteEffectAndAdjustion);
+        
+        auto _delete = new QAction(tr("删除"), m_editMenu);
+        m_editMenu->addAction(_delete);
+        _delete->setShortcut(Qt::Key_Delete);
+
+        auto deleteNClearSeams = new QAction(tr("删除并消除间隙"),m_editMenu);
+        m_editMenu->addAction(deleteNClearSeams);
+        deleteNClearSeams->setShortcut(Qt::Key_Backspace);
+
+        auto _deleteAnVSetting = new QAction(tr("删除调整效果"), m_editMenu);
+        m_editMenu->addAction(_deleteAnVSetting);
+        
+        m_editMenu->addSeparator();
+        
+        auto selectAll = new QAction(tr("全选"), m_editMenu);
+        m_editMenu->addAction(selectAll);
+        selectAll->setShortcut(QKeySequence(Qt::CTRL+Qt::Key_A));
+
+        
+        auto selectNone = new QAction(tr("取消全选"), m_editMenu);
+        m_editMenu->addAction(selectNone);
+        selectNone->setShortcut(QKeySequence(Qt::CTRL+Qt::SHIFT+Qt::Key_A));
+
+        connect(undo, SIGNAL(triggered()),this,SLOT(on_actionUndo_triggered()));
+        connect(redo,SIGNAL(triggered()),this,SLOT(on_actionRedo_triggered()));
+        connect(shear,SIGNAL(triggered()),this,SLOT(on_actionCut_triggered()));
+        connect(copy,SIGNAL(triggered()),this,SLOT(on_actionCopy_triggered()));
+        connect(paste,SIGNAL(triggered()),this,SLOT(on_actionPaste_triggered()));
+    }
+    
+    // 剪辑菜单
+    {
+//        auto rename = new QAction(tr("重命名"), m_cutMenu);
+//        m_cutMenu->addAction(rename);
+        
+//        m_cutMenu->addSeparator();
+        
+        auto insert = new QAction(tr("插入"), m_cutMenu);
+        //insert->setShortcut(tr("."));
+        m_cutMenu->addAction(insert);
+        
+        auto replace = new QAction(tr("替换"), m_cutMenu);
+        //replace->setShortcut(tr(","));
+        m_cutMenu->addAction(replace);
+        
+        m_cutMenu->addSeparator();
+        
+//        auto linkAV = new QAction(tr("链接视频和音频"), m_cutMenu);
+//        m_cutMenu->addAction(linkAV);
+        
+        auto makeGroup = new QAction(tr("编组"), m_cutMenu);
+        makeGroup->setShortcut(QKeySequence(Qt::CTRL+Qt::Key_G));
+        m_cutMenu->addAction(makeGroup);
+        
+        auto cancelGroup = new QAction(tr("取消编组"), m_cutMenu);
+        cancelGroup->setShortcut(QKeySequence(Qt::CTRL+Qt::SHIFT+Qt::Key_G));
+        m_cutMenu->addAction(cancelGroup);
+
+        auto link = new QAction(tr("链接"), m_cutMenu);
+        m_cutMenu->addAction(link);
+        auto cancelLink = new QAction(tr("取消链接"), m_cutMenu);
+        m_cutMenu->addAction(cancelLink);
+
+//        auto extendTimeLine = new QAction(tr("时间线延长"), m_cutMenu);
+//        m_cutMenu->addAction(extendTimeLine);
+//        extendTimeLine->setShortcut(QKeySequence(Qt::CTRL+Qt::Key_R));
+
+//        auto replace = new QAction(tr("替换素材"), m_cutMenu);
+//        m_cutMenu->addAction(replace);
+        
+        m_cutMenu->addSeparator();
+
+
+//        auto toCutMark = new QAction(tr("转到剪辑标记"), m_cutMenu);
+//        m_cutMenu->addAction(toCutMark);
+//        //toCutMark->setShortcut(Qt::Key_G);
+//        auto clearCutMark = new QAction(tr("清除剪辑标记"), m_cutMenu);
+//        m_cutMenu->addAction(clearCutMark);
+//        //clearCutMark->setShortcut(Qt::Key_C);
+
+        
+//        auto videoEdit = new CustomMenu(m_cutMenu);
+//        videoEdit->setTitle(tr("视频编辑"));
+//        m_cutMenu->addMenu(videoEdit);
+//        auto malformScene=new QAction(tr("画面变形"),videoEdit);
+//        auto synthesisScene=new QAction(tr("影像合成"),videoEdit);
+//        auto correctScope=new QAction(tr("镜头校正"),videoEdit);
+//        auto contrast=new QAction(tr("对比度"),videoEdit);
+//        auto shadow=new QAction(tr("阴影"),videoEdit);
+//        videoEdit->addAction(malformScene);
+//        videoEdit->addAction(synthesisScene);
+//        videoEdit->addAction(correctScope);
+//        videoEdit->addAction(contrast);
+//        videoEdit->addAction(shadow);
+//        videoEdit->setStyleSheet(menuSheet+indicatorSheet+menuItemSheet+"QMenu::item{ width:70px;}");
+
+
+        
+//        auto audioEdit = new CustomMenu(m_cutMenu);
+//        audioEdit->setTitle(tr("音频编辑"));
+//        m_cutMenu->addMenu(audioEdit);
+//        auto audioAdjust=new QAction(tr("调节音频"),audioEdit);
+//        auto mute=new QAction(tr("调节音频"),audioEdit);
+//        audioEdit->addAction(audioAdjust);
+//        audioEdit->addAction(mute);
+//        audioEdit->setStyleSheet(menuSheet+indicatorSheet+menuItemSheet+"QMenu::item{ width:70px;}");
+        auto addMark=new QAction(tr("添加标记"),m_cutMenu);
+        auto toNextMark=new QAction(tr("转到下一标记"),m_cutMenu);
+        auto toPreMark=new QAction(tr("转到上一标记"),m_cutMenu);
+        auto clearSelectedMark=new QAction(tr("清除所选标记"),m_cutMenu);
+        auto clearAllMark=new QAction(tr("清除全部标记"),m_cutMenu);
+        m_cutMenu->addAction(addMark);
+        m_cutMenu->addAction(toNextMark);
+        m_cutMenu->addAction(toPreMark);
+        m_cutMenu->addAction(clearSelectedMark);
+        m_cutMenu->addAction(clearAllMark);
+
+
+        m_cutMenu->addSeparator();
+        auto mask = new CustomMenu(m_cutMenu);
+        mask->setTitle(tr("效果蒙版"));
+        m_cutMenu->addMenu(mask);
+        auto application=new QAction(tr("应用"),mask);
+        auto maskEdit=new QAction(tr("蒙版编辑"),mask);
+        auto delMask=new QAction(tr("删除蒙版"),mask);
+        mask->addAction(application);
+        mask->addAction(maskEdit);
+        mask->addAction(delMask);
+        mask->setStyleSheet(R"(
+            QMenu::item {
+                padding-top: 8px;
+                padding-right: 25px;
+                padding-bottom: 8px;
+            })" );
+        
+
+
+//        auto removeEffect = new CustomMenu(m_cutMenu);
+//        removeEffect->setTitle(tr("删除效果"));
+//        m_cutMenu->addMenu(removeEffect);
+//        auto videoEffect=new QAction(tr("视频效果"),removeEffect);
+//        auto audioEffect=new QAction(tr("音频效果"),removeEffect);
+//        auto allEffect=new QAction(tr("所有效果"),removeEffect);
+//        removeEffect->addAction(videoEffect);
+//        removeEffect->addAction(audioEffect);
+//        removeEffect->addAction(allEffect);
+//        removeEffect->setStyleSheet(menuSheet+indicatorSheet+menuItemSheet+"QMenu::item{ width:70px;}");
+
+
+        
+        m_cutMenu->addSeparator();
+        
+//        auto rhythmDetect = new QAction(tr("节拍检测"), m_cutMenu);
+//        m_cutMenu->addAction(rhythmDetect);
+        
+        // 设置时间线吸附菜单
+        auto enableTimelineSnap = new QAction(tr("启用时间线吸附"), m_cutMenu);
+        enableTimelineSnap->setCheckable(true);
+        m_cutMenu->addAction(enableTimelineSnap);
+        
+        QActionGroup* checkBoxEdit=new QActionGroup(m_cutMenu);
+        checkBoxEdit->addAction(enableTimelineSnap);
+        checkBoxEdit->setExclusive(false);
+
+
+
+
+
+
+
+    }
+    
+    // 设置菜单
+    {
+        auto projectHeader=new QAction(tr("项目"),m_settingMenu);
+        QFont settingLabelFont;
+        settingLabelFont.setFamily("Microsoft Yahei");
+        settingLabelFont.setPixelSize(16);
+        projectHeader->setFont(settingLabelFont);
+        projectHeader->setDisabled(true);
+
+        m_settingMenu->addAction(projectHeader);
+
+
+        auto projectSetting=new QAction(tr("项目设置"),m_settingMenu);
+        projectSetting->setShortcut(Qt::Key_P);
+        m_settingMenu->addAction(projectSetting);
+        m_settingMenu->addSeparator();
+
+        auto player=new QAction(tr("播放器"),m_settingMenu);
+        m_settingMenu->addAction(player);
+        player->setFont(settingLabelFont);
+        player->setDisabled(true);
+
+        QActionGroup *checkBoxes=new QActionGroup(m_settingMenu);
+        auto viewWhileFastPull=new QAction(tr("快速拖动时预览音频"),m_settingMenu);
+        auto realTimeProcess=new QAction(tr("实时处理(丢帧)"),m_settingMenu);
+        auto lineByLine=new QAction(tr("逐行"),m_settingMenu);
+        viewWhileFastPull->setCheckable(true);
+        realTimeProcess->setCheckable(true);
+        lineByLine->setCheckable(true);
+        m_settingMenu->addAction(viewWhileFastPull);
+        m_settingMenu->addAction(realTimeProcess);
+        m_settingMenu->addAction(lineByLine);
+
+        checkBoxes->addAction(viewWhileFastPull);
+        checkBoxes->addAction(realTimeProcess);
+        checkBoxes->addAction(lineByLine);
+        
+        connect(lineByLine, SIGNAL(triggered(bool)), this, SLOT(on_actionRealtime_triggered(bool)));
+        connect(realTimeProcess, SIGNAL(triggered(bool)), this, SLOT(on_actionProgressive_triggered(bool)));
+        connect(viewWhileFastPull, SIGNAL(triggered(bool)), this, SLOT(on_actionScrubAudio_triggered(bool)));
+
+        auto previewScaling=new CustomMenu;
+        previewScaling->setTitle(tr("预览缩放"));//QMenu("预览缩放",m_settingMenu);
+        auto _none=new QAction("无",previewScaling);
+        auto _360p=new QAction("360p",previewScaling);
+        auto _540p=new QAction("540p",previewScaling);
+        auto _720p=new QAction("720p",previewScaling);
+        _none->setCheckable(true);
+        _none->setChecked(true);
+        _360p->setCheckable(true);
+        _540p->setCheckable(true);
+        _720p->setCheckable(true);
+        _none->setShortcut(Qt::Key_F6);
+        _360p->setShortcut(Qt::Key_F7);
+        _540p->setShortcut(Qt::Key_F8);
+        _720p->setShortcut(Qt::Key_F9);
+        auto previewScalingActionBox= new QActionGroup(previewScaling);
+        previewScalingActionBox->addAction(_none);
+        previewScalingActionBox->addAction(_360p);
+        previewScalingActionBox->addAction(_540p);
+        previewScalingActionBox->addAction(_720p);
+        previewScalingActionBox->setExclusive(true);
+        previewScaling->addAction(_none);
+        previewScaling->addAction(_360p);
+        previewScaling->addAction(_540p);
+        previewScaling->addAction(_720p);
+
+
+        const QString previewScalItemSheet="QMenu::item{width:130px; padding:8px 10px 8px 0px;}";
+        const QString dotSheet="QMenu::indicator { padding-left:14px; padding-right:10px; width: 6px;height:6px;} QMenu::indicator:unchecked { image:url(:/icons/menu/backgrounddot.png); } QMenu::indicator:checked { image:url(:/icons/menu/whitedot.png); }";
+        previewScaling->setStyleSheet(dotSheet+R"(
+            QMenu::item {
+                padding-top: 8px;
+                padding-left: 0px;
+                padding-right: 25px;
+                padding-bottom: 8px;
+            })");//previewScalItemSheet);
+
+
+        auto proxy=new CustomMenu;
+        proxy->setTitle(tr("代理"));//QMenu("代理",m_settingMenu);
+        auto useProxy=new QAction(tr("使用代理"),proxy);
+        auto useHardwareEncoder=new QAction(tr("使用硬件编码器"),proxy);
+        useProxy->setCheckable(true);
+        useHardwareEncoder->setCheckable(true);
+        auto proxyActionGroup=new QActionGroup(proxy);
+        proxyActionGroup->addAction(useProxy);
+        proxyActionGroup->addAction(useHardwareEncoder);
+        proxyActionGroup->setExclusive(false);
+        auto storage=new  CustomMenu;
+        storage->setTitle(tr("Storage"));//QMenu(tr("Storage"),proxy);
+        auto _setting=new QAction(tr("设定..."),storage);
+        auto _display=new QAction(tr("显示..."),storage);
+        auto useProjFolder=new QAction("Use Project Folder", storage);
+        useProjFolder->setCheckable(true);
+        auto storageActionGroup=new QActionGroup(storage);
+        storageActionGroup->addAction(useProjFolder);
+        storageActionGroup->setExclusive(false);
+        storage->addAction(_setting);
+        storage->addAction(_display);
+        storage->addAction(useProjFolder);
+        const QString storageItemSheet="QMenu::item{ width:100px;}";
+        storage->setStyleSheet(storageItemSheet+ R"(
+            QMenu::item {
+                padding-top: 8px;
+                padding-left: 0px;
+                padding-right: 25px;
+                padding-bottom: 8px;
+            })" );
+
+
+
+        auto configHardwareEncoder=new QAction(tr("配置硬件编码器..."),proxy);
+        proxy->addAction(useProxy);
+        proxy->addMenu(storage);
+        proxy->addAction(useHardwareEncoder);
+        proxy->addAction(configHardwareEncoder);
+        useProxy->setShortcut(Qt::Key_F4);
+        const QString proxyItemSheet="QMenu::item{width:100px;}";
+        const QString proxymenuItemSheet="QMenu::item{padding:8px 27px;} QMenu::item:non-exclusive{padding:8px 10px 8px 0px;} QMenu::item:selected {background-color: #7781F4;}";
+        proxy->setStyleSheet(proxymenuItemSheet+ R"(
+            QMenu::item {
+                padding-top: 8px;
+                padding-right: 25px;
+                padding-bottom: 8px;
+            })" );//proxyItemSheet);
+
+
+        auto antiAliasing=new CustomMenu;
+        antiAliasing->setTitle(tr("反交错"));//QMenu("反交错",m_settingMenu);
+        auto singleScene=new QAction(tr("仅用单场(快速)"),antiAliasing);
+        auto linearCombination=new QAction(tr("线性混合（快速）"),antiAliasing);
+        singleScene->setCheckable(true);
+        singleScene->setChecked(true);
+        linearCombination->setCheckable(true);
+        auto antiAliasingActionBox=new QActionGroup(antiAliasing);
+        antiAliasingActionBox->addAction(singleScene);
+        antiAliasingActionBox->addAction(linearCombination);
+        antiAliasing->addAction(singleScene);
+        antiAliasing->addAction(linearCombination);
+        antiAliasing->setStyleSheet(dotSheet+ R"(
+            QMenu::item {
+                padding-top: 8px;
+                padding-left: 0px;
+                padding-right: 25px;
+                padding-bottom: 8px;
+            })" );//previewScalItemSheet);
+
+
+        auto insertValue=new CustomMenu;
+        insertValue->setTitle(tr("插值"));//QMenu(tr("插值"),m_settingMenu);
+        auto recentPixel=new QAction(tr("最近像素（快速）"),insertValue);
+        auto biLinear=new QAction(tr("双线性（良好）"),insertValue);
+        auto biCube=new QAction(tr("双立方（更佳）"),insertValue);
+        auto hyper_Lanczos=new QAction(tr("Hyper/Lanczos(最佳)"),insertValue);
+        hyper_Lanczos->setCheckable(true);
+        recentPixel->setCheckable(true);
+        recentPixel->setChecked(true);
+        biLinear->setCheckable(true);
+        biCube->setCheckable(true);
+        auto insertValueActionGroup=new QActionGroup(insertValue);
+        insertValueActionGroup->addAction(recentPixel);
+        insertValueActionGroup->addAction(biLinear);
+        insertValueActionGroup->addAction(biCube);
+        insertValueActionGroup->addAction(hyper_Lanczos);
+        insertValueActionGroup->setExclusive(true);
+        insertValue->addAction(recentPixel);
+        insertValue->addAction(biLinear);
+        insertValue->addAction(biCube);
+        insertValue->addAction(hyper_Lanczos);
+        insertValue->setStyleSheet(dotSheet+ R"(
+            QMenu::item {
+                padding-top: 8px;
+                padding-left: 0px;
+                padding-right: 25px;
+                padding-bottom: 8px;
+            })" );//"QMenu::item{padding:8px 10px 8px 0px;}");
+
+
+
+        auto sync=new QAction("Synchronization...",m_settingMenu);
+        m_settingMenu->addMenu(previewScaling);
+        m_settingMenu->addMenu(proxy);
+        m_settingMenu->addMenu(antiAliasing);
+        m_settingMenu->addMenu(insertValue);
+        m_settingMenu->addAction(sync);
+        m_settingMenu->addSeparator();
+
+
+
+        auto userInterface=new QAction(tr("用户界面"),m_settingMenu);
+        m_settingMenu->addAction(userInterface);
+        userInterface->setFont(settingLabelFont);
+        userInterface->setDisabled(true);
+        auto lang=new QMenu("语言",m_settingMenu);
+        auto theme=new CustomMenu;
+        theme->setTitle(tr("主题"));//QMenu("主题",m_settingMenu);
+
+        auto _system=new QAction(tr("系统"),theme);
+        auto fusionDark=new QAction("Fusion Dark",theme);
+        auto fusionLight=new QAction("Fusion Light",theme);
+        _system->setCheckable(true);
+        _system->setChecked(true);
+        fusionDark->setCheckable(true);
+        fusionLight->setCheckable(true);
+        auto themeActionGroup=new QActionGroup(theme);
+        themeActionGroup->addAction(_system);
+        themeActionGroup->addAction(fusionDark);
+        themeActionGroup->addAction(fusionLight);
+        themeActionGroup->setExclusive(true);
+        theme->addAction(_system);
+        theme->addAction(fusionDark);
+        theme->addAction(fusionLight);
+        theme->setStyleSheet(dotSheet+ R"(
+            QMenu::item {
+                padding-top: 8px;
+                padding-left: 0px;
+                padding-right: 25px;
+                padding-bottom: 8px;
+            })" );//previewScalItemSheet);
+
+
+#if !defined(Q_OS_MAC)
+    auto displayMethod  = new CustomMenu;
+    displayMethod->setTitle(tr("显示方式"));
+    auto displayMethodActionGroup = new QActionGroup(displayMethod);
+    
+    if (true) {    
+#if defined(Q_OS_WIN)
+        auto automation     = new QAction(tr("自动"), displayMethod);
+        auto directX        = new QAction("DirectX(ANGLE)", displayMethod);
+        
+        automation->setCheckable(true);
+        automation->setData(0);
+        directX->setCheckable(true);
+        directX->setData(Qt::AA_UseOpenGLES);
+        
+        displayMethodActionGroup->addAction(automation);
+        displayMethodActionGroup->addAction(directX);
+#endif
+        auto openGl         = new QAction("OpenGL", displayMethod);
+        auto _software      = new QAction(tr("软件(Mesa)"), displayMethod);
+        
+        openGl->setCheckable(true);
+        openGl->setData(Qt::AA_UseDesktopOpenGL);
+        _software->setCheckable(true);
+        _software->setData(Qt::AA_UseSoftwareOpenGL);
+        
+        displayMethodActionGroup->addAction(openGl);
+        displayMethodActionGroup->addAction(_software);
+        
+        displayMethodActionGroup->setExclusive(true);
+        displayMethod->addActions(displayMethodActionGroup->actions());
+        displayMethod->setStyleSheet(dotSheet + R"(
+            QMenu::item {
+                padding-top: 8px;
+                padding-left: 0px;
+                padding-right: 25px;
+                padding-bottom: 8px;
+            })" );
+        connect(displayMethodActionGroup, SIGNAL(triggered(QAction *)), this,
+                SLOT(onDrawingMethodTriggered(QAction *)));
+
+    }
+    
+// DO NOTHING IN MACOS
+#endif
+        
+        
+
+        auto programDataDir = new CustomMenu;
+        programDataDir->setTitle(tr("程序数据目录"));//QMenu("程序数据目录",m_settingMenu);
+        auto __setting = new QAction(tr("设定..."),programDataDir);
+        auto __display = new QAction(tr("显示..."),programDataDir);
+        programDataDir->addAction(__setting);
+        programDataDir->addAction(__display);
+        programDataDir->setStyleSheet(proxymenuItemSheet+R"(
+            QMenu::item {
+                padding-top: 8px;
+                padding-right: 25px;
+                padding-bottom: 8px;
+            })" );
+
+        m_settingMenu->addMenu(lang);
+        m_settingMenu->addMenu(theme);
+        m_settingMenu->addMenu(displayMethod);
+        m_settingMenu->addMenu(programDataDir);
+
+        auto clearHistoryWhileExiting=new QAction(tr("退出时清除最近打开历史"),m_settingMenu);
+        clearHistoryWhileExiting->setCheckable(true);
+        m_settingMenu->addAction(clearHistoryWhileExiting);
+        checkBoxes->addAction(clearHistoryWhileExiting);
+        checkBoxes->setExclusive(false);
+
+
+        connect(useProxy,SIGNAL(triggered(bool)),this,SLOT(on_actionUseProxy_triggered(bool)));
+        connect(_setting,SIGNAL(triggered()),this,SLOT(on_actionProxyStorageSet_triggered()));
+        connect(_display,SIGNAL(triggered()),this,SLOT(on_actionProxyStorageShow_triggered()));
+        connect(useProjFolder,SIGNAL(triggered(bool)),this,SLOT(on_actionProxyUseProjectFolder_triggered(bool)));
+        connect(useHardwareEncoder,SIGNAL(triggered(bool)),this,SLOT(on_actionProxyUseHardware_triggered(bool)));
+        connect(configHardwareEncoder,SIGNAL(triggered()),this,SLOT(on_actionProxyConfigureHardware_triggered()));
+
+        connect(recentPixel,SIGNAL(triggered(bool)),this,SLOT(on_actionNearest_triggered(bool)));
+        connect(biLinear,SIGNAL(triggered(bool)),this,SLOT(on_actionBilinear_triggered(bool)));
+        connect(biCube,SIGNAL(triggered(bool)),this,SLOT(on_actionBicubic_triggered(bool)));
+        connect(hyper_Lanczos,SIGNAL(triggered(bool)),this,SLOT(on_actionHyper_triggered(bool)));
+
+        connect(_none,SIGNAL(triggered(bool)),this,SLOT(on_actionPreviewNone_triggered(bool)));
+        connect(_360p,SIGNAL(triggered(bool)),this,SLOT(on_actionPreview360_triggered(bool)));
+        connect(_540p,SIGNAL(triggered(bool)),this,SLOT(on_actionPreview540_triggered(bool)));
+        connect(_720p,SIGNAL(triggered(bool)),this,SLOT(on_actionPreview720_triggered(bool)));
+// departed
+//        connect(_system,SIGNAL(triggered(bool)),this,SLOT(on_actionSystemTheme_triggered(bool)));
+//        connect(fusionDark,SIGNAL(triggered(bool)),this,SLOT(on_actionFusionDark_triggered(bool)));
+//        connect(fusionLight,SIGNAL(triggered(bool)),this,SLOT(on_actionFusionLight_triggered(bool)));
+    }
+
+
+    
+    // 帮助菜单
+    {
+        auto softwareUpdate= new QAction(tr("软件升级"), m_helpMenu);
+        m_helpMenu->addAction(softwareUpdate);
+        auto snoobGuide= new QAction(tr("新手教程"),m_helpMenu);
+        m_helpMenu->addAction(snoobGuide);
+        auto userBBS= new QAction(tr("用户论坛"),m_helpMenu);
+        m_helpMenu->addAction(userBBS);
+        auto feedBack = new QAction(tr("反馈"),m_helpMenu);
+        m_helpMenu->addAction(feedBack);
+        m_helpMenu->addSeparator();
+        auto about = new QAction(tr("关于"), m_helpMenu);
+        m_helpMenu->addAction(about);
+
+        connect(softwareUpdate,SIGNAL(triggered()),this,SLOT(on_actionUpgrade_triggered()));
+        connect(snoobGuide,SIGNAL(triggered()),this,SLOT(on_actionTutorials_triggered()));
+        connect(userBBS,SIGNAL(triggered()),this,SLOT(on_actionForum_triggered()));
+        connect(about,SIGNAL(triggered()),this,SLOT(on_actionAbout_Shotcut_triggered()));
+
+    }
+    
+}
+
+bool MainWindow::eventFilter(QObject* tgt, QEvent* e) {
+    switch(e->type()) {
+    case QEvent::MouseMove:
+    case QEvent::HoverMove:
+    case QEvent::MouseButtonRelease:
+    case QEvent::MouseButtonDblClick:
+    case QEvent::Leave: {
+        if (tgt == menuBar()) {
+            m_framelessHelper->exportedEventFilter(this, e);
+        }
+    }; return false;
+        
+    case QEvent::MouseButtonPress: {
+        if (tgt == menuBar()) {
+            auto mbpe = dynamic_cast<QMouseEvent*>(e);
+            if (mbpe->pos().x() > 450 || mbpe->pos().x() <= 110) {
+                m_framelessHelper->exportedEventFilter(this, e);
+            }
+        }
+    }; return false;
+        
+    // prevent displaying menubar contextmenu
+    case QEvent::ContextMenu: {
+        if (tgt == menuBar()) {
+            return true;
+        }
+    }; return false;
+        
+    default:
+        return false;
+    }
+    return QWidget::eventFilter(tgt, e);
+}
+
+void MainWindow::resizeEvent(QResizeEvent*) {
+    m_windCtrlBtnFrame->move(width() - m_windCtrlBtnFrame->width(), 0);
 }
 
 #ifdef DEBUG_MAINW
