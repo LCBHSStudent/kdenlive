@@ -275,20 +275,23 @@ bool ProjectManager::closeCurrentDocument(bool saveChanges, bool quit)
             pCore->bin()->abortOperations();
         }
     }
-    pCore->window()->getMainTimeline()->controller()->prepareClose();
-    pCore->bin()->cleanDocument();
+    pCore->window()->getMainTimeline()->unsetModel();
     pCore->window()->resetSubtitles();
     if (m_mainTimelineModel) {
         m_mainTimelineModel->prepareClose();
     }
+    pCore->bin()->cleanDocument();
+
     if (!quit && !qApp->isSavingSession()) {
         if (m_project) {
-            pCore->monitorManager()->clipMonitor()->slotOpenClip(nullptr);
             emit pCore->window()->clearAssetPanel();
+            pCore->monitorManager()->clipMonitor()->slotOpenClip(nullptr);
             delete m_project;
             m_project = nullptr;
         }
     }
+    pCore->mixer()->unsetModel();
+    // Release model shared pointers
     m_mainTimelineModel.reset();
     return true;
 }
@@ -777,7 +780,7 @@ void ProjectManager::disableBinEffects(bool disable, bool refreshMonitor)
 {
     if (m_project) {
         if (disable) {
-            m_project->setDocumentProperty(QStringLiteral("disablebineffects"), QString::number(true));
+            m_project->setDocumentProperty(QStringLiteral("disablebineffects"), QString::number(1));
         } else {
             m_project->setDocumentProperty(QStringLiteral("disablebineffects"), QString());
         }
