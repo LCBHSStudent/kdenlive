@@ -37,6 +37,12 @@ void CustomToolTip::showToolTip(const QString& text, int x, int y) {
             s_instance->m_targetX = x;
             s_instance->m_targetY = y;
             
+            static auto pW = pCore->window();
+            s_instance->move(
+                qBound(pW->x(), x, pW->x() + pW->width() - s_instance->width()),
+                qBound(pW->y(), y, pW->y() + pW->height() - s_instance->height())
+            );
+            
             s_instance->setText(text);
             s_instance->hide();
             s_instance->show();
