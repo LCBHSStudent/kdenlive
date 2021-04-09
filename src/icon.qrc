@@ -73,13 +73,11 @@
         <file alias="/controllers/btn_favorite_checked.png">../data/icon/controllers/btn_favorite_checked.png</file>
         <file alias="/controllers/btn_favorite_unchecked.png">../data/icon/controllers/btn_favorite_unchecked.png</file>
         <file alias="/controllers/btn_go_back.png">../data/icon/controllers/btn_go_back.png</file>
-        <file alias="/controllers/btn_history_operation.png">../data/icon/controllers/btn_history_operation.png</file>
         <file alias="/controllers/btn_horizontal_rotate.png">../data/icon/controllers/btn_horizontal_rotate.png</file>
         <file alias="/controllers/btn_login_phone.png">../data/icon/controllers/btn_login_phone.png</file>
         <file alias="/controllers/btn_login_qq.png">../data/icon/controllers/btn_login_qq.png</file>
         <file alias="/controllers/btn_login_wechat.png">../data/icon/controllers/btn_login_wechat.png</file>
         <file alias="/controllers/btn_login_weibo.png">../data/icon/controllers/btn_login_weibo.png</file>
-        <file alias="/controllers/btn_mession.png">../data/icon/controllers/btn_mession.png</file>
         <file alias="/controllers/btn_reset.png">../data/icon/controllers/btn_reset.png</file>
         <file alias="/controllers/btn_spin_down.png">../data/icon/controllers/btn_spin_down.png</file>
         <file alias="/controllers/btn_spin_up.png">../data/icon/controllers/btn_spin_up.png</file>
@@ -114,7 +112,9 @@
         <file alias="/controllers/window_close.png">../data/icon/controllers/window_close.png</file>
         <file alias="/controllers/window_maximum.png">../data/icon/controllers/window_maximum.png</file>
         <file alias="/controllers/window_minimum.png">../data/icon/controllers/window_minimum.png</file>
-        <file alias="controllers/btn_add_22.png">../data/icon/controllers/btn_add_22.png</file>
-        <file alias="controllers/btn_remove_22.png">../data/icon/controllers/btn_remove_22.png</file>
+        <file alias="/controllers/btn_add_22.png">../data/icon/controllers/btn_add_22.png</file>
+        <file alias="/controllers/btn_remove_22.png">../data/icon/controllers/btn_remove_22.png</file>
+        <file alias="/controllers/btn_mession_view.png">../data/icon/controllers/btn_mession_view.png</file>
+        <file alias="/controllers/btn_undo_view.png">../data/icon/controllers/btn_undo_view.png</file>
     </qresource>
 </RCC>
