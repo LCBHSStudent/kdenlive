@@ -61,6 +61,7 @@ class TimelineContainer;
 class Transition;
 class CustomMenu;
 class FramelessHelper;
+class ProjectMonitorFrame;
 
 class MltErrorEvent : public QEvent
 {
@@ -180,6 +181,8 @@ private:
     Monitor *m_clipMonitor{nullptr};
 
     Monitor *m_projectMonitor{nullptr};
+    
+    ProjectMonitorFrame* m_projectMonitorFrame = nullptr;
 
     AudioGraphSpectrum *m_audioSpectrum;
 

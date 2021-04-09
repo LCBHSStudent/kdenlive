@@ -76,6 +76,8 @@
 #include "widgets/custommenu.h"
 #include "widgets/customtooltip.h"
 #include "widgets/topnavigationbar.h"
+#include "widgets/customeditortoolbar.h"
+#include "widgets/projectmonitorframe.h"
 #include <config-kdenlive.h>
 #include "dialogs/textbasededit.h"
 #include "project/dialogs/temporarydata.h"
@@ -179,6 +181,8 @@ MainWindow::MainWindow(QWidget *parent)
 
 void MainWindow::init(const QString &mltPath)
 {
+    setMinimumWidth(1024);
+    
     QString desktopStyle = QApplication::style()->objectName();
     // Load themes
     auto themeManager = new ThemeManager(actionCollection());
@@ -269,52 +273,26 @@ void MainWindow::init(const QString &mltPath)
     setDockOptions(dockOptions() | QMainWindow::GroupedDragging);
     setTabPosition(Qt::AllDockWidgetAreas, QTabWidget::TabPosition(KdenliveSettings::tabposition()));
     m_timelineToolBar = toolBar(QStringLiteral("timelineToolBar"));
+    
+    
     m_timelineToolBarContainer = new TimelineContainer(this);
     auto *ctnLay = new QVBoxLayout;
     ctnLay->setSpacing(0);
     ctnLay->setContentsMargins(0, 0, 0, 0);
     m_timelineToolBarContainer->setLayout(ctnLay);
     
-    // setup centralWidget
-    QWidget
+    // setup centralWidget toolbar
+    auto __toolBar = new CustomEditorToolBar(m_timelineToolBarContainer);
+    {
+        
+    }
+    ctnLay->addWidget(__toolBar);
     
-    
-    
-    
-    
-    
-    
-    
-    
-    QFrame *topFrame = new QFrame(this);
-    topFrame->setFrameShape(QFrame::HLine);
-    topFrame->setFixedHeight(1);
-    topFrame->setLineWidth(1);
-    connect(this, &MainWindow::focusTimeline, this, [topFrame](bool focus, bool highlight) {
-        if (focus) {
-            KColorScheme scheme(QApplication::palette().currentColorGroup(), KColorScheme::Tooltip);
-            if (highlight) {
-                QColor col = scheme.decoration(KColorScheme::HoverColor).color();
-                topFrame->setStyleSheet(QString("QFrame {border: 1px solid rgba(%1,%2,%3,70)}").arg(col.red()).arg(col.green()).arg(col.blue()));
-            } else {
-                QColor col = scheme.decoration(KColorScheme::FocusColor).color();
-                topFrame->setStyleSheet(QString("QFrame {border: 1px solid rgba(%1,%2,%3,100)}").arg(col.red()).arg(col.green()).arg(col.blue()));
-            }
-        } else {
-            topFrame->setStyleSheet(QString());
-        }
-    });
-    ctnLay->addWidget(topFrame);
-    ctnLay->addWidget(m_timelineToolBar);
     KSharedConfigPtr config = KSharedConfig::openConfig();
     KConfigGroup mainConfig(config, QStringLiteral("MainWindow"));
     KConfigGroup tbGroup(&mainConfig, QStringLiteral("Toolbar timelineToolBar"));
     m_timelineToolBar->applySettings(tbGroup);
-    QFrame *fr = new QFrame(this);
-    fr->setFrameShape(QFrame::HLine);
-    fr->setMaximumHeight(1);
-    fr->setLineWidth(1);
-    ctnLay->addWidget(fr);
+
     setupActions();
     auto *layoutManager = new LayoutManagement(this);
 
@@ -351,13 +329,17 @@ void MainWindow::init(const QString &mltPath)
         QPoint inOut = getMainTimeline()->controller()->selectionInOut();
         m_projectMonitor->slotLoopClip(inOut);
     });
-    m_projectMonitor->hide();
+    m_projectMonitorFrame = new ProjectMonitorFrame(m_projectMonitor, this);
+    
+    ctnLay->addWidget(m_projectMonitorFrame);
+    ctnLay->addWidget(m_timelineToolBar);
 
     pCore->monitorManager()->initMonitors(m_clipMonitor, m_projectMonitor);
     connect(m_clipMonitor, &Monitor::addMasterEffect, pCore->bin(), &Bin::slotAddEffect);
 
     m_timelineTabs = new TimelineTabs(this);
     ctnLay->addWidget(m_timelineTabs);
+    __toolBar->raise();
     setCentralWidget(m_timelineToolBarContainer);
 
     // Screen grab widget
@@ -5184,6 +5166,8 @@ bool MainWindow::eventFilter(QObject* tgt, QEvent* e) {
     }
     return QWidget::eventFilter(tgt, e);
 }
+
+constexpr auto __projectMonitorResizeFactor = 0.54403125f;
 
 void MainWindow::resizeEvent(QResizeEvent*) {
     m_windCtrlBtnFrame->move(width() - m_windCtrlBtnFrame->width(), 0);

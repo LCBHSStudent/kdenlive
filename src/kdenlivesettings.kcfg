@@ -415,7 +415,7 @@
 
     <entry name="window_background" type="Color">
       <label>Background color for OpenGL monitor.</label>
-      <default>#000000</default>
+      <default>#292833</default>
     </entry>
 
     <entry name="volume" type="Int">

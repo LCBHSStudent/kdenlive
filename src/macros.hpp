@@ -97,7 +97,9 @@ reading a Read-protected property. In that case, we try to write lock it first (
 #endif
 
 #if defined(__LOG_DEBUG)
+#include <QDebug>
     #define LOG_DEBUG() (qDebug() << "[LOG]" << "in file: {" << __FILE__ << "} line:" << __LINE__ << "<" << __PRETTY_FUNCTION__ << ">:\n\t")
 #else
-    #define LOG_DEBUG() if (false) (std::cout)
+#include <QDebug>
+    #define LOG_DEBUG() if (false) (qDebug)
 #endif
