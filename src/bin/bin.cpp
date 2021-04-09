@@ -1986,6 +1986,7 @@ void Bin::selectClipById(const QString &clipId, int frame, const QPoint &zone, b
     if (activateMonitor) {
         if (frame > -1) {
             m_monitor->slotSeek(frame);
+            m_monitor->refreshMonitorIfActive();
         } else {
             m_monitor->slotActivateMonitor();
         }
@@ -3007,7 +3008,10 @@ void Bin::doDisplayMessage(const QString &text, KMessageWidget::MessageType type
 void Bin::refreshClip(const QString &id)
 {
     if (m_monitor->activeClipId() == id) {
-        m_monitor->refreshMonitorIfActive();
+        if (pCore->monitorManager()->clipMonitorVisible()) {
+            m_monitor->slotActivateMonitor();
+        }
+        m_monitor->refreshMonitorIfActive(true);
     }
 }
 

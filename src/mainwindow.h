@@ -328,6 +328,8 @@ public slots:
     void slotDownloadResources();
     void slotEditSubtitle(QMap<QString, QString> subProperties = {});
     void slotTranscode(const QStringList &urls = QStringList());
+    /** @brief Add subtitle clip to timeline */
+    void slotAddSubtitle(const QString &text = QString());
 
 private slots:
     /** @brief Shows the shortcut dialog. */
@@ -541,8 +543,6 @@ private slots:
     void slotActivateVideoTrackSequence();
     /** @brief Select target for current track */
     void slotActivateTarget();
-    /** @brief Add subtitle clip to timeline */
-    void slotAddSubtitle();
     /** @brief Enable/disable subtitle track */
     void slotDisableSubtitle();
     /** @brief Lock / unlock subtitle track */
