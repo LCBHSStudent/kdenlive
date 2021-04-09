@@ -26,7 +26,7 @@ public:
  
  
 int CursorPosCalculator::m_nBorderWidth = 4;
-int CursorPosCalculator::m_nTitleHeight = 50;
+int CursorPosCalculator::m_nTitleHeight = 42;
  
 /***** CursorPosCalculator *****/
 CursorPosCalculator::CursorPosCalculator() {

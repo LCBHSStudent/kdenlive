@@ -47,7 +47,7 @@ private slots:
 
 private:
     NotesWidget *m_widget;
-    QDockWidget *m_notesDock;
+    QWidget *m_container;
     QToolBar *m_tb;
 };
 

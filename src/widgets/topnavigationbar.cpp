@@ -5,12 +5,14 @@
 
 #include "macros.hpp"
 
+constexpr auto __menuBarHeight = 42;
+
 TopNavigationBar::TopNavigationBar(QWidget* parent)
     : QLabel(parent)
     , m_currentTab(EDITOR)
 {
     setAttribute(Qt::WA_TranslucentBackground);
-    setFixedSize(300, 49);
+    setFixedSize(300, __menuBarHeight - 1);
     connect(this, &TopNavigationBar::tabChanged, this, &TopNavigationBar::onTabChanged);
     
     m_editorPix     = new QPixmap(":/classic/components/headerbar_mode_edit.png");

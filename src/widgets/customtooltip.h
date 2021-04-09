@@ -17,12 +17,12 @@ public:
 	inline static const char defaultQSS[] = R"(
         QLabel {
             padding-left: 6px;
-            padding-top: 0px;
+            padding-top: 2px;
             padding-right: 6px;
-            padding-bottom: 1px;
-            font-size: 14px; 
+            padding-bottom: 3px;
+            font-size: 12px; 
             font-family: 'Microsoft YaHei';    
-            color: "#FFFFFF"
+            color: "#CCFFFFFF"
         }
 	)";
 	

@@ -310,10 +310,11 @@ void ScopeManager::createScopes()
 
 template <class T> void ScopeManager::createScopeDock(T *scopeWidget, const QString &title, const QString &name)
 {
-    QDockWidget *dock = pCore->window()->addDock(title, name, scopeWidget);
-    addScope(scopeWidget, dock);
+//    QDockWidget *dock = pCore->window()->addDock(title, name, scopeWidget);
+//    addScope(scopeWidget, dock);
 
     // close for initial layout
     // actual state will be restored by session management
-    dock->close();
+//    dock->close();
+    scopeWidget->hide();
 }

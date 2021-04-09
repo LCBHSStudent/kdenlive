@@ -29,7 +29,7 @@ the Free Software Foundation, either version 3 of the License, or
 #include <KXMLGUIFactory>
 #include <klocalizedstring.h>
 
-static QMap <QString, QString> translatedLayoutNames;
+static QMap<QString, QString> translatedLayoutNames = {};
 
 LayoutManagement::LayoutManagement(QObject *parent)
     : QObject(parent)

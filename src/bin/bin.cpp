@@ -1293,9 +1293,9 @@ Bin::~Bin()
     m_itemModel->clean();
 }
 
-QDockWidget *Bin::clipPropertiesDock()
+QWidget *Bin::clipPropertiesDock()
 {
-    return m_propertiesDock;
+    return m_propertiesPanel;
 }
 
 void Bin::abortOperations()
@@ -2524,8 +2524,8 @@ void Bin::slotSwitchClipProperties(const std::shared_ptr<ProjectClip> &clip)
     } else {
         m_propertiesPanel->setEnabled(true);
         showClipProperties(clip);
-        m_propertiesDock->show();
-        m_propertiesDock->raise();
+//        m_propertiesDock->show();
+//        m_propertiesDock->raise();
     }
     // Check if properties panel is not tabbed under Bin
     // if (!pCore->window()->isTabbedWith(m_propertiesDock, QStringLiteral("project_bin"))) {
@@ -2903,8 +2903,9 @@ void Bin::setupMenu()
     m_addButton->setPopupMode(QToolButton::MenuButtonPopup);
     m_toolbar->insertWidget(m_upAction, m_addButton);
     m_menu = new QMenu(this);
-    m_propertiesDock = pCore->window()->addDock(i18n("Clip Properties"), QStringLiteral("clip_properties"), m_propertiesPanel);
-    m_propertiesDock->close();
+//    m_propertiesDock = pCore->window()->addDock(i18n("Clip Properties"), QStringLiteral("clip_properties"), m_propertiesPanel);
+//    m_propertiesDock->close();
+    m_propertiesPanel->hide();
 }
 
 const QString Bin::getDocumentProperty(const QString &key)

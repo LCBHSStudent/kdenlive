@@ -22,7 +22,6 @@
 
 #include <QComboBox>
 #include <QDBusAbstractAdaptor>
-#include <QDockWidget>
 #include <QEvent>
 #include <QImage>
 #include <QMap>
@@ -105,16 +104,6 @@ public:
     QAction *addAction(const QString &name, const QString &text, const QObject *receiver, const char *member, const QIcon &icon = QIcon(),
                        const QKeySequence &shortcut = QKeySequence(), KActionCategory *category = nullptr);
 
-    /**
-     * @brief Adds a new dock widget to this window.
-     * @param title title of the dock widget
-     * @param objectName objectName of the dock widget (required for storing layouts)
-     * @param widget widget to use in the dock
-     * @param area area to which the dock should be added to
-     * @returns the created dock widget
-     */
-    QDockWidget *addDock(const QString &title, const QString &objectName, QWidget *widget, Qt::DockWidgetArea area = Qt::TopDockWidgetArea);
-
     QUndoGroup *m_commandStack;
     QUndoView *m_undoView;
     /** @brief holds info about whether movit is available on this system */
@@ -122,11 +111,6 @@ public:
     int m_exitCode{EXIT_SUCCESS};
     QMap<QString, KActionCategory *> kdenliveCategoryMap;
     QList<QAction *> getExtraActions(const QString &name);
-    /** @brief Returns true if docked widget is tabbed with another widget from its object name */
-    bool isTabbedWith(QDockWidget *widget, const QString &otherWidget);
-    
-    /** @brief Returns true if mixer widget is tabbed */
-    bool isMixedTabbed() const;
 
     /** @brief Returns a ptr to the main timeline widget of the project */
     TimelineWidget *getMainTimeline() const;
@@ -188,34 +172,21 @@ private:
     OtioConvertions m_otioConvertions;
     KColorSchemeManager *m_colorschemes;
 
-    QDockWidget *m_projectBinDock;
-    QDockWidget *m_effectListDock;
-    QDockWidget *m_transitionListDock;
     TransitionListWidget *m_transitionList2;
     EffectListWidget *m_effectList2;
 
     AssetPanel *m_assetPanel{nullptr};
-    QDockWidget *m_effectStackDock;
 
-    QDockWidget *m_clipMonitorDock;
     Monitor *m_clipMonitor{nullptr};
 
-    QDockWidget *m_projectMonitorDock;
     Monitor *m_projectMonitor{nullptr};
 
     AudioGraphSpectrum *m_audioSpectrum;
-
-    QDockWidget *m_undoViewDock;
-    QDockWidget *m_mixerDock;
-    QDockWidget *m_onlineResourcesDock;
 
     KSelectAction *m_timeFormatButton;
     KSelectAction *m_compositeAction;
 
     TimelineTabs *m_timelineTabs{nullptr};
-
-    /** This list holds all the scopes used in Kdenlive, allowing to manage some global settings */
-    QList<QDockWidget *> m_gfxScopesList;
 
     KActionCategory *m_effectActions;
     KActionCategory *m_transitionActions;

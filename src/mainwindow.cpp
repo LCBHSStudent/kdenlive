@@ -274,6 +274,18 @@ void MainWindow::init(const QString &mltPath)
     ctnLay->setSpacing(0);
     ctnLay->setContentsMargins(0, 0, 0, 0);
     m_timelineToolBarContainer->setLayout(ctnLay);
+    
+    // setup centralWidget
+    QWidget
+    
+    
+    
+    
+    
+    
+    
+    
+    
     QFrame *topFrame = new QFrame(this);
     topFrame->setFrameShape(QFrame::HLine);
     topFrame->setFixedHeight(1);
@@ -306,10 +318,6 @@ void MainWindow::init(const QString &mltPath)
     setupActions();
     auto *layoutManager = new LayoutManagement(this);
 
-    QDockWidget *libraryDock = addDock(i18n("Library"), QStringLiteral("library"), pCore->library());
-    QDockWidget *subtitlesDock = addDock(i18n("Subtitles"), QStringLiteral("Subtitles"), pCore->subtitleWidget());
-    QDockWidget *textEditingDock = addDock(i18n("Text Edit"), QStringLiteral("textedit"), pCore->textEditWidget());
-
     m_clipMonitor = new Monitor(Kdenlive::ClipMonitor, pCore->monitorManager(), this);
     pCore->bin()->setMonitor(m_clipMonitor);
     connect(m_clipMonitor, &Monitor::addMarker, this, &MainWindow::slotAddMarkerGuideQuickly);
@@ -322,6 +330,7 @@ void MainWindow::init(const QString &mltPath)
             getCurrentTimeline()->controller()->setTargetTracks(hasVideo, audioStreams);
         }
     );
+    m_clipMonitor->hide();
 
     // TODO deprecated, replace with Bin methods if necessary
     /*connect(m_projectList, SIGNAL(loadingIsOver()), this, SLOT(slotElapsedTime()));
@@ -342,6 +351,7 @@ void MainWindow::init(const QString &mltPath)
         QPoint inOut = getMainTimeline()->controller()->selectionInOut();
         m_projectMonitor->slotLoopClip(inOut);
     });
+    m_projectMonitor->hide();
 
     pCore->monitorManager()->initMonitors(m_clipMonitor, m_projectMonitor);
     connect(m_clipMonitor, &Monitor::addMasterEffect, pCore->bin(), &Bin::slotAddEffect);
@@ -377,45 +387,31 @@ void MainWindow::init(const QString &mltPath)
     connect(recConfig, &QAction::triggered, [&]() {
         emit pCore->showConfigDialog(4, 0);
     });
-    QDockWidget *screenGrabDock = addDock(i18n("Screen Grab"), QStringLiteral("screengrab"), grabWidget);
-
+    
     // Audio spectrum scope
     m_audioSpectrum = new AudioGraphSpectrum(pCore->monitorManager());
-    QDockWidget *spectrumDock = addDock(i18n("Audio Spectrum"), QStringLiteral("audiospectrum"), m_audioSpectrum);
-    connect(spectrumDock, &QDockWidget::visibilityChanged, this, [&](bool visible) {
-        m_audioSpectrum->dockVisible(visible);
-    });
     
     // Project bin
-    m_projectBinDock = addDock(i18n("Project Bin"), QStringLiteral("project_bin"), pCore->bin());
-    
+    // pCore->bin();
+
     // Media browser widget
-    QDockWidget* clipDockWidget = addDock(i18n("Media Browser"), QStringLiteral("bin_clip"), pCore->bin()->getWidget());
-    pCore->bin()->dockWidgetInit(clipDockWidget);
+//    QDockWidget* clipDockWidget = addDock(i18n("Media Browser"), QStringLiteral("bin_clip"), pCore->bin()->getWidget());
+//    pCore->bin()->dockWidgetInit(clipDockWidget);
 
     // Online resources widget
     auto *onlineResources = new ResourceWidget(this);
-    m_onlineResourcesDock = addDock(i18n("Online Resources"), QStringLiteral("onlineresources"), onlineResources);
+    onlineResources->hide();
     connect(onlineResources, &ResourceWidget::previewClip, [&](const QString &path, const QString &title) {
         m_clipMonitor->slotPreviewResource(path, title);
-        m_clipMonitorDock->show();
-        m_clipMonitorDock->raise();
     });
 
     connect(onlineResources, &ResourceWidget::addClip, this, &MainWindow::slotAddProjectClip);
     connect(onlineResources, &ResourceWidget::addLicenseInfo, this, &MainWindow::slotAddTextNote);
 
-    // Close library and audiospectrum and others on first run
-    screenGrabDock->close();
-    libraryDock->close();
-    subtitlesDock->close();
-    textEditingDock->close();
-    spectrumDock->close();
-    clipDockWidget->close();
-    m_onlineResourcesDock->close();
-
     m_assetPanel = new AssetPanel(this);
-    m_effectStackDock = addDock(i18n("Effect/Composition Stack"), QStringLiteral("effect_stack"), m_assetPanel);
+    m_assetPanel->hide();
+//    m_effectStackDock = addDock(i18n("Effect/Composition Stack"), QStringLiteral("effect_stack"), m_assetPanel);
+    
     connect(m_assetPanel, &AssetPanel::doSplitEffect, m_projectMonitor, &Monitor::slotSwitchCompare);
     connect(m_assetPanel, &AssetPanel::doSplitBinEffect, m_clipMonitor, &Monitor::slotSwitchCompare);
     connect(m_assetPanel, &AssetPanel::switchCurrentComposition, this, [&](int cid, const QString &compositionId) {
@@ -424,19 +420,9 @@ void MainWindow::init(const QString &mltPath)
 
     connect(m_timelineTabs, &TimelineTabs::showMixModel, m_assetPanel, &AssetPanel::showMix);
     connect(m_timelineTabs, &TimelineTabs::showTransitionModel, m_assetPanel, &AssetPanel::showTransition);
-    connect(m_timelineTabs, &TimelineTabs::showTransitionModel, this, [&] () {
-        m_effectStackDock->raise();
-    });
     connect(m_timelineTabs, &TimelineTabs::showItemEffectStack, m_assetPanel, &AssetPanel::showEffectStack);
-    connect(m_timelineTabs, &TimelineTabs::showItemEffectStack, this, [&] () {
-        m_effectStackDock->raise();
-    });
 
-    connect(m_timelineTabs, &TimelineTabs::showSubtitle, this, [&, subtitlesDock] (int id) {
-        if (id > -1) {
-            subtitlesDock->show();
-            subtitlesDock->raise();
-        }
+    connect(m_timelineTabs, &TimelineTabs::showSubtitle, this, [&] (int id) {
         pCore->subtitleWidget()->setActiveSubtitle(id);
     });
 
@@ -470,20 +456,13 @@ void MainWindow::init(const QString &mltPath)
     m_effectList2 = new EffectListWidget(this);
     connect(m_effectList2, &EffectListWidget::activateAsset, pCore->projectManager(), &ProjectManager::activateAsset);
     connect(m_assetPanel, &AssetPanel::reloadEffect, m_effectList2, &EffectListWidget::reloadCustomEffect);
-    m_effectListDock = addDock(i18n("Effects"), QStringLiteral("effect_list"), m_effectList2);
 
     m_transitionList2 = new TransitionListWidget(this);
-    m_transitionListDock = addDock(i18n("Compositions"), QStringLiteral("transition_list"), m_transitionList2);
-
-    // Add monitors here to keep them at the right of the window
-    m_clipMonitorDock = addDock(i18n("Clip Monitor"), QStringLiteral("clip_monitor"), m_clipMonitor);
-    m_projectMonitorDock = addDock(i18n("Project Monitor"), QStringLiteral("project_monitor"), m_projectMonitor);
 
     m_undoView = new QUndoView();
     m_undoView->setCleanIcon(QIcon::fromTheme(QStringLiteral("edit-clear")));
     m_undoView->setEmptyLabel(i18n("Clean"));
     m_undoView->setGroup(m_commandStack);
-    m_undoViewDock = addDock(i18n("Undo History"), QStringLiteral("undo_history"), m_undoView);
 
     // Color and icon theme stuff
     connect(m_commandStack, &QUndoGroup::cleanChanged, m_saveAction, &QAction::setDisabled);
@@ -495,32 +474,20 @@ void MainWindow::init(const QString &mltPath)
     addAction(QStringLiteral("force_icon_theme"), iconAction);
     connect(iconAction, &QAction::triggered, this, &MainWindow::forceIconSet);
 
-    m_mixerDock = addDock(i18n("Audio Mixer"), QStringLiteral("mixer"), pCore->mixer());
+    // Audio Mixer
+    // pCore->mixer()
     QAction *showMixer = new QAction(QIcon::fromTheme(QStringLiteral("view-media-equalizer")), i18n("Audio Mixer"), this);
     showMixer->setCheckable(true);
     addAction(QStringLiteral("audiomixer_button"), showMixer);
-    connect(m_mixerDock, &QDockWidget::visibilityChanged, this, [&, showMixer](bool visible) {
-        pCore->mixer()->connectMixer(visible);
-        showMixer->setChecked(visible);
-    });
+    // 连接Mixer    
+//    connect(m_mixerDock, &QDockWidget::visibilityChanged, this, [&, showMixer](bool visible) {
+//        pCore->mixer()->connectMixer(visible);
+//        showMixer->setChecked(visible);
+//    });
     connect(showMixer, &QAction::triggered, this, [&]() {
-        if (m_mixerDock->isVisible() && !m_mixerDock->visibleRegion().isEmpty()) {
-            m_mixerDock->close();
-        } else {
-            m_mixerDock->show();
-            m_mixerDock->raise();
-        }
+        
     });
 
-    // Close non-general docks for the initial layout
-    // only show important ones
-    m_undoViewDock->close();
-    m_mixerDock->close();
-
-    /// Tabify Widgets
-    tabifyDockWidget(m_clipMonitorDock, m_projectMonitorDock);
-    tabifyDockWidget(m_transitionListDock, m_effectListDock);
-    tabifyDockWidget(m_effectStackDock, pCore->bin()->clipPropertiesDock());
     bool firstRun = readOptions();
 
     // Build effects menu
@@ -604,31 +571,6 @@ void MainWindow::init(const QString &mltPath)
             }
         }
     }
-    
-    setupMenuBar();
-    
-//    int i = 0;
-//    for (auto child: menuBar()->children()) {
-//        qDebug() << child;
-//        switch(i) {
-//        case 0:
-//            qDebug() << dynamic_cast<QToolButton*>(child)->text();
-//            break;
-//        case 1:
-//            qDebug() << dynamic_cast<QWidget*>(child)->rect();
-//            break;
-//        case 2:
-//            qDebug() << dynamic_cast<QAction*>(child)->text();
-//            break;
-//        case 3:
-//            qDebug() << dynamic_cast<QMenu*>(child)->title();
-//            break;
-//        default:
-//            break;
-//        }
-
-//        i++;
-//    } 
 
     m_timelineToolBar->setToolButtonStyle(Qt::ToolButtonFollowStyle);
     m_timelineToolBar->setProperty("otherToolbar", true);
@@ -896,6 +838,8 @@ void MainWindow::init(const QString &mltPath)
         Qt::WindowTitleHint
     );
     
+    setupMenuBar();
+    
     // 设置无边框窗口辅助类
     m_framelessHelper = new FramelessHelper(this);
     m_framelessHelper->activateOn(this);                  // 激活当前窗体
@@ -904,6 +848,21 @@ void MainWindow::init(const QString &mltPath)
     
     // 设置顶端导航栏
     new TopNavigationBar(menuBar());
+    
+    // 处理由于删去dockWidget导致的widget残留显示
+
+    grabWidget->hide();
+    
+    m_undoView->hide();
+    m_effectList2->hide();
+    m_audioSpectrum->hide();    
+    m_transitionList2->hide();
+    
+    pCore->bin()->hide();
+    pCore->mixer()->hide();
+    pCore->library()->hide();
+    pCore->subtitleWidget()->hide();
+    pCore->textEditWidget()->hide();
 }
 
 void MainWindow::slotThemeChanged(const QString &name)
@@ -1379,6 +1338,7 @@ void MainWindow::setupActions()
     connect(m_zoomSlider, &QAbstractSlider::sliderMoved, this, &MainWindow::slotShowZoomSliderToolTip);
     connect(m_buttonFitZoom, &QAction::triggered, this, &MainWindow::slotFitZoom);
 
+    // timeline tool bar
     KToolBar *toolbar = new KToolBar(QStringLiteral("statusToolBar"), this, Qt::BottomToolBarArea);
     toolbar->setMovable(false);
     toolbar->setToolButtonStyle(Qt::ToolButtonIconOnly);
@@ -2478,8 +2438,6 @@ void MainWindow::connectDocument()
     setTrimMode(QString());
 
     m_buttonSelectTool->setChecked(true);
-    connect(m_projectMonitorDock, &QDockWidget::visibilityChanged, m_projectMonitor, &Monitor::slotRefreshMonitor, Qt::UniqueConnection);
-    connect(m_clipMonitorDock, &QDockWidget::visibilityChanged, m_clipMonitor, &Monitor::slotRefreshMonitor, Qt::UniqueConnection);
     getMainTimeline()->focusTimeline();
 }
 
@@ -2662,10 +2620,11 @@ void MainWindow::slotDeleteItem()
     } else {
         QWidget *widget = QApplication::focusWidget();
         while ((widget != nullptr) && widget != this) {
-            if (widget == m_effectStackDock) {
-                m_assetPanel->deleteCurrentEffect();
-                return;
-            }
+//            效果栈Dock
+//            if (widget == m_effectStackDock) {
+//                m_assetPanel->deleteCurrentEffect();
+//                return;
+//            }
             if (widget == pCore->bin()->clipPropertiesDock()) {
                 emit pCore->bin()->deleteMarkers();
                 return;
@@ -3316,8 +3275,7 @@ void MainWindow::slotClipInTimeline(const QString &clipId, const QList<int> &ids
 
 void MainWindow::raiseBin()
 {
-    m_projectBinDock->setVisible(true);
-    m_projectBinDock->raise();
+    // 设置binDock的层级和可见性
 }
 
 void MainWindow::slotClipInProjectTree()
@@ -3839,13 +3797,13 @@ void MainWindow::slotMonitorRequestRenderFrame(bool request)
         m_projectMonitor->sendFrameForAnalysis(true);
         return;
     }
-    for (int i = 0; i < m_gfxScopesList.count(); ++i) {
-        if (m_gfxScopesList.at(i)->isVisible() && tabifiedDockWidgets(m_gfxScopesList.at(i)).isEmpty() &&
-            static_cast<AbstractGfxScopeWidget *>(m_gfxScopesList.at(i)->widget())->autoRefreshEnabled()) {
-            request = true;
-            break;
-        }
-    }
+//    for (int i = 0; i < m_gfxScopesList.count(); ++i) {
+//        if (m_gfxScopesList.at(i)->isVisible() && tabifiedDockWidgets(m_gfxScopesList.at(i)).isEmpty() &&
+//            static_cast<AbstractGfxScopeWidget *>(m_gfxScopesList.at(i)->widget())->autoRefreshEnabled()) {
+//            request = true;
+//            break;
+//        }
+//    }
 
 #ifdef DEBUG_MAINW
     qCDebug(KDENLIVE_LOG) << "Any scope accepting new frames? " << request;
@@ -3887,8 +3845,10 @@ void MainWindow::slotDownloadResources()
     } else {
         currentFolder = KdenliveSettings::defaultprojectfolder();
     }
-    m_onlineResourcesDock->show();
-    m_onlineResourcesDock->raise();;
+    /*  下载资源后展示在线资源dock
+        m_onlineResourcesDock->show();
+        m_onlineResourcesDock->raise();
+     */
 }
 
 void MainWindow::slotProcessImportKeyframes(GraphicsRectItem type, const QString &tag, const QString &keyframes)
@@ -3939,20 +3899,6 @@ void MainWindow::triggerKey(QKeyEvent *ev)
     }
 }
 
-QDockWidget *MainWindow::addDock(const QString &title, const QString &objectName, QWidget *widget, Qt::DockWidgetArea area)
-{
-    QDockWidget *dockWidget = new QDockWidget(title, this);
-    dockWidget->setObjectName(objectName);
-    dockWidget->setWidget(widget);
-    addDockWidget(area, dockWidget);
-    return dockWidget;
-}
-
-bool MainWindow::isMixedTabbed() const
-{
-    return !tabifiedDockWidgets(m_mixerDock).isEmpty();
-}
-
 void MainWindow::slotUpdateDockLocation(Qt::DockWidgetArea dockLocationArea)
 {
     if (dockLocationArea == Qt::NoDockWidgetArea) {
@@ -3989,13 +3935,13 @@ void MainWindow::slotChangeStyle(QAction *a)
 
 void MainWindow::raiseMonitor(bool clipMonitor)
 {
-    if (clipMonitor) {
-        m_clipMonitorDock->show();
-        m_clipMonitorDock->raise();
-    } else {
-        m_projectMonitorDock->show();
-        m_projectMonitorDock->raise();
-    }
+//    if (clipMonitor) {
+//        m_clipMonitorDock->show();
+//        m_clipMonitorDock->raise();
+//    } else {
+//        m_projectMonitorDock->show();
+//        m_projectMonitorDock->raise();
+//    }
 }
 
 void MainWindow::doChangeStyle()
@@ -4005,17 +3951,6 @@ void MainWindow::doChangeStyle()
         newStyle = defaultStyle("Classic");
     }
     QApplication::setStyle(QStyleFactory::create(newStyle));
-}
-
-bool MainWindow::isTabbedWith(QDockWidget *widget, const QString &otherWidget)
-{
-    QList<QDockWidget *> tabbed = tabifiedDockWidgets(widget);
-    for (auto tab : qAsConst(tabbed)) {
-        if (tab->objectName() == otherWidget) {
-            return true;
-        }
-    }
-    return false;
 }
 
 void MainWindow::updateDockTitleBars(bool isTopLevel)
@@ -4333,10 +4268,10 @@ void MainWindow::slotCollapse()
     } else {
         QWidget *widget = QApplication::focusWidget();
         while ((widget != nullptr) && widget != this) {
-            if (widget == m_effectStackDock) {
-                m_assetPanel->collapseCurrentEffect();
-                return;
-            }
+//            if (widget == m_effectStackDock) {
+//                m_assetPanel->collapseCurrentEffect();
+//                return;
+//            }
             widget = widget->parentWidget();
         }
 
@@ -4474,6 +4409,14 @@ void MainWindow::slotSpeechRecognition()
     getCurrentTimeline()->controller()->subtitleSpeechRecognition();
 }
 
+#define GET_KDE_ACTION(__ENUM__) \
+    actionCollection()->action(KStandardAction::name(KStandardAction::StandardAction::__ENUM__))
+
+constexpr auto __menuBarHeight = 42;
+constexpr auto __windowCtrlBtnWidth = 54;
+constexpr auto __ltLabelWidth = 118;
+constexpr auto __menuTabWidth = 48;
+
 void MainWindow::setupMenuBar() {
     menuBar()->deleteLater();
     auto menuBar = new QMenuBar(this);
@@ -4483,12 +4426,10 @@ void MainWindow::setupMenuBar() {
     };
     
     // create window controller buttons
-    {
-        const QSize btnGroupSize(162, 49);
-        
+    {   
         m_windCtrlBtnFrame  = new QFrame(this);
         m_windCtrlBtnFrame->setWindowFlag(Qt::WindowStaysOnTopHint);
-        m_windCtrlBtnFrame->setFixedSize(btnGroupSize);
+        m_windCtrlBtnFrame->setFixedSize(__windowCtrlBtnWidth * 3, __menuBarHeight - 1);
         auto frameLayout    = new QHBoxLayout(m_windCtrlBtnFrame);
         frameLayout->setContentsMargins(0, 0, 0, 0);
         frameLayout->setSpacing(0);
@@ -4497,7 +4438,7 @@ void MainWindow::setupMenuBar() {
         std::array<BtnType*, 3> ctrlBtnGroup = {};
         const char* btnQSS = R"(
             QPushButton {
-                background-color: transparent;
+                background-color: #FF2D2C39;
                 border-width: 0px;
                 border-color: transparent;
                 border-radius: 0px;
@@ -4514,8 +4455,8 @@ void MainWindow::setupMenuBar() {
             
 //            btn = new std::remove_pointer<decltype(btn)>::type(m_windCtrlBtnFrame);
             btn = new BtnType(m_windCtrlBtnFrame);
-            btn->setFixedSize(btnGroupSize.width() / 3, btnGroupSize.height());
-            btn->setIcon(QIcon(":/classic/controllers/window_"+ ctrlBtnIcons[i] +"_14x14.png"));
+            btn->setFixedSize(__windowCtrlBtnWidth, __menuBarHeight - 1);
+            btn->setIcon(QIcon(":/classic/controllers/window_"+ ctrlBtnIcons[i] +".png"));
             btn->setStyleSheet(btnQSS);
             
             frameLayout->addWidget(btn, Qt::AlignLeft | Qt::AlignTop);
@@ -4534,46 +4475,39 @@ void MainWindow::setupMenuBar() {
         m_windCtrlBtnFrame->setLayout(frameLayout);
     }
     
-    menuBar->setFixedHeight(50);
-    menuBar->setStyleSheet(R"(
+    menuBar->setFixedHeight(__menuBarHeight);
+    menuBar->setStyleSheet(QString(R"(
         QMenuBar {
-            padding-left: 110px;
+            padding-left: %1px;
             padding-right: 0px;
             padding-top: 0px;
             padding-bottom: 0px;
         }
         
         QMenuBar::item {
-            height: 50px;
-            padding-left: 20px;
-            padding-right: 20px;
-            padding-top: 16px;
-            padding-bottom: 15px;
+            padding-left: 12px;
+            padding-right: 12px;
+            padding-top: 13px;
+            padding-bottom: 12px;
 
-            font-size: 14px;
-            font-family: Microsoft Yahei;
+            font-size: 12px;
+            font-family: 'Microsoft Yahei';
         }
 
         QMenuBar::item:selected {
             background: #FF3E3D4C;
         }
-    )");
+    )").arg(__ltLabelWidth)); // .arg(__menuBarHeight));
     setMenuBar(menuBar);
     menuBar->installEventFilter(this);
-    
-    m_fileMenu      = new CustomMenu(i18n("文件"), this);
-    m_editMenu      = new CustomMenu(i18n("编辑"), this);
-    m_cutMenu       = new CustomMenu(i18n("剪辑"), this);
-    m_settingMenu   = new CustomMenu(i18n("设置"), this);
-    m_helpMenu      = new CustomMenu(i18n("帮助"), this);
     
     // create left top icon-text label
     {
         auto ltLabel = new QWidget(menuBar);
-        ltLabel->setFixedSize(110, 50);
+        ltLabel->setFixedSize(__ltLabelWidth, __menuBarHeight);
         
         auto iconLabel = new QLabel(menuBar);
-        iconLabel->setPixmap(QPixmap(":/classic/smartip_icon_22x22.png"));
+        iconLabel->setPixmap(QPixmap(":/classic/smartip_icon_14.png"));
         
         auto textLabel = new QLabel(menuBar);
         textLabel->setText(i18n("NAME"));
@@ -4582,11 +4516,18 @@ void MainWindow::setupMenuBar() {
         auto ltLabelLayout = new QHBoxLayout(ltLabel);
         ltLabelLayout->addWidget(iconLabel, Qt::AlignVCenter);
         ltLabelLayout->addWidget(textLabel, Qt::AlignVCenter);
-        ltLabelLayout->setContentsMargins(20, 0, 17, 0);
+        ltLabelLayout->setContentsMargins(24, 0, 31, 0);
         ltLabel->setLayout(ltLabelLayout);
         ltLabel->move(0, 0);
     }
-
+    
+    
+    // create custom menus
+    m_fileMenu      = new CustomMenu(i18n("文件"), this);
+    m_editMenu      = new CustomMenu(i18n("编辑"), this);
+    m_cutMenu       = new CustomMenu(i18n("剪辑"), this);
+    m_settingMenu   = new CustomMenu(i18n("设置"), this);
+    m_helpMenu      = new CustomMenu(i18n("帮助"), this);
     
     menuBar->addMenu(m_fileMenu);
     menuBar->addMenu(m_editMenu);
@@ -4597,13 +4538,9 @@ void MainWindow::setupMenuBar() {
     // add contents
     // 文件菜单
     {
-        
-        for (auto action: actionCollection()->actions()) {
-            LOG_DEBUG() << action->text() << action->icon();
-        }
-        
-        auto createNew = new QAction(tr("新建"),m_fileMenu);
+        auto createNew = GET_KDE_ACTION(New);
         createNew->setShortcut(QKeySequence(Qt::CTRL+Qt::Key_N));
+        createNew->setText(i18n("新建"));
         m_fileMenu->addAction(createNew);
         
         auto openProject = new QAction(tr("打开项目"), m_fileMenu);
@@ -4650,7 +4587,6 @@ void MainWindow::setupMenuBar() {
 //        auto saveAsBackup = new QAction(tr("存储为副本"), m_fileMenu);
 //        m_fileMenu->addAction(saveAsBackup);
 
-        connect(createNew,SIGNAL(triggered()),this,SLOT(on_actionNew_triggered()));
         connect(openProject,SIGNAL(triggered()),this,SLOT(openProject()));
         connect(save,SIGNAL(triggered()),this,SLOT(on_actionSave_triggered()));
         connect(saveAs,SIGNAL(triggered()),this,SLOT(on_actionSave_As_triggered()));
@@ -5230,7 +5166,7 @@ bool MainWindow::eventFilter(QObject* tgt, QEvent* e) {
     case QEvent::MouseButtonPress: {
         if (tgt == menuBar()) {
             auto mbpe = dynamic_cast<QMouseEvent*>(e);
-            if (mbpe->pos().x() > 450 || mbpe->pos().x() <= 110) {
+            if (mbpe->pos().x() > __ltLabelWidth + __menuTabWidth * 5 || mbpe->pos().x() <= __ltLabelWidth) {
                 m_framelessHelper->exportedEventFilter(this, e);
             }
         }

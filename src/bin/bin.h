@@ -297,7 +297,7 @@ public:
     /** @brief Get usage stats for project bin. */
     void getBinStats(uint *used, uint *unused, qint64 *usedSize, qint64 *unusedSize);
     /** @brief Returns the clip properties dockwidget. */
-    QDockWidget *clipPropertiesDock();
+    QWidget *clipPropertiesDock();
     /** @brief Returns a document's cache dir. ok is set to false if folder does not exist */
     QDir getCacheDir(CacheType type, bool *ok) const;
     void rebuildProxies();
@@ -475,7 +475,6 @@ private:
     /** @brief Keeps the column width info of the tree view. */
     QByteArray m_headerInfo;
     QVBoxLayout *m_layout;
-    QDockWidget *m_propertiesDock;
     QScrollArea *m_propertiesPanel;
     QSlider *m_slider;
     Monitor *m_monitor;

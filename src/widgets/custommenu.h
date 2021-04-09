@@ -3,6 +3,10 @@
 
 #include <QMenu>
 
+/**
+ * @annotatedlist check out class QProxyStyle
+ */
+
 class CustomMenu: public QMenu {
     Q_OBJECT
 public:
@@ -28,7 +32,7 @@ public:
             }
 			QMenu::icon {
                 position: absolute;
-                left: 8px;
+                left: 15px;
 			}
         )";
         inline static const QString menuSheet = R"(
@@ -47,7 +51,7 @@ public:
             }  
             QMenu{
                 font-family: 'Microsoft yahei'; 
-                font-size: 14px; 
+                font-size: 12px; 
                 background: #3E3D4C;
             }
         )";
@@ -59,10 +63,10 @@ public:
                 height: 20px;
             } 
             QMenu::indicator:unchecked { 
-                image:url(:/icons/menu/unchecked.png);
+                image:url(:/classic/controllers/checkbox_noborder_unchecked.png);
             } 
             QMenu::indicator:checked {
-                image:url(:/icons/menu/checked.png); 
+                image:url(:/classic/controllers/checkbox_noborder_checked.png); 
             }
         )"; 
     void setStyleSheet(const QString& qss);
