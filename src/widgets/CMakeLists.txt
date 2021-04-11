@@ -12,5 +12,6 @@ set(kdenlive_SRCS
   widgets/topnavigationbar.cpp
   widgets/customeditortoolbar.cpp
   widgets/projectmonitorframe.cpp
+  widgets/rstoolbar.cpp
   PARENT_SCOPE
 )
