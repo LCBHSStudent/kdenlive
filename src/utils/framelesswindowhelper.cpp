@@ -323,7 +323,13 @@ void WidgetData::handleMousePressEvent(QMouseEvent *event) {
 void WidgetData::handleMouseReleaseEvent(QMouseEvent *event) {
     if (event->button() == Qt::LeftButton) {
         m_bLeftButtonPressed = false;
-        m_bLeftButtonTitlePressed = false;
+        if (m_bLeftButtonTitlePressed && !isMax()) {
+            if (QCursor::pos().y() == 0) {
+                setMax(true);
+            }
+            m_bLeftButtonTitlePressed = false;            
+        }
+        
         m_pressedMousePos.reset();
         if (m_pRubberBand && m_pRubberBand->isVisible()) {
             m_pRubberBand->hide();
