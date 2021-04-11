@@ -174,6 +174,8 @@ static bool eventDebugCallback(void** data) {
     return false;
 }
 
+// posChange(-8, -31): 119 217 / 127 248 / 135 279 / 143 310
+
 MainWindow::MainWindow(QWidget *parent)
     : KXmlGuiWindow(parent)
 {
@@ -182,6 +184,7 @@ MainWindow::MainWindow(QWidget *parent)
 void MainWindow::init(const QString &mltPath)
 {
     setMinimumWidth(1024);
+    qApp->setStyleSheet(qApp->styleSheet() + " * { font-family: 'Microsoft Yahei'; }");
     
     QString desktopStyle = QApplication::style()->objectName();
     // Load themes
@@ -282,11 +285,19 @@ void MainWindow::init(const QString &mltPath)
     m_timelineToolBarContainer->setLayout(ctnLay);
     
     // setup centralWidget toolbar
-    auto __toolBar = new CustomEditorToolBar(m_timelineToolBarContainer);
+    m_editorToolBar = new CustomEditorToolBar(m_timelineToolBarContainer);
     {
-        
+        connect(
+            this, &MainWindow::windowTitleChanged,
+        [this] {
+            QString&& title = this->windowTitle();
+            auto index = title.indexOf('[');
+            title = title.mid(0, index);
+            
+            this->m_editorToolBar->setDocumentString(title);
+        });
     }
-    ctnLay->addWidget(__toolBar);
+    ctnLay->addWidget(m_editorToolBar);
     
     KSharedConfigPtr config = KSharedConfig::openConfig();
     KConfigGroup mainConfig(config, QStringLiteral("MainWindow"));
@@ -339,7 +350,6 @@ void MainWindow::init(const QString &mltPath)
 
     m_timelineTabs = new TimelineTabs(this);
     ctnLay->addWidget(m_timelineTabs);
-    __toolBar->raise();
     setCentralWidget(m_timelineToolBarContainer);
 
     // Screen grab widget
@@ -539,7 +549,7 @@ void MainWindow::init(const QString &mltPath)
     previewButtonAction->setDefaultWidget(timelinePreview);
     addAction(QStringLiteral("timeline_preview_button"), previewButtonAction);
 
-    setupGUI(KXmlGuiWindow::ToolBar | KXmlGuiWindow::StatusBar | KXmlGuiWindow::Save | KXmlGuiWindow::Create);
+    setupGUI(KXmlGuiWindow::ToolBar | KXmlGuiWindow::StatusBar | KXmlGuiWindow::Create);
     LocaleHandling::resetLocale();
     if (firstRun) {
         if (QScreen *current = QApplication::primaryScreen()) {
@@ -845,6 +855,22 @@ void MainWindow::init(const QString &mltPath)
     pCore->library()->hide();
     pCore->subtitleWidget()->hide();
     pCore->textEditWidget()->hide();
+    
+    // 由于隐藏标题栏导致的窗口移动
+    QTimer::singleShot(1, this, [this] {
+        auto isMax = m_mwSettings.value("isMax", false).toBool();
+        if (isMax) {
+            m_framelessHelper->setMax(this, true);
+        } else {
+            auto&& scrRect = screen()->geometry();
+            
+            auto&& rect = m_mwSettings.value(
+                "geo",
+                QRect((scrRect.width() - 1280) / 2, (scrRect.height() - 720) / 2, 1280, 720)
+            ).toRect();
+            this->setGeometry(rect);
+        }
+     });
 }
 
 void MainWindow::slotThemeChanged(const QString &name)
@@ -917,6 +943,14 @@ void MainWindow::updateActionsToolTip()
 
 MainWindow::~MainWindow()
 {
+    if (m_framelessHelper->isMax(this)) {
+        m_mwSettings.setValue("isMax", true);
+    } else {
+        m_mwSettings.setValue("isMax", false);
+        auto&& geo = geometry();
+        m_mwSettings.setValue("geo", geo);
+    }
+    
     pCore->prepareShutdown();
     delete m_timelineTabs;
     delete m_audioSpectrum;
@@ -5173,6 +5207,20 @@ constexpr auto __projectMonitorResizeFactor = 0.54403125f;
 
 void MainWindow::resizeEvent(QResizeEvent*) {
     m_windCtrlBtnFrame->move(width() - m_windCtrlBtnFrame->width(), 0);
+}
+
+void MainWindow::setWindowModified(bool isModified) {
+    QWidget::setWindowModified(isModified);
+    
+    auto&&  title = windowTitle();
+    auto    index = title.indexOf('[');
+    title = title.mid(0, index);
+    
+    if (isModified) {
+        m_editorToolBar->setDocumentString(title + " - " + i18n("已修改"));        
+    } else {
+        m_editorToolBar->setDocumentString(title);        
+    }
 }
 
 void MainWindow::slotCopyDebugInfo() {

@@ -62,6 +62,7 @@ class Transition;
 class CustomMenu;
 class FramelessHelper;
 class ProjectMonitorFrame;
+class CustomEditorToolBar;
 
 class MltErrorEvent : public QEvent
 {
@@ -143,6 +144,8 @@ public:
     void setWidgetKeyBinding(const QString &text = QString());
     /** @brief Show a key binding in status bar */
     void showKeyBinding(const QString &text = QString());
+    /** @brief Override for QWidget::setWindowModified(void) */
+    void setWindowModified(bool isModified = true);
 
 protected:
     /** @brief Closes the window.
@@ -183,6 +186,7 @@ private:
     Monitor *m_projectMonitor{nullptr};
     
     ProjectMonitorFrame* m_projectMonitorFrame = nullptr;
+    CustomEditorToolBar* m_editorToolBar = nullptr;
 
     AudioGraphSpectrum *m_audioSpectrum;
 
@@ -271,6 +275,8 @@ private:
     void doChangeStyle();
     void updateActionsToolTip();
 
+    QSettings m_mwSettings;
+    
 public slots:
     void slotReloadEffects(const QStringList &paths);
     Q_SCRIPTABLE void setRenderingProgress(const QString &url, int progress, int frame);
