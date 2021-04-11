@@ -98,7 +98,7 @@ reading a Read-protected property. In that case, we try to write lock it first (
 
 #if defined(__LOG_DEBUG)
 #include <QDebug>
-    #define LOG_DEBUG() (qDebug() << "[LOG]" << "in file: {" << __FILE__ << "} line:" << __LINE__ << "<" << __PRETTY_FUNCTION__ << ">:\n\t")
+    #define LOG_DEBUG() (qDebug().noquote().nospace() << QString::asprintf("\n[LOG] At line [%d] in file [%s]\n    Function <%s>:\n", __LINE__, __FILE__, __PRETTY_FUNCTION__))
 #else
 #include <QDebug>
     #define LOG_DEBUG() if (false) (qDebug)
