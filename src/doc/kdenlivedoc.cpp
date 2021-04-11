@@ -796,7 +796,7 @@ bool KdenliveDoc::isModified() const
 const QString KdenliveDoc::description() const
 {
     if (!m_url.isValid()) {
-        return i18n("Untitled") + QStringLiteral("[*] / ") + pCore->getCurrentProfile()->description();
+        return i18n("新项目") + QStringLiteral("[*] / ") + pCore->getCurrentProfile()->description();
     }
     return m_url.fileName() + QStringLiteral(" [*]/ ") + pCore->getCurrentProfile()->description();
 }
