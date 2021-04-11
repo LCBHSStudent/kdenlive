@@ -11,6 +11,11 @@ class CustomEditorToolBar: public QWidget {
 public:
     explicit CustomEditorToolBar(QWidget* parent = nullptr);
 
+    void 
+        setDocumentString(const QString& docStr);
+    QString 
+        documentString() const;
+    
 protected:
 	void resizeEvent(QResizeEvent*) override;
 	
@@ -21,10 +26,10 @@ public slots:
 	void slotCloseMessionView();
 	void slotOpenProjMediaset();
 	void slotCloseProjMediaset();
-	
+    
 private:
 	QLabel* 
-		m_documentName		= nullptr;
+		m_documentStr		= nullptr;
 	
 	QPushButton* 
 		m_leadinBtn			= nullptr;

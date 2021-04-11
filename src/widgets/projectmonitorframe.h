@@ -1,11 +1,12 @@
 #ifndef PROJECTMONITORFRAME_H
 #define PROJECTMONITORFRAME_H
 
-#include <QWidget>
+#include <QFrame>
 
 class Monitor;
+class RSToolBar;
 
-class ProjectMonitorFrame: public QWidget {
+class ProjectMonitorFrame: public QFrame {
 	Q_OBJECT
 public:
     explicit ProjectMonitorFrame(Monitor* monitor, QWidget* parent = nullptr);
@@ -18,8 +19,10 @@ public slots:
 	
 private:
 	// weak_ptr
-	Monitor* m_projectMonitor = nullptr;
-	
+	Monitor*
+        m_projectMonitor = nullptr;
+	RSToolBar*
+        m_rsToolBar = nullptr;
 };
 
 #endif // PROJECTMONITORFRAME_H

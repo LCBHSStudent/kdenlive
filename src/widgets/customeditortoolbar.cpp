@@ -5,6 +5,8 @@
 #include <QPushButton>
 #include <QLabel>
 
+#include "macros.hpp"
+
 CustomEditorToolBar::CustomEditorToolBar(QWidget* parent)
     : QWidget(parent)
 {
@@ -27,28 +29,60 @@ CustomEditorToolBar::CustomEditorToolBar(QWidget* parent)
         QPushButton::hover {
             background-color: #FF3E3D4C;
         }
+        QPushButton::checked {
+            background-color: #FF7781F4;
+        }
     )";
     
-    m_undoViewBtn->setIcon(QIcon(":/classic/controllers/btn_undo_view.png"));
-    m_undoViewBtn->setIconSize(m_undoViewBtn->size());
-    m_undoViewBtn->setStyleSheet(btnQSS);
-    m_messionViewBtn->setIcon(QIcon(":/classic/controllers/btn_mession_view.png"));
-    m_messionViewBtn->setIconSize(m_messionViewBtn->size());
-    m_messionViewBtn->setStyleSheet(btnQSS);
+    std::array<QString, 2> iconName = {
+        "btn_undo_view", "btn_mession_view"
+    };
+    int i = 0;
     
-    m_documentName = new QLabel(this);
-    m_documentName->setText("文件名称");
+    for (auto button: {m_undoViewBtn, m_messionViewBtn}) {
+        button->setIcon(QIcon(":/classic/controllers/" + iconName[i] + ".png"));
+        button->setIconSize(button->size());
+        button->setStyleSheet(btnQSS);
+        button->setCheckable(true);
+        
+        i++;
+    }
     
+    m_documentStr = new QLabel(this);
+    m_documentStr->setStyleSheet(R"(
+        QLabel {
+            padding-top: 12px;
+            padding-bottom: 12px;
+            font-size: 12px;
+            color: #99FFFFFF;
+        }
+    )");
 }
+
+#define MOVE_DOCSTR_LABEL                                                                           \
+    m_documentStr->move(                                                                            \
+        (width()  - m_documentStr->width()) / 2,                                                    \
+        (height() - m_documentStr->height()) / 2)                                                   \
 
 void CustomEditorToolBar::resizeEvent(QResizeEvent*) {
     m_messionViewBtn->move(width() - 43, 6);
-    m_undoViewBtn->move(width() - 72, 6);
-    m_documentName->move(
-        (width() - m_documentName->width()) / 2,
-        (height() - m_documentName->height()) / 2
-    );
+    m_undoViewBtn->move(width() - 82, 6);
+    
+    MOVE_DOCSTR_LABEL;
 }
+
+void CustomEditorToolBar::setDocumentString(const QString &docStr) {
+    m_documentStr->setText(docStr);
+    m_documentStr->adjustSize();
+    
+    MOVE_DOCSTR_LABEL;
+}
+
+QString CustomEditorToolBar::documentString() const {
+    return m_documentStr->text();
+}
+
+#undef MOVE_DOCSTR_LABEL
 
 void CustomEditorToolBar::slotOpenUndoView() {
     
