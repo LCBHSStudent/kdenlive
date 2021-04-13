@@ -8,7 +8,7 @@ Item {
     property int tabItemHeight: 0
     property int currentTab: noCurTab
     
-    readonly property int noCurTab: -1 
+    readonly property int noCurTab: -1
     
     Rectangle {
         id: panel
@@ -18,32 +18,10 @@ Item {
         width: parent.width + radius
         height: parent.height
         color: "#FF3E3D4C"
+        x: currentTab === noCurTab? rsBarRoot.width - tabBarWidth: 0
         
-        PropertyAnimation {
-            id: drawOpenAnimation
-            target: panel
-            property: "x"
-            from: rsBarRoot.width - tabBarWidth
-            to: 0
-            duration: 350
-            easing.type: Easing.OutQuart
-        }
-        PropertyAnimation {
-            id: drawCloseAnimation
-            target: panel
-            property: "x"
-            to: rsBarRoot.width - tabBarWidth
-            from: 0
-            duration: 350
-            easing.type: Easing.OutQuart
-        }
-    }
-    
-    onCurrentTabChanged: {
-        if (currentTab !== noCurTab) {
-            drawOpenAnimation.start()
-        } else {
-            drawCloseAnimation.start()
+        Behavior on x {
+            PropertyAnimation { duration: 350; easing.type: Easing.OutQuart }
         }
     }
     
