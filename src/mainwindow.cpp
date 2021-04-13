@@ -291,7 +291,7 @@ void MainWindow::init(const QString &mltPath)
             this, &MainWindow::windowTitleChanged,
         [this] {
             QString&& title = this->windowTitle();
-            auto index = title.indexOf('[');
+            auto index = title.lastIndexOf('[');
             title = title.mid(0, index);
             
             this->m_editorToolBar->setDocumentString(title);
@@ -5213,7 +5213,7 @@ void MainWindow::setWindowModified(bool isModified) {
     QWidget::setWindowModified(isModified);
     
     auto&&  title = windowTitle();
-    auto    index = title.indexOf('[');
+    auto    index = title.lastIndexOf('[');
     title = title.mid(0, index);
     
     if (isModified) {

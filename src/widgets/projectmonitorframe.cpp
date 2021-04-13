@@ -7,6 +7,13 @@
 #include <QPainter>
 #include <QVBoxLayout>
 #include <QQuickWidget>
+#include <QQuickItem>
+
+constexpr int __rsToolBar_fixedWidth    = 560;
+constexpr int __rsToolBar_topMargin     = 19;
+constexpr int __rsToolBar_bottomMargin  = 5;
+constexpr int __qmlTabItemHeight        = 46;
+constexpr int __qmlTabBarWidth          = 106;
 
 ProjectMonitorFrame::ProjectMonitorFrame(Monitor* monitor, QWidget* parent)
     : QFrame(parent)
@@ -23,13 +30,12 @@ ProjectMonitorFrame::ProjectMonitorFrame(Monitor* monitor, QWidget* parent)
     layout->setContentsMargins(0, 18, 0, 51);
     
     setLayout(layout);
-    m_rsToolBar->raise();
-}
-
-constexpr int __rsToolBar_fixedWidth    = 560;
-constexpr int __rsToolBar_topMargin     = 19;
-constexpr int __rsToolBar_bottomMargin  = 5;
-
+    m_projectMonitor->hide();
+    m_rsToolBar->rootObject()->setProperty("tabBarWidth", __qmlTabBarWidth);
+    m_rsToolBar->rootObject()->setProperty("tabItemHeight", __qmlTabItemHeight);
+    
+    setMinimumHeight(__qmlTabItemHeight * 8 + __rsToolBar_topMargin + __rsToolBar_bottomMargin);
+} 
 
 void ProjectMonitorFrame::resizeEvent(QResizeEvent*) {
     m_rsToolBar->resize(__rsToolBar_fixedWidth, height() - __rsToolBar_topMargin - __rsToolBar_bottomMargin);
