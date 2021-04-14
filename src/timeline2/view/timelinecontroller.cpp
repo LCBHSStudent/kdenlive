@@ -88,7 +88,6 @@ TimelineController::TimelineController(QObject *parent)
 
 TimelineController::~TimelineController()
 {
-    prepareClose();
 }
 
 void TimelineController::prepareClose()
@@ -96,6 +95,7 @@ void TimelineController::prepareClose()
     // Clear root so we don't call its methods anymore
     QObject::disconnect( m_deleteConnection );
     disconnect(this, &TimelineController::selectionChanged, this, &TimelineController::updateClipActions);
+    disconnect(m_model.get(), &TimelineModel::selectionChanged, this, &TimelineController::selectionChanged);
     disconnect(this, &TimelineController::videoTargetChanged, this, &TimelineController::updateVideoTarget);
     disconnect(this, &TimelineController::audioTargetChanged, this, &TimelineController::updateAudioTarget);
     m_ready = false;
@@ -3180,6 +3180,7 @@ void TimelineController::editTitleClip(int id)
         pCore->displayMessage(i18n("Item is not a title clip"), ErrorMessage, 500);
         return;
     }
+    seekToMouse();
     pCore->bin()->showTitleWidget(binClip);
 }
 
