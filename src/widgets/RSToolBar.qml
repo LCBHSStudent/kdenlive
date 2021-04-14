@@ -18,10 +18,16 @@ Item {
         width: parent.width + radius
         height: parent.height
         color: "#FF3E3D4C"
-        x: currentTab === noCurTab? rsBarRoot.width - tabBarWidth: 0
+        x: rsBarRoot.width - tabBarWidth
         
-        Behavior on x {
-            PropertyAnimation { duration: 350; easing.type: Easing.OutQuart }
+        PropertyAnimation {
+            id: panelAnimation
+            target: panel
+            property: "x"
+            duration: 350
+            easing.type: Easing.OutQuart
+            from: currentTab === noCurTab? 0: rsBarRoot.width - tabBarWidth
+            to: currentTab === noCurTab? rsBarRoot.width - tabBarWidth: 0
         }
     }
     
@@ -98,8 +104,10 @@ Item {
                         onClicked: {
                             if (index === currentTab) {
                                 currentTab = noCurTab
+                                panelAnimation.restart()
                             } else {
                                 currentTab = index
+                                panelAnimation.restart()
                             }
                         }
                     }
