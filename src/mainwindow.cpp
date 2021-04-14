@@ -4510,6 +4510,7 @@ void MainWindow::setupMenuBar() {
             padding-right: 0px;
             padding-top: 0px;
             padding-bottom: 0px;
+            background-color: #2D2C39;
         }
         
         QMenuBar::item {
@@ -5179,13 +5180,19 @@ void MainWindow::setupMenuBar() {
     
 }
 
-bool MainWindow::eventFilter(QObject* tgt, QEvent* e) {
+bool MainWindow::eventFilter(QObject* tgt, QEvent* e) {    
     switch(e->type()) {
-    case QEvent::MouseMove:
+    // this fixed draging window may trigger menu item
+    case QEvent::MouseMove: {
+        if (tgt == menuBar()) {
+            m_framelessHelper->exportedEventFilter(this, e);
+        }
+    } return true;
+        
     case QEvent::HoverMove:
-    case QEvent::MouseButtonRelease:
     case QEvent::MouseButtonDblClick:
-    case QEvent::Leave: {
+    case QEvent::Leave:
+    case QEvent::MouseButtonRelease:{
         if (tgt == menuBar()) {
             m_framelessHelper->exportedEventFilter(this, e);
         }
