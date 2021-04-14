@@ -44,6 +44,7 @@ public:
             } 
             QMenu {
                 font-weight:normal;
+                padding: 0px;
             } 
             QMenu::right-arrow {
                 image: url(:/classic/controllers/indicator-rightarrow.png); 
