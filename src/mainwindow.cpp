@@ -550,6 +550,16 @@ void MainWindow::init(const QString &mltPath)
     addAction(QStringLiteral("timeline_preview_button"), previewButtonAction);
 
     setupGUI(KXmlGuiWindow::ToolBar | KXmlGuiWindow::StatusBar | KXmlGuiWindow::Create);
+    // after-jobs
+    {
+        setStandardToolBarMenuEnabled(false);
+        foreach (auto innerTB, toolBars()) {
+            innerTB->hide();
+            innerTB->deleteLater();
+        }
+    }
+    
+    
     LocaleHandling::resetLocale();
     if (firstRun) {
         if (QScreen *current = QApplication::primaryScreen()) {
