@@ -44,16 +44,16 @@ Item {
 
     signal editCurrentMarker()
 
-    onDurationChanged: {
-        clipMonitorRuler.updateRuler()
-    }
+//    onDurationChanged: {
+//        clipMonitorRuler.updateRuler()
+//    }
 
-    onWidthChanged: {
-        clipMonitorRuler.updateRuler()
-    }
-    function updatePalette() {
-        clipMonitorRuler.forceRepaint()
-    }
+//    onWidthChanged: {
+//        clipMonitorRuler.updateRuler()
+//    }
+//    function updatePalette() {
+//        clipMonitorRuler.forceRepaint()
+//    }
 
     function switchOverlay() {
         if (controller.overlayType >= 5) {
