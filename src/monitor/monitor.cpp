@@ -41,6 +41,7 @@
 #include "timeline2/model/snapmodel.hpp"
 #include "transitions/transitionsrepository.hpp"
 #include "utils/thumbnailcache.hpp"
+#include "macros.hpp"
 
 #include "klocalizedstring.h"
 #include <KDualAction>
@@ -147,13 +148,13 @@ Monitor::Monitor(Kdenlive::MonitorId id, MonitorManager *manager, QWidget *paren
     glayout->setSpacing(0);
     glayout->setContentsMargins(0, 0, 0, 0);
     // Create QML OpenGL widget
-    m_glMonitor = new GLWidget(id);
+    m_glMonitor = new GLWidget(id, this);
     connect(m_glMonitor, &GLWidget::passKeyEvent, this, &Monitor::doKeyPressEvent);
     connect(m_glMonitor, &GLWidget::panView, this, &Monitor::panView);
     connect(m_glMonitor->getControllerProxy(), &MonitorProxy::requestSeek, this, &Monitor::processSeek, Qt::DirectConnection);
     connect(m_glMonitor->getControllerProxy(), &MonitorProxy::positionChanged, this, &Monitor::slotSeekPosition);
 
-    m_videoWidget = QWidget::createWindowContainer(qobject_cast<QWindow *>(m_glMonitor));
+    m_videoWidget = m_glMonitor;
     m_videoWidget->setAcceptDrops(true);
     auto *leventEater = new QuickEventEater(this);
     m_videoWidget->installEventFilter(leventEater);
@@ -166,6 +167,7 @@ Monitor::Monitor(Kdenlive::MonitorId id, MonitorManager *manager, QWidget *paren
     connect(m_qmlManager, &QmlManager::activateTrack, this, &Monitor::activateTrack);
 
     glayout->addWidget(m_videoWidget, 0, 0);
+    m_videoWidget->update();
     m_verticalScroll = new QScrollBar(Qt::Vertical);
     glayout->addWidget(m_verticalScroll, 0, 1);
     m_verticalScroll->hide();
@@ -184,8 +186,7 @@ Monitor::Monitor(Kdenlive::MonitorId id, MonitorManager *manager, QWidget *paren
     connect(m_glMonitor, &GLWidget::showContextMenu, this, &Monitor::slotShowMenu);
     connect(m_glMonitor, &GLWidget::gpuNotSupported, this, &Monitor::gpuError);
 
-    m_glWidget->setMinimumSize(QSize(320, 180));
-    layout->addWidget(m_glWidget, 10);
+    layout->addWidget(m_glWidget, 1);
     layout->addStretch();
 
     // Tool bar buttons
@@ -453,10 +454,11 @@ Monitor::Monitor(Kdenlive::MonitorId id, MonitorManager *manager, QWidget *paren
     }
 
     connect(m_timePos, SIGNAL(timeCodeEditingFinished()), this, SLOT(slotSeek()));
-    layout->addWidget(m_toolbar);
+    // layout->addWidget(m_toolbar);
     if (m_recManager) {
-        layout->addWidget(m_recManager->toolbar());
+        // layout->addWidget(m_recManager->toolbar());
     }
+    m_toolbar->hide();
 
     // Load monitor overlay qml
     loadQmlScene(MonitorSceneDefault);
@@ -476,7 +478,6 @@ Monitor::~Monitor()
 {
     delete m_audioMeterWidget;
     delete m_glMonitor;
-    delete m_videoWidget;
     delete m_glWidget;
     delete m_timePos;
 }
@@ -859,8 +860,12 @@ void Monitor::slotShowMenu(const QPoint pos)
     }
 }
 
+#include "utils/util.h"
+
 void Monitor::resizeEvent(QResizeEvent *event)
 {
+    // Util::printStackTrace();
+    
     Q_UNUSED(event)
     if (m_glMonitor->zoom() > 0.0f) {
         float horizontal = float(m_horizontalScroll->value()) / float(m_horizontalScroll->maximum());

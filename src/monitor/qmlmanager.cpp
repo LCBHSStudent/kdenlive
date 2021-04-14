@@ -25,9 +25,10 @@
 #include <QFontDatabase>
 #include <QQmlContext>
 #include <QQuickView>
+#include <QQuickWidget>
 #include <QQuickItem>
 
-QmlManager::QmlManager(QQuickView *view)
+QmlManager::QmlManager(QQuickWidget *view)
     : QObject(view)
     , m_view(view)
     , m_sceneType(MonitorSceneNone)

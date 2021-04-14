@@ -26,7 +26,7 @@
 #include <QOpenGLFramebufferObject>
 #include <QOpenGLFunctions>
 #include <QOpenGLShaderProgram>
-#include <QQuickView>
+#include <QQuickWidget>
 #include <QRect>
 #include <QSemaphore>
 #include <QThread>
@@ -62,7 +62,7 @@ using thread_function_t = void *(*)(void *);
  *    C. RGB gl texture multithreaded w/ GPU filter acceleration and no sync
  *    D. RGB gl texture multithreaded w/ GPU filter acceleration and sync
  */
-class GLWidget : public QQuickView, protected QOpenGLFunctions
+class GLWidget : public QQuickWidget, protected QOpenGLFunctions
 {
     Q_OBJECT
     Q_PROPERTY(QRect rect READ rect NOTIFY rectChanged)
@@ -75,7 +75,7 @@ public:
     friend class MonitorProxy;
     using ClientWaitSync_fp = GLenum (*)(GLsync, GLbitfield, GLuint64);
 
-    GLWidget(int id, QObject *parent = nullptr);
+    GLWidget(int id, QWidget *parent = nullptr);
     ~GLWidget() override;
 
     int requestedSeekPosition;
