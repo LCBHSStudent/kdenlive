@@ -279,10 +279,18 @@ void MainWindow::init(const QString &mltPath)
     
     
     m_timelineToolBarContainer = new TimelineContainer(this);
+    
+    
+    
     auto *ctnLay = new QVBoxLayout;
     ctnLay->setSpacing(0);
     ctnLay->setContentsMargins(0, 0, 0, 0);
     m_timelineToolBarContainer->setLayout(ctnLay);
+    
+    QSplitter* splitter = new QSplitter(this);
+    splitter->setOrientation(Qt::Vertical);
+    ctnLay->addWidget(splitter);
+    
     
     // setup centralWidget toolbar
     m_editorToolBar = new CustomEditorToolBar(m_timelineToolBarContainer);
@@ -297,7 +305,7 @@ void MainWindow::init(const QString &mltPath)
             this->m_editorToolBar->setDocumentString(title);
         });
     }
-    ctnLay->addWidget(m_editorToolBar);
+    splitter->addWidget(m_editorToolBar);
     
     KSharedConfigPtr config = KSharedConfig::openConfig();
     KConfigGroup mainConfig(config, QStringLiteral("MainWindow"));
@@ -342,15 +350,30 @@ void MainWindow::init(const QString &mltPath)
     });
     m_projectMonitorFrame = new ProjectMonitorFrame(m_projectMonitor, this);
     
-    ctnLay->addWidget(m_projectMonitorFrame);
-    ctnLay->addWidget(m_timelineToolBar);
+    splitter->addWidget(m_projectMonitorFrame);
+    
 
     pCore->monitorManager()->initMonitors(m_clipMonitor, m_projectMonitor);
     connect(m_clipMonitor, &Monitor::addMasterEffect, pCore->bin(), &Bin::slotAddEffect);
 
     m_timelineTabs = new TimelineTabs(this);
-    ctnLay->addWidget(m_timelineTabs);
+    
+    auto tabsPlusToolbar = new QWidget(this);
+    auto __plusLayout = new QVBoxLayout(tabsPlusToolbar);
+    
+    __plusLayout->addWidget(m_timelineToolBar);
+    __plusLayout->addWidget(m_timelineTabs);
+    tabsPlusToolbar->setLayout(__plusLayout);
+    
+    splitter->addWidget(tabsPlusToolbar);
     setCentralWidget(m_timelineToolBarContainer);
+    
+    // 禁用缩放窗口时的时间线自动缩放
+    splitter->setStretchFactor(1, 0);
+    splitter->setStretchFactor(2, 0);
+    splitter->setCollapsible(0, false);
+    splitter->setCollapsible(1, false);
+    splitter->setCollapsible(2, false);
 
     // Screen grab widget
     QWidget *grabWidget = new QWidget(this);

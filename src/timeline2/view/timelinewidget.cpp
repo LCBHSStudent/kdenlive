@@ -77,6 +77,8 @@ TimelineWidget::TimelineWidget(QWidget *parent)
     m_favCompositions = new QMenu(i18n("Insert a composition..."), this);
     installEventFilter(this);
     m_targetsMenu = new QMenu(this);
+    
+    setMinimumHeight(260);
 }
 
 TimelineWidget::~TimelineWidget()

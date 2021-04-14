@@ -143,7 +143,6 @@ Monitor::Monitor(Kdenlive::MonitorId id, MonitorManager *manager, QWidget *paren
     layout->setSpacing(0);
     // Create container widget
     m_glWidget = new QWidget;
-    m_glWidget->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::MinimumExpanding);
     auto *glayout = new QGridLayout(m_glWidget);
     glayout->setSpacing(0);
     glayout->setContentsMargins(0, 0, 0, 0);
@@ -408,7 +407,6 @@ Monitor::Monitor(Kdenlive::MonitorId id, MonitorManager *manager, QWidget *paren
     }
     m_audioButton->setIcon(icon);*/
 
-    setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Expanding);
     setLayout(layout);
     setMinimumHeight(200);
 
