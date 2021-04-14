@@ -205,6 +205,8 @@ if(HAVE_LINUX_INPUT_H)
     target_link_libraries(kdenliveLib media_ctrl)
 endif()
 
+target_link_libraries(kdenliveLib DbgHelp)
+
 if (BUILD_QCH)
     ecm_add_qch(
         Kdenlive_QCH
