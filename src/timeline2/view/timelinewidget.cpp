@@ -68,6 +68,7 @@ TimelineWidget::TimelineWidget(QWidget *parent)
     m_proxy = new TimelineController(this);
     connect(m_proxy, &TimelineController::zoneMoved, this, &TimelineWidget::zoneMoved);
     connect(m_proxy, &TimelineController::ungrabHack, this, &TimelineWidget::slotUngrabHack);
+    connect(m_proxy, &TimelineController::regainFocus, this, &TimelineWidget::regainFocus, Qt::DirectConnection);
     setResizeMode(QQuickWidget::SizeRootObjectToView);
     engine()->addImageProvider(QStringLiteral("thumbnail"), new ThumbnailProvider);
     setVisible(false);
@@ -460,6 +461,8 @@ void TimelineWidget::slotUngrabHack()
         QTimer::singleShot(200, this, [this]() {
             rootObject()->setProperty("mainFrame", -1);
         });
+        QPoint mousePos = mapFromGlobal(QCursor::pos());
+        QMetaObject::invokeMethod(rootObject(), "regainFocus", Qt::DirectConnection, Q_ARG(QVariant, mousePos));
     }
 }
 
@@ -517,9 +520,10 @@ bool TimelineWidget::eventFilter(QObject *object, QEvent *event)
 
 void TimelineWidget::regainFocus()
 {
+    qDebug()<<"=== REG FOCUS: "<<underMouse();
     if (underMouse() && rootObject()) {
         QPoint mousePos = mapFromGlobal(QCursor::pos());
-        QMetaObject::invokeMethod(rootObject(), "regainFocus", Q_ARG(QVariant, mousePos));
+        QMetaObject::invokeMethod(rootObject(), "regainFocus", Qt::DirectConnection, Q_ARG(QVariant, mousePos));
     }
 }
 

@@ -1750,6 +1750,10 @@ void TimelineController::adjustFade(int cid, const QString &effectId, int durati
     }
     if (duration <= 0) {
         // remove fade
+        if (initialDuration > 0) {
+            // Restore original fade duration
+            m_model->adjustEffectLength(cid, effectId, initialDuration, -1);
+        }
         m_model->removeFade(cid, effectId == QLatin1String("fadein"));
     } else {
         m_model->adjustEffectLength(cid, effectId, duration, initialDuration);
@@ -2187,8 +2191,10 @@ void TimelineController::changeItemSpeed(int clipId, double speed)
         }
         QScopedPointer<SpeedDialog> d(new SpeedDialog(QApplication::activeWindow(), std::abs(speed), duration, minSpeed, maxSpeed, speed < 0, pitchCompensate));
         if (d->exec() != QDialog::Accepted) {
+            emit regainFocus();
             return;
         }
+        emit regainFocus();
         speed = d->getValue();
         pitchCompensate = d->getPitchCompensate();
         qDebug() << "requesting speed " << speed;
@@ -3158,6 +3164,7 @@ void TimelineController::editItemDuration(int id)
             undo();
         }
     }
+    emit regainFocus();
 }
 
 void TimelineController::editTitleClip(int id)
@@ -4152,6 +4159,7 @@ void TimelineController::importSubtitle(const QString path)
         }
         subtitleModel->importSubtitle(view.subtitle_url->url().toLocalFile(), offset, true);
     }
+    emit regainFocus();
 }
 
 void TimelineController::exportSubtitle()

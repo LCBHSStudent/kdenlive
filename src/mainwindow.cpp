@@ -82,6 +82,8 @@
 #include "dialogs/textbasededit.h"
 #include "project/dialogs/temporarydata.h"
 
+#include <framework/mlt_version.h>
+
 #ifdef USE_JOGSHUTTLE
 #include "jogshuttle/jogmanager.h"
 #endif
@@ -109,6 +111,7 @@
 #include <kns3/knewstuffaction.h>
 #include <ktogglefullscreenaction.h>
 #include <kwidgetsaddons_version.h>
+#include <KRun>
 
 #include "kdenlive_debug.h"
 #include <QAction>
@@ -417,6 +420,10 @@ void MainWindow::init(const QString &mltPath)
     auto *onlineResources = new ResourceWidget(this);
     onlineResources->hide();
     connect(onlineResources, &ResourceWidget::previewClip, [&](const QString &path, const QString &title) {
+    qDebug()<<"MLT VER: "<<LIBMLT_VERSION_INT<<"; QTVER: "<<QT_VERSION_CHECK(6,26,0);
+#if LIBMLT_VERSION_INT == QT_VERSION_CHECK(6,26,0)
+        new KRun(QUrl(path), this);
+#else
         m_clipMonitor->slotPreviewResource(path, title);
     });
 
