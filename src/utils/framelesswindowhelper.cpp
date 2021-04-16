@@ -339,7 +339,11 @@ void WidgetData::handleMouseReleaseEvent(QMouseEvent *event) {
 }
  
 void WidgetData::handleMouseMoveEvent(QMouseEvent *event) {
-    if(m_bMax) {
+    if (m_bMax) {
+        if (m_bLeftButtonTitlePressed) {
+            setMax(false);
+            moveWidget(event->globalPos());
+        }
         return;
     }
     if (m_bLeftButtonPressed) {
