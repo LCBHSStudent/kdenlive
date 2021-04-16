@@ -25,6 +25,7 @@ ProjectMonitorFrame::ProjectMonitorFrame(Monitor* monitor, QWidget* parent)
     
     m_projectMonitor = monitor;
     m_projectMonitor->setParent(this);
+    m_projectMonitor->show();
     
     setStyleSheet("ProjectMonitorFrame { background-color: #292833; }");
     

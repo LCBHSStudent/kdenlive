@@ -4,6 +4,8 @@
 
 #include <QPushButton>
 #include <QLabel>
+#include <QMenu>
+#include <KLocalizedString>
 
 #include "macros.hpp"
 
@@ -52,11 +54,58 @@ CustomEditorToolBar::CustomEditorToolBar(QWidget* parent)
     m_documentStr->setStyleSheet(R"(
         QLabel {
             padding-top: 12px;
-            padding-bottom: 12px;
             font-size: 12px;
             color: #99FFFFFF;
         }
     )");
+    
+    
+    m_projMediasetBtn = new QPushButton(this);
+    m_projMediasetBtn->setFixedSize(80, 30);
+    m_projMediasetBtn->setCheckable(true);
+    m_projMediasetBtn->setText(i18n("项目资源库"));
+    m_projMediasetBtn->setStyleSheet(R"(
+        QPushButton {
+            color: #E6FFFFFF;
+            background-color: transparent;
+            font-size: 12px;
+            font-family: "Microsoft YaHei";
+        }
+
+        QPushButton:checked {
+            background-color: #3E3D4C;
+            border-radius: 5px;
+        }
+    )");
+    
+    m_leadinBtn = new QPushButton(this);
+    m_leadinBtn->setFixedSize(83, 30);
+    m_leadinBtn->setText(i18n("导  入"));
+    m_leadinBtn->setStyleSheet(R"(
+        QPushButton {
+            color: #E6FFFFFF;
+            background-color: transparent;
+            font-size: 12px;
+            font-family: "Microsoft YaHei";
+        }
+
+        QPushButton::menu-indicator {
+            image: url(:/classic/controllers/indicator-downarrow.png);
+            color: #FFFFFF;
+            width: 12px;
+            height: 5px;
+            subcontrol-position: right center;
+            padding-right: 16px;
+        }
+    )");
+    
+    
+    auto testMenu = new QMenu(this);
+    m_leadinBtn->setMenu(testMenu);
+    
+    
+    m_projMediasetBtn->move(20, 5);
+    m_leadinBtn->move(106, 5);
 }
 
 #define MOVE_DOCSTR_LABEL                                                                           \

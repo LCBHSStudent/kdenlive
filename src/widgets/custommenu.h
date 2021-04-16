@@ -20,6 +20,7 @@ public:
                 padding-left: 30px;
                 padding-right: 33px;
                 padding-bottom: 7px;
+                spacing: 40px;
             }    
             QMenu::item:non-exclusive {
                 padding-top: 8px;
@@ -51,7 +52,7 @@ public:
                 padding: 19px;
             }  
             QMenu{
-                font-family: 'Microsoft yahei'; 
+                font-family: "Microsoft YaHei"; 
                 font-size: 12px; 
                 background: #3E3D4C;
             }
