@@ -4484,6 +4484,8 @@ void MainWindow::slotSpeechRecognition()
 
 #define GET_KDE_ACTION(__ENUM__) \
     actionCollection()->action(KStandardAction::name(KStandardAction::StandardAction::__ENUM__))
+#define ACTION_COLL(__name__) \
+    actionCollection()->action(__name__)
 
 constexpr auto __menuBarHeight = 42;
 constexpr auto __windowCtrlBtnWidth = 54;
@@ -4523,9 +4525,6 @@ void MainWindow::setupMenuBar() {
         
         for (decltype(ctrlBtnGroup.size()) i = 0; i < ctrlBtnGroup.size(); i++) {
             auto btn = ctrlBtnGroup.at(i);
-            
-            LOG_DEBUG() << ctrlBtnGroup.at(i);
-            
 //            btn = new std::remove_pointer<decltype(btn)>::type(m_windCtrlBtnFrame);
             btn = new BtnType(m_windCtrlBtnFrame);
             btn->setFixedSize(__windowCtrlBtnWidth, __menuBarHeight - 1);
@@ -4615,17 +4614,29 @@ void MainWindow::setupMenuBar() {
         auto createNew = GET_KDE_ACTION(New);
         createNew->setShortcut(QKeySequence(Qt::CTRL+Qt::Key_N));
         createNew->setText(i18n("新建"));
+        createNew->setIcon(QIcon());
         m_fileMenu->addAction(createNew);
         
-        auto openProject = new QAction(tr("打开项目"), m_fileMenu);
+        auto openProject = GET_KDE_ACTION(Open);
+        openProject->setText(i18n("打开项目"));
+        openProject->setIcon(QIcon());
         m_fileMenu->addAction(openProject);
         openProject->setShortcut(QKeySequence(Qt::CTRL+Qt::Key_O));
+        
+        auto openRecent = GET_KDE_ACTION(OpenRecent);
+        auto openRecent_subMenu = openRecent->menu();
+        openRecent_subMenu->setStyleSheet(CustomMenu::menuSheet + CustomMenu::menuItemSheet);
+        MOVE_MENU_ABOUT2SHOW(openRecent_subMenu, __customMenuLeftMargin, 0);
+        
+        openRecent->setIcon(QIcon());
+        openRecent->setText(i18n("打开最近项目"));
+        m_fileMenu->addAction(openRecent);
 
         auto leadIn = new CustomMenu(m_fileMenu);
         leadIn->setTitle("导入");
-        auto inFromPlayList=new QAction(tr("从播放列表导入"),leadIn);
-        auto inFromMylib=new QAction(tr("从我的素材库导入"),leadIn);
-        auto inFromLocal=new QAction(tr("从本地导入"),leadIn);
+        auto inFromPlayList = new QAction(tr("从播放列表导入"), leadIn);
+        auto inFromMylib    = new QAction(tr("从我的素材库导入"), leadIn);
+        auto inFromLocal    = new QAction(tr("从本地导入"), leadIn);
         
         connect(inFromLocal, SIGNAL(triggered()), this, SIGNAL(leadinRequested()));
         
@@ -4633,24 +4644,34 @@ void MainWindow::setupMenuBar() {
         leadIn->addAction(inFromMylib);
         leadIn->addAction(inFromLocal);
 
+        MOVE_MENU_ABOUT2SHOW(leadIn, __customMenuLeftMargin, 0);
         m_fileMenu->addMenu(leadIn);
         m_fileMenu->addSeparator();
 
-        auto save = new QAction(tr("保存"), m_fileMenu);
+        auto save = GET_KDE_ACTION(Save);
+        save->setText(i18n("保存"));
+        save->setIcon(QIcon());
+        save->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_S));
         m_fileMenu->addAction(save);
-        save->setShortcut(QKeySequence(Qt::CTRL+Qt::Key_S));
 
-        auto saveAs = new QAction(tr("另存为"), m_fileMenu);
+        auto saveAs = GET_KDE_ACTION(SaveAs);
+        saveAs->setText(i18n("另存为"));
+        saveAs->setIcon(QIcon());
+        saveAs->setShortcut(QKeySequence(Qt::CTRL + Qt::SHIFT + Qt::Key_S));
+        
         m_fileMenu->addAction(saveAs);
-        saveAs->setShortcut(QKeySequence(Qt::CTRL+Qt::SHIFT+Qt::Key_S));
         m_fileMenu->addSeparator();
 
-        auto leadOut = new QAction(tr("导出"), m_fileMenu);
-        m_fileMenu->addAction(leadOut);
-        leadOut->setShortcut(QKeySequence(Qt::CTRL+Qt::Key_E));
-		connect(leadOut, SIGNAL(triggered()), this, SLOT(onEncodeTriggered()));
-
-        auto packProjectFiles = new QAction(tr("打包项目文件"),m_fileMenu);
+        auto projectRender = ACTION_COLL("project_render");
+        projectRender->setText(i18n("导出"));
+        projectRender->setIcon(QIcon());
+        projectRender->setShortcut(QKeySequence(Qt::CTRL+Qt::Key_E));
+        m_fileMenu->addAction(projectRender);
+            
+        auto packProjectFiles = ACTION_COLL("archive_project");
+        packProjectFiles->setShortcut(QKeySequence(Qt::Key_M));
+        packProjectFiles->setText(i18n("打包项目文件"));
+        packProjectFiles->setIcon(QIcon());
         m_fileMenu->addAction(packProjectFiles);
 
         m_fileMenu->addSeparator();
@@ -4666,7 +4687,6 @@ void MainWindow::setupMenuBar() {
         connect(saveAs,SIGNAL(triggered()),this,SLOT(on_actionSave_As_triggered()));
         connect(_exit,SIGNAL(triggered()),this,SLOT(close()));
     
-        packProjectFiles->setEnabled(false);
         inFromPlayList->setEnabled(false);
         inFromMylib->setEnabled(false);
     }
