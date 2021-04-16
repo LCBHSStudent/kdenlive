@@ -187,7 +187,7 @@ MainWindow::MainWindow(QWidget *parent)
 void MainWindow::init(const QString &mltPath)
 {
     setMinimumWidth(1024);
-    qApp->setStyleSheet(qApp->styleSheet() + " * { font-family: 'Microsoft Yahei'; }");
+    qApp->setStyleSheet(qApp->styleSheet() + R"( * { font-family: "Microsoft YaHei"; })");
     
     QString desktopStyle = QApplication::style()->objectName();
     // Load themes
@@ -308,12 +308,12 @@ void MainWindow::init(const QString &mltPath)
             this->m_editorToolBar->setDocumentString(title);
         });
     }
-    splitter->addWidget(m_editorToolBar);
     
     KSharedConfigPtr config = KSharedConfig::openConfig();
     KConfigGroup mainConfig(config, QStringLiteral("MainWindow"));
     KConfigGroup tbGroup(&mainConfig, QStringLiteral("Toolbar timelineToolBar"));
     m_timelineToolBar->applySettings(tbGroup);
+    m_timelineToolBar->setFixedHeight(40);
 
     setupActions();
     auto *layoutManager = new LayoutManagement(this);
@@ -353,7 +353,17 @@ void MainWindow::init(const QString &mltPath)
     });
     m_projectMonitorFrame = new ProjectMonitorFrame(m_projectMonitor, this);
     
-    splitter->addWidget(m_projectMonitorFrame);
+    
+    auto __toolPlusFrame = new QWidget(this);
+    auto toolPlusFrameLayout = new QVBoxLayout(__toolPlusFrame);
+    toolPlusFrameLayout->setContentsMargins(0, 0, 0, 0);
+    toolPlusFrameLayout->setSpacing(0);
+    toolPlusFrameLayout->addWidget(m_editorToolBar);
+    toolPlusFrameLayout->addWidget(m_projectMonitorFrame);
+    
+    __toolPlusFrame->setLayout(toolPlusFrameLayout);
+    
+    splitter->addWidget(__toolPlusFrame);
     
 
     pCore->monitorManager()->initMonitors(m_clipMonitor, m_projectMonitor);
@@ -366,6 +376,8 @@ void MainWindow::init(const QString &mltPath)
     
     __plusLayout->addWidget(m_timelineToolBar);
     __plusLayout->addWidget(m_timelineTabs);
+    __plusLayout->setContentsMargins(0, 0, 0, 0);
+    __plusLayout->setSpacing(0);
     tabsPlusToolbar->setLayout(__plusLayout);
     
     splitter->addWidget(tabsPlusToolbar);
@@ -373,10 +385,8 @@ void MainWindow::init(const QString &mltPath)
     
     // 禁用缩放窗口时的时间线自动缩放
     splitter->setStretchFactor(1, 0);
-    splitter->setStretchFactor(2, 0);
     splitter->setCollapsible(0, false);
     splitter->setCollapsible(1, false);
-    splitter->setCollapsible(2, false);
 
     // Screen grab widget
     QWidget *grabWidget = new QWidget(this);
@@ -425,6 +435,7 @@ void MainWindow::init(const QString &mltPath)
         new KRun(QUrl(path), this);
 #else
         m_clipMonitor->slotPreviewResource(path, title);
+#endif
     });
 
     connect(onlineResources, &ResourceWidget::addClip, this, &MainWindow::slotAddProjectClip);
@@ -910,7 +921,11 @@ void MainWindow::init(const QString &mltPath)
             ).toRect();
             this->setGeometry(rect);
         }
-     });
+    });
+    
+    m_projectMonitorFrame->update();
+    m_projectMonitorFrame->repaint();
+    m_projectMonitorFrame->resize(m_projectMonitor->width(), m_projectMonitor->height());
 }
 
 void MainWindow::slotThemeChanged(const QString &name)
@@ -4550,7 +4565,7 @@ void MainWindow::setupMenuBar() {
             padding-bottom: 12px;
 
             font-size: 12px;
-            font-family: 'Microsoft Yahei';
+            font-family: "Microsoft YaHei";
         }
 
         QMenuBar::item:selected {
@@ -4570,7 +4585,7 @@ void MainWindow::setupMenuBar() {
         
         auto textLabel = new QLabel(menuBar);
         textLabel->setText(i18n("NAME"));
-        textLabel->setStyleSheet("QLabel { color: #E6FFFFFF; font-size: 14px; font-family: 'Microsoft YaHei'; }");
+        textLabel->setStyleSheet(R"(QLabel { color: #E6FFFFFF; font-size: 14px; font-family: "Microsoft YaHei"; })");
         
         auto ltLabelLayout = new QHBoxLayout(ltLabel);
         ltLabelLayout->addWidget(iconLabel, Qt::AlignVCenter);
@@ -5220,7 +5235,6 @@ bool MainWindow::eventFilter(QObject* tgt, QEvent* e) {
     } return true;
         
     case QEvent::HoverMove:
-    case QEvent::MouseButtonDblClick:
     case QEvent::Leave:
     case QEvent::MouseButtonRelease:{
         if (tgt == menuBar()) {
@@ -5228,6 +5242,7 @@ bool MainWindow::eventFilter(QObject* tgt, QEvent* e) {
         }
     }; return false;
         
+    case QEvent::MouseButtonDblClick:
     case QEvent::MouseButtonPress: {
         if (tgt == menuBar()) {
             auto mbpe = dynamic_cast<QMouseEvent*>(e);
