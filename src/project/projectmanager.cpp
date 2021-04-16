@@ -53,10 +53,10 @@ the Free Software Foundation, either version 3 of the License, or
 #include <audiomixer/mixermanager.hpp>
 #include <lib/localeHandling.h>
 
-static QString getProjectNameFilters(bool ark=true) {
-    auto filter = i18n("Kdenlive project (*.kdenlive)");
+static QString getProjectNameFilters(bool ark = true) {
+    auto filter = i18n("SmartIP-Editor 项目 (*.sip)");
     if (ark) {
-        filter.append(";;" + i18n("Archived project (*.tar.gz *.zip)"));
+        filter.append(";;" + i18n("已打包项目 (*.szip)"));
     }
     return filter;
 }
@@ -142,7 +142,7 @@ void ProjectManager::newFile(bool showProjectSettings)
 
 void ProjectManager::newFile(QString profileName, bool showProjectSettings)
 {
-    QUrl startFile = QUrl::fromLocalFile(KdenliveSettings::defaultprojectfolder() + QStringLiteral("/_untitled.kdenlive"));
+    QUrl startFile = QUrl::fromLocalFile(KdenliveSettings::defaultprojectfolder() + QStringLiteral("/_untitled.sip"));
     if (checkForBackupFile(startFile, true)) {
         return;
     }
@@ -329,7 +329,7 @@ bool ProjectManager::saveFileAs(const QString &outputFileName, bool saveACopy)
         // actual saving by KdenliveDoc::slotAutoSave() called by a timer 3 seconds after the document has been edited
         // This timer is set by KdenliveDoc::setModified()
         const QString projectId = QCryptographicHash::hash(url.fileName().toUtf8(), QCryptographicHash::Md5).toHex();
-        QUrl autosaveUrl = QUrl::fromLocalFile(QFileInfo(outputFileName).absoluteDir().absoluteFilePath(projectId + QStringLiteral(".kdenlive")));
+        QUrl autosaveUrl = QUrl::fromLocalFile(QFileInfo(outputFileName).absoluteDir().absoluteFilePath(projectId + QStringLiteral(".sip")));
         if (m_project->m_autosave == nullptr) {
             // The temporary file is not opened or created until actually needed.
             // The file filename does not have to exist for KAutoSaveFile to be constructed (if it exists, it will not be touched).
@@ -442,7 +442,7 @@ bool ProjectManager::checkForBackupFile(const QUrl &url, bool newFile)
 {
     // Check for autosave file that belong to the url we passed in.
     const QString projectId = QCryptographicHash::hash(url.fileName().toUtf8(), QCryptographicHash::Md5).toHex();
-    QUrl autosaveUrl = newFile ? url : QUrl::fromLocalFile(QFileInfo(url.path()).absoluteDir().absoluteFilePath(projectId + QStringLiteral(".kdenlive")));
+    QUrl autosaveUrl = newFile ? url : QUrl::fromLocalFile(QFileInfo(url.path()).absoluteDir().absoluteFilePath(projectId + QStringLiteral(".sip")));
     QList<KAutoSaveFile *> staleFiles = KAutoSaveFile::staleFiles(autosaveUrl);
     QFileInfo sourceInfo(url.toLocalFile());
     QDateTime sourceTime;
@@ -498,7 +498,7 @@ void ProjectManager::openFile(const QUrl &url)
         return;
     }
 
-    /*if (!url.fileName().endsWith(".kdenlive")) {
+    /*if (!url.fileName().endsWith(".sip")) {
         // This is not a Kdenlive project file, abort loading
         KMessageBox::sorry(pCore->window(), i18n("File %1 is not a Kdenlive project file", url.toLocalFile()));
         if (m_startUrl.isValid()) {
@@ -555,7 +555,7 @@ void ProjectManager::doOpenFile(const QUrl &url, KAutoSaveFile *stale)
                                        {KdenliveSettings::videotracks(), KdenliveSettings::audiotracks()}, audioChannels, &openBackup, pCore->window());
     if (stale == nullptr) {
         const QString projectId = QCryptographicHash::hash(url.fileName().toUtf8(), QCryptographicHash::Md5).toHex();
-        QUrl autosaveUrl = QUrl::fromLocalFile(QFileInfo(url.path()).absoluteDir().absoluteFilePath(projectId + QStringLiteral(".kdenlive")));
+        QUrl autosaveUrl = QUrl::fromLocalFile(QFileInfo(url.path()).absoluteDir().absoluteFilePath(projectId + QStringLiteral(".sip")));
         stale = new KAutoSaveFile(autosaveUrl, doc);
         doc->m_autosave = stale;
     } else {
@@ -563,7 +563,7 @@ void ProjectManager::doOpenFile(const QUrl &url, KAutoSaveFile *stale)
         stale->setParent(doc);
         // if loading from an autosave of unnamed file, or restore failed then keep unnamed
         bool loadingFailed = doc->url().isEmpty();
-        if (url.fileName().contains(QStringLiteral("_untitled.kdenlive"))) {
+        if (url.fileName().contains(QStringLiteral("_untitled.sip"))) {
             doc->setUrl(QUrl());
             doc->setModified(true);
         } else if (!loadingFailed) {
@@ -1020,7 +1020,7 @@ void ProjectManager::saveWithUpdatedProfile(const QString &updatedProfile)
     // Now update to new profile
     auto &newProfile = ProfileRepository::get()->getProfile(updatedProfile);
     QString convertedFile = currentFile.section(QLatin1Char('.'), 0, -2);
-    convertedFile.append(QString("-%1.kdenlive").arg(int(newProfile->fps() * 100)));
+    convertedFile.append(QString("-%1.sip").arg(int(newProfile->fps() * 100)));
     QString saveFolder = m_project->url().adjusted(QUrl::RemoveFilename |   QUrl::StripTrailingSlash).toLocalFile();
     QTemporaryFile tmpFile(saveFolder + "/kdenlive-XXXXXX.mlt");
     if (saveInTempFile) {
