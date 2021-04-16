@@ -116,5 +116,6 @@
         <file alias="/controllers/btn_remove_22.png">../data/icon/controllers/btn_remove_22.png</file>
         <file alias="/controllers/btn_mession_view.png">../data/icon/controllers/btn_mession_view.png</file>
         <file alias="/controllers/btn_undo_view.png">../data/icon/controllers/btn_undo_view.png</file>
+        <file alias="/controllers/indicator-downarrow.png">../data/icon/controllers/indicator-downarrow.png</file>
     </qresource>
 </RCC>
