@@ -2888,6 +2888,7 @@ void MainWindow::slotSelectTrack()
 
 void MainWindow::slotSelectAllTracks()
 {
+    LOG_DEBUG() << "coco";
     if (QApplication::focusWidget() != nullptr) {
         if (QApplication::focusWidget()->parentWidget() != nullptr && QApplication::focusWidget()->parentWidget() == pCore->bin()) {
             pCore->bin()->selectAll();
@@ -3238,6 +3239,10 @@ void MainWindow::slotChangeTool(QAction *action)
     }
 }
 
+/** @footnote
+ *  作用：更改时间线编辑模式
+ *  m_trimLabel: statusBar中最左侧的显示当前编辑状态的label
+ */
 void MainWindow::slotChangeEdit(QAction *action)
 {
     TimelineMode::EditMode mode = TimelineMode::NormalEdit;
@@ -4485,7 +4490,7 @@ void MainWindow::slotSpeechRecognition()
 #define GET_KDE_ACTION(__ENUM__) \
     actionCollection()->action(KStandardAction::name(KStandardAction::StandardAction::__ENUM__))
 #define ACTION_COLL(__name__) \
-    actionCollection()->action(__name__)
+    actionCollection()->action(QStringLiteral(__name__))
 
 constexpr auto __menuBarHeight = 42;
 constexpr auto __windowCtrlBtnWidth = 54;
@@ -4679,12 +4684,6 @@ void MainWindow::setupMenuBar() {
         auto _exit = new QAction(tr("退出"), m_fileMenu);
         _exit->setShortcut(QKeySequence(Qt::CTRL + Qt::SHIFT + Qt::Key_Q));
         m_fileMenu->addAction(_exit);
-//        auto saveAsBackup = new QAction(tr("存储为副本"), m_fileMenu);
-//        m_fileMenu->addAction(saveAsBackup);
-
-        connect(openProject,SIGNAL(triggered()),this,SLOT(openProject()));
-        connect(save,SIGNAL(triggered()),this,SLOT(on_actionSave_triggered()));
-        connect(saveAs,SIGNAL(triggered()),this,SLOT(on_actionSave_As_triggered()));
         connect(_exit,SIGNAL(triggered()),this,SLOT(close()));
     
         inFromPlayList->setEnabled(false);
@@ -4693,93 +4692,115 @@ void MainWindow::setupMenuBar() {
     
     // 编辑菜单
     {
-        auto undo = new QAction(tr("撤销"), m_editMenu);
+        auto undo = GET_KDE_ACTION(Undo);
+        undo->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_Z));
+        undo->setIcon(QIcon());
+        undo->setText(i18n("撤销"));
         m_editMenu->addAction(undo);
-        undo->setShortcut(QKeySequence(Qt::CTRL+Qt::Key_Z));
         
-        auto redo = new QAction(tr("重做"), m_editMenu);
+        auto redo = GET_KDE_ACTION(Redo);
+        redo->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_Y));
+        redo->setIcon(QIcon());
+        redo->setText(i18n("重做"));        
         m_editMenu->addAction(redo);
-        redo->setShortcut(QKeySequence(Qt::CTRL+Qt::Key_Y));
         m_editMenu->addSeparator();
         
         auto shear = new QAction(tr("剪切"), m_editMenu);
+        shear->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_X));
+        connect(shear, &QAction::triggered, [this] {
+            slotCopy();
+            slotDeleteItem();
+        });
         m_editMenu->addAction(shear);
-        shear->setShortcut(QKeySequence(Qt::CTRL+Qt::Key_X));
         
-        auto copy = new QAction(tr("复制"), m_editMenu);
+        auto copy = GET_KDE_ACTION(Copy);
+        copy->setIcon(QIcon());
+        copy->setText(i18n("复制"));
+        connect(copy, &QAction::changed, [copy, shear] {
+            shear->setEnabled(copy->isEnabled());
+        });
+        shear->setEnabled(copy->isEnabled());
+        copy->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_C));
         m_editMenu->addAction(copy);
-        copy->setShortcut(QKeySequence(Qt::CTRL+Qt::Key_C));
-
-        auto copyAnVideoSetting =new QAction(tr("复制调整效果"),m_editMenu);
-        m_editMenu->addAction(copyAnVideoSetting);
-        copyAnVideoSetting->setShortcut(QKeySequence(Qt::CTRL+Qt::ALT+Qt::Key_C));
-
         
-        auto paste = new QAction(tr("粘贴"), m_editMenu);
+        // 这里的复制调整效果和复制其实是一个东西
+        auto copyEffect = new QAction(tr("复制调整效果"), m_editMenu);
+        connect(copy, &QAction::changed, [copy, copyEffect] {
+            copyEffect->setEnabled(copy->isEnabled());
+        });
+        copyEffect->setEnabled(copy->isEnabled());
+        connect(copyEffect, &QAction::triggered, copy, &QAction::triggered);
+        copyEffect->setShortcut(QKeySequence(Qt::CTRL + Qt::ALT + Qt::Key_C));
+        m_editMenu->addAction(copyEffect);
+
+        auto paste = GET_KDE_ACTION(Paste);
+        paste->setText(i18n("粘贴"));
+        paste->setIcon(QIcon());
         m_editMenu->addAction(paste);
-        paste->setShortcut(QKeySequence(Qt::CTRL+Qt::Key_V));
-
+        paste->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_V));
         
+        // TODO: 
         auto pasteInsert = new QAction(tr("粘贴插入"), m_editMenu);
         m_editMenu->addAction(pasteInsert);
-        pasteInsert->setShortcut(QKeySequence(Qt::CTRL+Qt::SHIFT+Qt::Key_V));
+        pasteInsert->setShortcut(QKeySequence(Qt::CTRL + Qt::SHIFT + Qt::Key_V));
 
-        auto pasteAudioSetting = new QAction(tr("粘贴调整效果"),m_editMenu);
-        m_editMenu->addAction(pasteAudioSetting);
-        pasteAudioSetting->setShortcut(QKeySequence(Qt::CTRL+Qt::ALT+Qt::Key_V));
-
+        auto pastEffects = ACTION_COLL("paste_effects");
+        pastEffects->setIcon(QIcon());
+        pastEffects->setText(i18n("粘贴调整效果"));
+        pastEffects->setShortcut(QKeySequence(Qt::CTRL + Qt::ALT + Qt::Key_V));        
+        m_editMenu->addAction(pastEffects);
+        
 
 //        auto pasteEffectAndAdjustion = new QAction(tr("粘贴效果和调整"), m_editMenu);
 //        m_editMenu->addAction(pasteEffectAndAdjustion);
         
-        auto _delete = new QAction(tr("删除"), m_editMenu);
+        auto _delete = ACTION_COLL("delete_timeline_clip");
+        _delete->setText(i18n("删除"));
+        _delete->setIcon(QIcon());
         m_editMenu->addAction(_delete);
         _delete->setShortcut(Qt::Key_Delete);
 
-        auto deleteNClearSeams = new QAction(tr("删除并消除间隙"),m_editMenu);
-        m_editMenu->addAction(deleteNClearSeams);
-        deleteNClearSeams->setShortcut(Qt::Key_Backspace);
-
-        auto _deleteAnVSetting = new QAction(tr("删除调整效果"), m_editMenu);
-        m_editMenu->addAction(_deleteAnVSetting);
+        auto deleteAndClearSpace = new QAction(tr("删除并消除间隙"), m_editMenu);
+        connect(_delete, &QAction::changed, [deleteAndClearSpace, _delete] {
+            deleteAndClearSpace->setEnabled(_delete->isEnabled());
+        });
+        deleteAndClearSpace->setEnabled(_delete->isEnabled());
+        connect(deleteAndClearSpace, &QAction::triggered, [this] {
+            getMainTimeline()->controller()->getModel()->
+                setEditMode(TimelineMode::InsertEdit);
+            slotDeleteItem();
+            getMainTimeline()->controller()->getModel()->
+                setEditMode(TimelineMode::NormalEdit);
+        });
+        deleteAndClearSpace->setShortcut(Qt::Key_Backspace);
+        m_editMenu->addAction(deleteAndClearSpace);
         
+        auto deleteEffect = ACTION_COLL("delete_effects");
+        deleteEffect->setText(i18n("删除调整效果"));
+        deleteEffect->setIcon(QIcon());
+        m_editMenu->addAction(deleteEffect);
         m_editMenu->addSeparator();
         
-        auto selectAll = new QAction(tr("全选"), m_editMenu);
+        auto selectAll = kdenliveCategoryMap["timeline"]->collection()->action(QStringLiteral("select_all_tracks"));
+        selectAll->setText(i18n("全选"));
+        selectAll->setIcon(QIcon());
         m_editMenu->addAction(selectAll);
-        selectAll->setShortcut(QKeySequence(Qt::CTRL+Qt::Key_A));
-
         
-        auto selectNone = new QAction(tr("取消全选"), m_editMenu);
-        m_editMenu->addAction(selectNone);
-        selectNone->setShortcut(QKeySequence(Qt::CTRL+Qt::SHIFT+Qt::Key_A));
-
-        connect(undo, SIGNAL(triggered()),this,SLOT(on_actionUndo_triggered()));
-        connect(redo,SIGNAL(triggered()),this,SLOT(on_actionRedo_triggered()));
-        connect(shear,SIGNAL(triggered()),this,SLOT(on_actionCut_triggered()));
-        connect(copy,SIGNAL(triggered()),this,SLOT(on_actionCopy_triggered()));
-        connect(paste,SIGNAL(triggered()),this,SLOT(on_actionPaste_triggered()));
+        auto unselectAll = kdenliveCategoryMap["timeline"]->collection()->action(QStringLiteral("unselect_all_tracks"));
+        unselectAll->setIcon(QIcon());
+        unselectAll->setText(i18n("取消全选"));
+        m_editMenu->addAction(unselectAll);
     }
     
     // 剪辑菜单
-    {
-//        auto rename = new QAction(tr("重命名"), m_cutMenu);
-//        m_cutMenu->addAction(rename);
-        
-//        m_cutMenu->addSeparator();
-        
+    {   
         auto insert = new QAction(tr("插入"), m_cutMenu);
-        //insert->setShortcut(tr("."));
         m_cutMenu->addAction(insert);
         
         auto replace = new QAction(tr("替换"), m_cutMenu);
-        //replace->setShortcut(tr(","));
         m_cutMenu->addAction(replace);
         
         m_cutMenu->addSeparator();
-        
-//        auto linkAV = new QAction(tr("链接视频和音频"), m_cutMenu);
-//        m_cutMenu->addAction(linkAV);
         
         auto makeGroup = new QAction(tr("编组"), m_cutMenu);
         makeGroup->setShortcut(QKeySequence(Qt::CTRL+Qt::Key_G));
@@ -4793,50 +4814,9 @@ void MainWindow::setupMenuBar() {
         m_cutMenu->addAction(link);
         auto cancelLink = new QAction(tr("取消链接"), m_cutMenu);
         m_cutMenu->addAction(cancelLink);
-
-//        auto extendTimeLine = new QAction(tr("时间线延长"), m_cutMenu);
-//        m_cutMenu->addAction(extendTimeLine);
-//        extendTimeLine->setShortcut(QKeySequence(Qt::CTRL+Qt::Key_R));
-
-//        auto replace = new QAction(tr("替换素材"), m_cutMenu);
-//        m_cutMenu->addAction(replace);
         
         m_cutMenu->addSeparator();
 
-
-//        auto toCutMark = new QAction(tr("转到剪辑标记"), m_cutMenu);
-//        m_cutMenu->addAction(toCutMark);
-//        //toCutMark->setShortcut(Qt::Key_G);
-//        auto clearCutMark = new QAction(tr("清除剪辑标记"), m_cutMenu);
-//        m_cutMenu->addAction(clearCutMark);
-//        //clearCutMark->setShortcut(Qt::Key_C);
-
-        
-//        auto videoEdit = new CustomMenu(m_cutMenu);
-//        videoEdit->setTitle(tr("视频编辑"));
-//        m_cutMenu->addMenu(videoEdit);
-//        auto malformScene=new QAction(tr("画面变形"),videoEdit);
-//        auto synthesisScene=new QAction(tr("影像合成"),videoEdit);
-//        auto correctScope=new QAction(tr("镜头校正"),videoEdit);
-//        auto contrast=new QAction(tr("对比度"),videoEdit);
-//        auto shadow=new QAction(tr("阴影"),videoEdit);
-//        videoEdit->addAction(malformScene);
-//        videoEdit->addAction(synthesisScene);
-//        videoEdit->addAction(correctScope);
-//        videoEdit->addAction(contrast);
-//        videoEdit->addAction(shadow);
-//        videoEdit->setStyleSheet(menuSheet+indicatorSheet+menuItemSheet+"QMenu::item{ width:70px;}");
-
-
-        
-//        auto audioEdit = new CustomMenu(m_cutMenu);
-//        audioEdit->setTitle(tr("音频编辑"));
-//        m_cutMenu->addMenu(audioEdit);
-//        auto audioAdjust=new QAction(tr("调节音频"),audioEdit);
-//        auto mute=new QAction(tr("调节音频"),audioEdit);
-//        audioEdit->addAction(audioAdjust);
-//        audioEdit->addAction(mute);
-//        audioEdit->setStyleSheet(menuSheet+indicatorSheet+menuItemSheet+"QMenu::item{ width:70px;}");
         auto addMark=new QAction(tr("添加标记"),m_cutMenu);
         auto toNextMark=new QAction(tr("转到下一标记"),m_cutMenu);
         auto toPreMark=new QAction(tr("转到上一标记"),m_cutMenu);
@@ -4864,28 +4844,11 @@ void MainWindow::setupMenuBar() {
                 padding-top: 8px;
                 padding-right: 25px;
                 padding-bottom: 8px;
-            })" );
-        
-
-
-//        auto removeEffect = new CustomMenu(m_cutMenu);
-//        removeEffect->setTitle(tr("删除效果"));
-//        m_cutMenu->addMenu(removeEffect);
-//        auto videoEffect=new QAction(tr("视频效果"),removeEffect);
-//        auto audioEffect=new QAction(tr("音频效果"),removeEffect);
-//        auto allEffect=new QAction(tr("所有效果"),removeEffect);
-//        removeEffect->addAction(videoEffect);
-//        removeEffect->addAction(audioEffect);
-//        removeEffect->addAction(allEffect);
-//        removeEffect->setStyleSheet(menuSheet+indicatorSheet+menuItemSheet+"QMenu::item{ width:70px;}");
-
-
+            })"
+        );
         
         m_cutMenu->addSeparator();
-        
-//        auto rhythmDetect = new QAction(tr("节拍检测"), m_cutMenu);
-//        m_cutMenu->addAction(rhythmDetect);
-        
+
         // 设置时间线吸附菜单
         auto enableTimelineSnap = new QAction(tr("启用时间线吸附"), m_cutMenu);
         enableTimelineSnap->setCheckable(true);
@@ -4894,13 +4857,6 @@ void MainWindow::setupMenuBar() {
         QActionGroup* checkBoxEdit=new QActionGroup(m_cutMenu);
         checkBoxEdit->addAction(enableTimelineSnap);
         checkBoxEdit->setExclusive(false);
-
-
-
-
-
-
-
     }
     
     // 设置菜单
@@ -5249,10 +5205,17 @@ bool MainWindow::eventFilter(QObject* tgt, QEvent* e) {
     switch(e->type()) {
     // this fixed draging window may trigger menu item
     case QEvent::MouseMove: {
-        if (tgt == menuBar()) {
-            m_framelessHelper->exportedEventFilter(this, e);
+        if (tgt != menuBar()) {
+            return false;
         }
-    } return true;
+        auto mbpe = dynamic_cast<QMouseEvent*>(e);
+        if (mbpe->buttons() & Qt::LeftButton) {
+            m_framelessHelper->exportedEventFilter(this, e);
+            return true;
+        } else {
+            return false;
+        }
+    };
         
     case QEvent::HoverMove:
     case QEvent::Leave:
