@@ -34,8 +34,10 @@ Item {
     property int zoneHeight: Math.ceil(root.baseUnit / 2) + 1
     property bool showZoneLabels: false
     property bool resizeActive: false // Used to decide which mouse cursor we should display
+    property bool hoverGuide: false
+    property int cursorShape: resizeActive ? Qt.SizeHorCursor : hoverGuide ? Qt.PointingHandCursor : Qt.ArrowCursor
     property var effectZones: timeline.masterEffectZones
-    property int guideLabelHeight: timeline.showMarkers ? Math.round(fontMetrics.height) : 0
+    property int guideLabelHeight: timeline.showMarkers ? fontMetrics.height + 2 : 0
     property int previewHeight: Math.ceil(timecodeContainer.height / 5)
     
     function adjustStepSize() {
@@ -101,20 +103,21 @@ Item {
         color: 'orange'
         visible: rulerRoot.workingPreview > -1
     }
-    
+
     // Guides
     Repeater {
         model: guidesModel
         delegate:
         Item {
             id: guideRoot
+            z: proxy.position == model.frame ? 20 : 10
             Rectangle {
                 id: markerBase
                 width: 1
                 height: rulerRoot.height
                 x: model.frame * timeline.scaleFactor
                 color: model.color
-                opacity: 0.8
+                property int markerId: model.id
                 Rectangle {
                     visible: timeline.showMarkers
                     width: mlabel.contentWidth + 4
@@ -127,43 +130,55 @@ Item {
                     Text {
                         id: mlabel
                         text: model.comment
-                        topPadding: -2
+                        bottomPadding: 2
                         leftPadding: 2
                         rightPadding: 2
                         font: miniFont
-                        color: '#FFF'
+                        color: '#000'
                     }
                     MouseArea {
                         z: 10
                         id: guideArea
-                        anchors.fill: parent
+                        anchors.left: parent.left
+                        anchors.top: parent.top
+                        width: parent.width
+                        height: parent.height
                         acceptedButtons: Qt.LeftButton
                         cursorShape: Qt.PointingHandCursor
                         hoverEnabled: true
-                        property int startX
+                        property int prevFrame
+                        property int xOffset: 0
                         drag.axis: Drag.XAxis
-                        drag.target: guideRoot
                         onPressed: {
-                            drag.target = guideRoot
-                            startX = guideRoot.x
+                            prevFrame = model.frame
+                            xOffset = mouseX
+                            anchors.left = undefined
                         }
                         onReleased: {
-                            if (startX != guideRoot.x) {
-                                timeline.moveGuide(model.frame,  model.frame + guideRoot.x / timeline.scaleFactor)
+                            if (prevFrame != model.frame) {
+                                var newFrame = model.frame
+                                timeline.moveGuideWithoutUndo(markerBase.markerId,  prevFrame)
+                                timeline.moveGuide(prevFrame, newFrame)
                             }
-                            drag.target = undefined
+                            anchors.left = parent.left
                         }
                         onPositionChanged: {
                             if (pressed) {
-                                var frame = Math.round(model.frame + guideRoot.x / timeline.scaleFactor)
-                                frame = controller.suggestSnapPoint(frame, root.snapping)
-                                guideRoot.x = (frame - model.frame) * timeline.scaleFactor
+                                var newFrame = Math.round(model.frame + (mouseX - xOffset) / timeline.scaleFactor)
+                                newFrame = controller.suggestSnapPoint(newFrame, mouse.modifiers & Qt.ShiftModifier ? -1 : root.snapping)
+                                timeline.moveGuideWithoutUndo(markerBase.markerId,  newFrame)
                             }
                         }
                         drag.smoothed: false
                         onDoubleClicked: timeline.editGuide(model.frame)
                         onClicked: {
                             proxy.position = model.frame
+                        }
+                        onEntered: {
+                            rulerRoot.hoverGuide = true
+                        }
+                        onExited: {
+                            rulerRoot.hoverGuide = false
                         }
                     }
                 }
@@ -229,6 +244,20 @@ Item {
             timeline.updateZone(start, end, update)
         }
     }
+
+    // Master effect zones
+    Repeater {
+        model: effectZones
+        Rectangle {
+            x: effectZones[index].x * timeline.scaleFactor
+            height: zoneHeight - 1
+            width: (effectZones[index].y - effectZones[index].x) * timeline.scaleFactor
+            color: "blueviolet"
+            anchors.bottom: parent.bottom
+            opacity: 0.4
+        }
+    }
+
     // Effect zone
     RulerZone {
         id: effectZone
@@ -242,23 +271,12 @@ Item {
             property: "frameOut"
             value: timeline.effectZone.y
         }
-        color: Qt.rgba(148, 0, 211,0.7)
+        color: "orchid"
         anchors.bottom: parent.bottom
-        height: zoneHeight
+        height: zoneHeight - 1
         function updateZone(start, end, update)
         {
             timeline.updateEffectZone(start, end, update)
-        }
-    }
-    Repeater {
-        model: effectZones
-        Rectangle {
-            x: effectZones[index].x * timeline.scaleFactor
-            height: 2
-            width: (effectZones[index].y - effectZones[index].x) * timeline.scaleFactor
-            color: 'blueviolet'
-            opacity: 0.8
-            anchors.bottom: parent.bottom
         }
     }
 }

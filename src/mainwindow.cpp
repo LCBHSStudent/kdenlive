@@ -69,17 +69,27 @@
 //#include "utils/resourcewidget_old.h" //TODO
 #include "utils/thememanager.h"
 #include "utils/otioconvertions.h"
+#include "utils/framelesswindowhelper.h"
 #include "lib/localeHandling.h"
 #include "profiles/profilerepository.hpp"
 #include "widgets/progressbutton.h"
+#include "widgets/custommenu.h"
+#include "widgets/customtooltip.h"
+#include "widgets/topnavigationbar.h"
+#include "widgets/customeditortoolbar.h"
+#include "widgets/projectmonitorframe.h"
 #include <config-kdenlive.h>
 #include "dialogs/textbasededit.h"
 #include "project/dialogs/temporarydata.h"
+
+#include <framework/mlt_version.h>
 
 #ifdef USE_JOGSHUTTLE
 #include "jogshuttle/jogmanager.h"
 #endif
 
+#include <KAboutData>
+#include <KCoreAddons>
 #include <KActionCategory>
 #include <KActionCollection>
 #include <KActionMenu>
@@ -100,11 +110,13 @@
 #include <kns3/downloaddialog.h>
 #include <kns3/knewstuffaction.h>
 #include <ktogglefullscreenaction.h>
+#include <kwidgetsaddons_version.h>
+#include <KRun>
 
 #include "kdenlive_debug.h"
 #include <QAction>
 #include <QFileDialog>
-#include <QMenu>
+#include <QInternal>
 #include <QMenuBar>
 #include <QStatusBar>
 #include <QStyleFactory>
@@ -115,6 +127,8 @@
 #include <QScreen>
 #include <QStandardPaths>
 #include <QVBoxLayout>
+
+#include "macros.hpp"
 
 static const char version[] = KDENLIVE_VERSION;
 namespace Mlt {
@@ -135,30 +149,67 @@ static QString defaultStyle(const char *fallback = nullptr)
 {
     KSharedConfigPtr kdeGlobals = KSharedConfig::openConfig(QStringLiteral("kdeglobals"), KConfig::NoGlobals);
     KConfigGroup cg(kdeGlobals, "KDE");
+    qDebug() << cg.readEntry("widgetStyle", fallback);
+    
+    
     return cg.readEntry("widgetStyle", fallback);
 }
 
+static bool eventDebugCallback(void** data) {
+    QEvent *event = reinterpret_cast<QEvent *>(data[1]);
+
+    if (event->type() == QEvent::KeyPress ||
+        event->type() == QEvent::KeyRelease
+    ) {
+        QObject *receiver = reinterpret_cast<QObject *>(data[0]);
+        qDebug() << event << "->" << receiver;
+
+    } else if (
+//        event->type() == QEvent::Drop ||
+//        event->type() == QEvent::MouseButtonRelease ||
+        event->type() == QEvent::MouseButtonPress ||
+        event->type() == QEvent::ContextMenu
+    ) {
+        QObject *receiver = reinterpret_cast<QObject *>(data[0]);
+        qDebug() << event << "->" << receiver;
+    }
+
+    return false;
+}
+
+// posChange(-8, -31): 119 217 / 127 248 / 135 279 / 143 310
+
 MainWindow::MainWindow(QWidget *parent)
     : KXmlGuiWindow(parent)
-
 {
 }
 
 void MainWindow::init(const QString &mltPath)
 {
+    setMinimumWidth(1024);
+    qApp->setStyleSheet(qApp->styleSheet() + R"( * { font-family: "Microsoft YaHei"; })");
+    
     QString desktopStyle = QApplication::style()->objectName();
     // Load themes
     auto themeManager = new ThemeManager(actionCollection());
     actionCollection()->addAction(QStringLiteral("themes_menu"), themeManager);
     connect(themeManager, &ThemeManager::themeChanged, this, &MainWindow::slotThemeChanged);
 
+    CustomToolTip::installToolTip(this);
+    
     if (!KdenliveSettings::widgetstyle().isEmpty() && QString::compare(desktopStyle, KdenliveSettings::widgetstyle(), Qt::CaseInsensitive) != 0) {
         // User wants a custom widget style, init
         doChangeStyle();
     }
 
+    if (!qEnvironmentVariableIsEmpty("EVENT_DEBUG")) {
+        QInternal::registerCallback(QInternal::EventNotifyCallback, eventDebugCallback);        
+    }
+    
     // Widget themes for non KDE users
     KActionMenu *stylesAction = new KActionMenu(i18n("Style"), this);
+    stylesAction->setDefaultWidget(new CustomMenu(this));
+    
     auto *stylesGroup = new QActionGroup(stylesAction);
 
     // GTK theme does not work well with Kdenlive, and does not support color theming, so avoid it
@@ -180,6 +231,7 @@ void MainWindow::init(const QString &mltPath)
             KdenliveSettings::setWidgetstyle(QStringLiteral("Default"));
         }
     }
+    
 
     // Add default style action
     QAction *defaultStyle = new QAction(i18n("Default"), stylesGroup);
@@ -207,7 +259,6 @@ void MainWindow::init(const QString &mltPath)
     
     // Initialise MLT connection
     MltConnection::construct(mltPath);
-
     pCore->setCurrentProfile(defaultProfile.isEmpty() ? ProjectManager::getDefaultProjectFormat() : defaultProfile);
     m_commandStack = new QUndoGroup();
 
@@ -228,46 +279,44 @@ void MainWindow::init(const QString &mltPath)
     setDockOptions(dockOptions() | QMainWindow::GroupedDragging);
     setTabPosition(Qt::AllDockWidgetAreas, QTabWidget::TabPosition(KdenliveSettings::tabposition()));
     m_timelineToolBar = toolBar(QStringLiteral("timelineToolBar"));
+    
+    
     m_timelineToolBarContainer = new TimelineContainer(this);
+    
+    
+    
     auto *ctnLay = new QVBoxLayout;
     ctnLay->setSpacing(0);
     ctnLay->setContentsMargins(0, 0, 0, 0);
     m_timelineToolBarContainer->setLayout(ctnLay);
-    QFrame *topFrame = new QFrame(this);
-    topFrame->setFrameShape(QFrame::HLine);
-    topFrame->setFixedHeight(1);
-    topFrame->setLineWidth(1);
-    connect(this, &MainWindow::focusTimeline, this, [topFrame](bool focus, bool highlight) {
-        if (focus) {
-            KColorScheme scheme(QApplication::palette().currentColorGroup(), KColorScheme::Tooltip);
-            if (highlight) {
-                QColor col = scheme.decoration(KColorScheme::HoverColor).color();
-                topFrame->setStyleSheet(QString("QFrame {border: 1px solid rgba(%1,%2,%3,70)}").arg(col.red()).arg(col.green()).arg(col.blue()));
-            } else {
-                QColor col = scheme.decoration(KColorScheme::FocusColor).color();
-                topFrame->setStyleSheet(QString("QFrame {border: 1px solid rgba(%1,%2,%3,100)}").arg(col.red()).arg(col.green()).arg(col.blue()));
-            }
-        } else {
-            topFrame->setStyleSheet(QString());
-        }
-    });
-    ctnLay->addWidget(topFrame);
-    ctnLay->addWidget(m_timelineToolBar);
+    
+    QSplitter* splitter = new QSplitter(this);
+    splitter->setOrientation(Qt::Vertical);
+    ctnLay->addWidget(splitter);
+    
+    
+    // setup centralWidget toolbar
+    m_editorToolBar = new CustomEditorToolBar(m_timelineToolBarContainer);
+    {
+        connect(
+            this, &MainWindow::windowTitleChanged,
+        [this] {
+            QString&& title = this->windowTitle();
+            auto index = title.lastIndexOf('[');
+            title = title.mid(0, index);
+            
+            this->m_editorToolBar->setDocumentString(title);
+        });
+    }
+    
     KSharedConfigPtr config = KSharedConfig::openConfig();
     KConfigGroup mainConfig(config, QStringLiteral("MainWindow"));
     KConfigGroup tbGroup(&mainConfig, QStringLiteral("Toolbar timelineToolBar"));
     m_timelineToolBar->applySettings(tbGroup);
-    QFrame *fr = new QFrame(this);
-    fr->setFrameShape(QFrame::HLine);
-    fr->setMaximumHeight(1);
-    fr->setLineWidth(1);
-    ctnLay->addWidget(fr);
+    m_timelineToolBar->setFixedHeight(40);
+
     setupActions();
     auto *layoutManager = new LayoutManagement(this);
-
-    QDockWidget *libraryDock = addDock(i18n("Library"), QStringLiteral("library"), pCore->library());
-    QDockWidget *subtitlesDock = addDock(i18n("Subtitles"), QStringLiteral("Subtitles"), pCore->subtitleWidget());
-    QDockWidget *textEditingDock = addDock(i18n("Text Edit"), QStringLiteral("textedit"), pCore->textEditWidget());
 
     m_clipMonitor = new Monitor(Kdenlive::ClipMonitor, pCore->monitorManager(), this);
     pCore->bin()->setMonitor(m_clipMonitor);
@@ -281,6 +330,7 @@ void MainWindow::init(const QString &mltPath)
             getCurrentTimeline()->controller()->setTargetTracks(hasVideo, audioStreams);
         }
     );
+    m_clipMonitor->hide();
 
     // TODO deprecated, replace with Bin methods if necessary
     /*connect(m_projectList, SIGNAL(loadingIsOver()), this, SLOT(slotElapsedTime()));
@@ -301,13 +351,42 @@ void MainWindow::init(const QString &mltPath)
         QPoint inOut = getMainTimeline()->controller()->selectionInOut();
         m_projectMonitor->slotLoopClip(inOut);
     });
+    m_projectMonitorFrame = new ProjectMonitorFrame(m_projectMonitor, this);
+    
+    
+    auto __toolPlusFrame = new QWidget(this);
+    auto toolPlusFrameLayout = new QVBoxLayout(__toolPlusFrame);
+    toolPlusFrameLayout->setContentsMargins(0, 0, 0, 0);
+    toolPlusFrameLayout->setSpacing(0);
+    toolPlusFrameLayout->addWidget(m_editorToolBar);
+    toolPlusFrameLayout->addWidget(m_projectMonitorFrame);
+    
+    __toolPlusFrame->setLayout(toolPlusFrameLayout);
+    
+    splitter->addWidget(__toolPlusFrame);
+    
 
     pCore->monitorManager()->initMonitors(m_clipMonitor, m_projectMonitor);
     connect(m_clipMonitor, &Monitor::addMasterEffect, pCore->bin(), &Bin::slotAddEffect);
 
     m_timelineTabs = new TimelineTabs(this);
-    ctnLay->addWidget(m_timelineTabs);
+    
+    auto tabsPlusToolbar = new QWidget(this);
+    auto __plusLayout = new QVBoxLayout(tabsPlusToolbar);
+    
+    __plusLayout->addWidget(m_timelineToolBar);
+    __plusLayout->addWidget(m_timelineTabs);
+    __plusLayout->setContentsMargins(0, 0, 0, 0);
+    __plusLayout->setSpacing(0);
+    tabsPlusToolbar->setLayout(__plusLayout);
+    
+    splitter->addWidget(tabsPlusToolbar);
     setCentralWidget(m_timelineToolBarContainer);
+    
+    // 禁用缩放窗口时的时间线自动缩放
+    splitter->setStretchFactor(1, 0);
+    splitter->setCollapsible(0, false);
+    splitter->setCollapsible(1, false);
 
     // Screen grab widget
     QWidget *grabWidget = new QWidget(this);
@@ -336,45 +415,36 @@ void MainWindow::init(const QString &mltPath)
     connect(recConfig, &QAction::triggered, [&]() {
         emit pCore->showConfigDialog(4, 0);
     });
-    QDockWidget *screenGrabDock = addDock(i18n("Screen Grab"), QStringLiteral("screengrab"), grabWidget);
-
+    
     // Audio spectrum scope
     m_audioSpectrum = new AudioGraphSpectrum(pCore->monitorManager());
-    QDockWidget *spectrumDock = addDock(i18n("Audio Spectrum"), QStringLiteral("audiospectrum"), m_audioSpectrum);
-    connect(spectrumDock, &QDockWidget::visibilityChanged, this, [&](bool visible) {
-        m_audioSpectrum->dockVisible(visible);
-    });
     
     // Project bin
-    m_projectBinDock = addDock(i18n("Project Bin"), QStringLiteral("project_bin"), pCore->bin());
-    
+    // pCore->bin();
+
     // Media browser widget
-    QDockWidget* clipDockWidget = addDock(i18n("Media Browser"), QStringLiteral("bin_clip"), pCore->bin()->getWidget());
-    pCore->bin()->dockWidgetInit(clipDockWidget);
+//    QDockWidget* clipDockWidget = addDock(i18n("Media Browser"), QStringLiteral("bin_clip"), pCore->bin()->getWidget());
+//    pCore->bin()->dockWidgetInit(clipDockWidget);
 
     // Online resources widget
     auto *onlineResources = new ResourceWidget(this);
-    m_onlineResourcesDock = addDock(i18n("Online Resources"), QStringLiteral("onlineresources"), onlineResources);
+    onlineResources->hide();
     connect(onlineResources, &ResourceWidget::previewClip, [&](const QString &path, const QString &title) {
+    qDebug()<<"MLT VER: "<<LIBMLT_VERSION_INT<<"; QTVER: "<<QT_VERSION_CHECK(6,26,0);
+#if LIBMLT_VERSION_INT == QT_VERSION_CHECK(6,26,0)
+        new KRun(QUrl(path), this);
+#else
         m_clipMonitor->slotPreviewResource(path, title);
-        m_clipMonitorDock->show();
-        m_clipMonitorDock->raise();
+#endif
     });
 
     connect(onlineResources, &ResourceWidget::addClip, this, &MainWindow::slotAddProjectClip);
     connect(onlineResources, &ResourceWidget::addLicenseInfo, this, &MainWindow::slotAddTextNote);
 
-    // Close library and audiospectrum and others on first run
-    screenGrabDock->close();
-    libraryDock->close();
-    subtitlesDock->close();
-    textEditingDock->close();
-    spectrumDock->close();
-    clipDockWidget->close();
-    m_onlineResourcesDock->close();
-
     m_assetPanel = new AssetPanel(this);
-    m_effectStackDock = addDock(i18n("Effect/Composition Stack"), QStringLiteral("effect_stack"), m_assetPanel);
+    m_assetPanel->hide();
+//    m_effectStackDock = addDock(i18n("Effect/Composition Stack"), QStringLiteral("effect_stack"), m_assetPanel);
+    
     connect(m_assetPanel, &AssetPanel::doSplitEffect, m_projectMonitor, &Monitor::slotSwitchCompare);
     connect(m_assetPanel, &AssetPanel::doSplitBinEffect, m_clipMonitor, &Monitor::slotSwitchCompare);
     connect(m_assetPanel, &AssetPanel::switchCurrentComposition, this, [&](int cid, const QString &compositionId) {
@@ -383,19 +453,9 @@ void MainWindow::init(const QString &mltPath)
 
     connect(m_timelineTabs, &TimelineTabs::showMixModel, m_assetPanel, &AssetPanel::showMix);
     connect(m_timelineTabs, &TimelineTabs::showTransitionModel, m_assetPanel, &AssetPanel::showTransition);
-    connect(m_timelineTabs, &TimelineTabs::showTransitionModel, this, [&] () {
-        m_effectStackDock->raise();
-    });
     connect(m_timelineTabs, &TimelineTabs::showItemEffectStack, m_assetPanel, &AssetPanel::showEffectStack);
-    connect(m_timelineTabs, &TimelineTabs::showItemEffectStack, this, [&] () {
-        m_effectStackDock->raise();
-    });
 
-    connect(m_timelineTabs, &TimelineTabs::showSubtitle, this, [&, subtitlesDock] (int id) {
-        if (id > -1) {
-            subtitlesDock->show();
-            subtitlesDock->raise();
-        }
+    connect(m_timelineTabs, &TimelineTabs::showSubtitle, this, [&] (int id) {
         pCore->subtitleWidget()->setActiveSubtitle(id);
     });
 
@@ -405,7 +465,7 @@ void MainWindow::init(const QString &mltPath)
         // Don't raise effect stack on clip bin in case it is docked with bin or clip monitor
         // m_effectStackDock->raise();
     });
-    connect(this, &MainWindow::clearAssetPanel, m_assetPanel, &AssetPanel::clearAssetPanel);
+    connect(this, &MainWindow::clearAssetPanel, m_assetPanel, &AssetPanel::clearAssetPanel, Qt::DirectConnection);
     connect(this, &MainWindow::assetPanelWarning, m_assetPanel, &AssetPanel::assetPanelWarning);
     connect(m_assetPanel, &AssetPanel::seekToPos, this, [this](int pos) {
         ObjectId oId = m_assetPanel->effectStackOwner();
@@ -429,20 +489,13 @@ void MainWindow::init(const QString &mltPath)
     m_effectList2 = new EffectListWidget(this);
     connect(m_effectList2, &EffectListWidget::activateAsset, pCore->projectManager(), &ProjectManager::activateAsset);
     connect(m_assetPanel, &AssetPanel::reloadEffect, m_effectList2, &EffectListWidget::reloadCustomEffect);
-    m_effectListDock = addDock(i18n("Effects"), QStringLiteral("effect_list"), m_effectList2);
 
     m_transitionList2 = new TransitionListWidget(this);
-    m_transitionListDock = addDock(i18n("Compositions"), QStringLiteral("transition_list"), m_transitionList2);
-
-    // Add monitors here to keep them at the right of the window
-    m_clipMonitorDock = addDock(i18n("Clip Monitor"), QStringLiteral("clip_monitor"), m_clipMonitor);
-    m_projectMonitorDock = addDock(i18n("Project Monitor"), QStringLiteral("project_monitor"), m_projectMonitor);
 
     m_undoView = new QUndoView();
     m_undoView->setCleanIcon(QIcon::fromTheme(QStringLiteral("edit-clear")));
     m_undoView->setEmptyLabel(i18n("Clean"));
     m_undoView->setGroup(m_commandStack);
-    m_undoViewDock = addDock(i18n("Undo History"), QStringLiteral("undo_history"), m_undoView);
 
     // Color and icon theme stuff
     connect(m_commandStack, &QUndoGroup::cleanChanged, m_saveAction, &QAction::setDisabled);
@@ -454,40 +507,28 @@ void MainWindow::init(const QString &mltPath)
     addAction(QStringLiteral("force_icon_theme"), iconAction);
     connect(iconAction, &QAction::triggered, this, &MainWindow::forceIconSet);
 
-    m_mixerDock = addDock(i18n("Audio Mixer"), QStringLiteral("mixer"), pCore->mixer());
+    // Audio Mixer
+    // pCore->mixer()
     QAction *showMixer = new QAction(QIcon::fromTheme(QStringLiteral("view-media-equalizer")), i18n("Audio Mixer"), this);
     showMixer->setCheckable(true);
     addAction(QStringLiteral("audiomixer_button"), showMixer);
-    connect(m_mixerDock, &QDockWidget::visibilityChanged, this, [&, showMixer](bool visible) {
-        pCore->mixer()->connectMixer(visible);
-        showMixer->setChecked(visible);
-    });
+    // 连接Mixer    
+//    connect(m_mixerDock, &QDockWidget::visibilityChanged, this, [&, showMixer](bool visible) {
+//        pCore->mixer()->connectMixer(visible);
+//        showMixer->setChecked(visible);
+//    });
     connect(showMixer, &QAction::triggered, this, [&]() {
-        if (m_mixerDock->isVisible() && !m_mixerDock->visibleRegion().isEmpty()) {
-            m_mixerDock->close();
-        } else {
-            m_mixerDock->show();
-            m_mixerDock->raise();
-        }
+        
     });
 
-    // Close non-general docks for the initial layout
-    // only show important ones
-    m_undoViewDock->close();
-    m_mixerDock->close();
-
-    /// Tabify Widgets
-    tabifyDockWidget(m_clipMonitorDock, m_projectMonitorDock);
-    tabifyDockWidget(m_transitionListDock, m_effectListDock);
-    tabifyDockWidget(m_effectStackDock, pCore->bin()->clipPropertiesDock());
     bool firstRun = readOptions();
 
     // Build effects menu
-    m_effectsMenu = new QMenu(i18n("Add Effect"), this);
+    m_effectsMenu = new CustomMenu(i18n("Add Effect"), this);
     m_effectActions = new KActionCategory(i18n("Effects"), actionCollection());
     m_effectList2->reloadEffectMenu(m_effectsMenu, m_effectActions);
 
-    m_transitionsMenu = new QMenu(i18n("Add Transition"), this);
+    m_transitionsMenu = new CustomMenu(i18n("Add Transition"), this);
     m_transitionActions = new KActionCategory(i18n("Transitions"), actionCollection());
 
     auto *scmanager = new ScopeManager(this);
@@ -507,7 +548,7 @@ void MainWindow::init(const QString &mltPath)
     // widgetlist->setText(i18n("Favorite Effects"));
     widgetlist->setToolTip(i18n("Favorite Effects"));
     widgetlist->setIcon(QIcon::fromTheme(QStringLiteral("favorite")));
-    auto *menu = new QMenu(this);
+    auto *menu = new CustomMenu(this);
     menu->addAction(widgetlist);
 
     auto *basketButton = new QToolButton(this);
@@ -525,11 +566,11 @@ void MainWindow::init(const QString &mltPath)
     toolButtonAction->setDefaultWidget(basketButton);
     addAction(QStringLiteral("favorite_effects"), toolButtonAction);
     connect(toolButtonAction, &QAction::triggered, basketButton, &QToolButton::showMenu);
-    connect(m_effectBasket, &EffectBasket::activateAsset, menu, &QMenu::close);
+    connect(m_effectBasket, &EffectBasket::activateAsset, menu, &CustomMenu::close);
 
     // Render button
     ProgressButton *timelineRender = new ProgressButton(i18n("Render"), 100, this);
-    auto *tlrMenu = new QMenu(this);
+    auto *tlrMenu = new CustomMenu(this);
     timelineRender->setMenu(tlrMenu);
     connect(this, &MainWindow::setRenderProgress, timelineRender, &ProgressButton::setProgress);
     auto *renderButtonAction = new QWidgetAction(this);
@@ -540,7 +581,7 @@ void MainWindow::init(const QString &mltPath)
 
     // Timeline preview button
     ProgressButton *timelinePreview = new ProgressButton(i18n("Rendering preview"), 1000, this);
-    auto *tlMenu = new QMenu(this);
+    auto *tlMenu = new CustomMenu(this);
     timelinePreview->setMenu(tlMenu);
     connect(this, &MainWindow::setPreviewProgress, timelinePreview, &ProgressButton::setProgress);
     auto *previewButtonAction = new QWidgetAction(this);
@@ -549,7 +590,17 @@ void MainWindow::init(const QString &mltPath)
     previewButtonAction->setDefaultWidget(timelinePreview);
     addAction(QStringLiteral("timeline_preview_button"), previewButtonAction);
 
-    setupGUI(KXmlGuiWindow::ToolBar | KXmlGuiWindow::StatusBar | KXmlGuiWindow::Save | KXmlGuiWindow::Create);
+    setupGUI(KXmlGuiWindow::ToolBar | KXmlGuiWindow::StatusBar | KXmlGuiWindow::Create);
+    // after-jobs
+    {
+        setStandardToolBarMenuEnabled(false);
+        foreach (auto innerTB, toolBars()) {
+            innerTB->hide();
+            innerTB->deleteLater();
+        }
+    }
+    
+    
     LocaleHandling::resetLocale();
     if (firstRun) {
         if (QScreen *current = QApplication::primaryScreen()) {
@@ -578,7 +629,7 @@ void MainWindow::init(const QString &mltPath)
     loadClipActions();
 
     // Timeline clip menu
-    auto *timelineClipMenu = new QMenu(this);
+    auto *timelineClipMenu = new CustomMenu(this);
     timelineClipMenu->addAction(actionCollection()->action(QStringLiteral("edit_copy")));
     timelineClipMenu->addAction(actionCollection()->action(QStringLiteral("paste_effects")));
     timelineClipMenu->addAction(actionCollection()->action(QStringLiteral("delete_effects")));
@@ -591,7 +642,7 @@ void MainWindow::init(const QString &mltPath)
     timelineClipMenu->addAction(actionCollection()->action(QStringLiteral("extract_clip")));
     timelineClipMenu->addAction(actionCollection()->action(QStringLiteral("save_to_bin")));
 
-    QMenu *markerMenu = static_cast<QMenu *>(factory()->container(QStringLiteral("marker_menu"), this));
+    CustomMenu *markerMenu = static_cast<CustomMenu *>(factory()->container(QStringLiteral("marker_menu"), this));
     timelineClipMenu->addMenu(markerMenu);
 
     timelineClipMenu->addAction(actionCollection()->action(QStringLiteral("set_audio_align_ref")));
@@ -601,24 +652,24 @@ void MainWindow::init(const QString &mltPath)
     timelineClipMenu->addAction(actionCollection()->action(QStringLiteral("cut_timeline_clip")));
 
     // Timeline composition menu
-    auto *compositionMenu = new QMenu(this);
+    auto *compositionMenu = new CustomMenu(this);
     compositionMenu->addAction(actionCollection()->action(QStringLiteral("edit_item_duration")));
     compositionMenu->addAction(actionCollection()->action(QStringLiteral("edit_copy")));
     compositionMenu->addAction(actionCollection()->action(QStringLiteral("delete_timeline_clip")));
 
     // Timeline main menu
-    auto *timelineMenu = new QMenu(this);
+    auto *timelineMenu = new CustomMenu(this);
     timelineMenu->addAction(actionCollection()->action(QStringLiteral("edit_paste")));
     timelineMenu->addAction(actionCollection()->action(QStringLiteral("insert_space")));
     timelineMenu->addAction(actionCollection()->action(QStringLiteral("delete_space")));
     timelineMenu->addAction(actionCollection()->action(QStringLiteral("delete_space_all_tracks")));
     timelineMenu->addAction(actionCollection()->action(QStringLiteral("add_guide")));
     timelineMenu->addAction(actionCollection()->action(QStringLiteral("edit_guide")));
-    QMenu *guideMenu = new QMenu(i18n("Go to Guide..."), this);
+    CustomMenu *guideMenu = new CustomMenu(i18n("Go to Guide..."), this);
     timelineMenu->addMenu(guideMenu);
 
     // Timeline ruler menu
-    auto *timelineRulerMenu = new QMenu(this);
+    auto *timelineRulerMenu = new CustomMenu(this);
     timelineRulerMenu->addAction(actionCollection()->action(QStringLiteral("add_guide")));
     timelineRulerMenu->addAction(actionCollection()->action(QStringLiteral("edit_guide")));
     timelineRulerMenu->addMenu(guideMenu);
@@ -626,12 +677,12 @@ void MainWindow::init(const QString &mltPath)
     timelineRulerMenu->addAction(actionCollection()->action(QStringLiteral("add_subtitle")));
 
     //Timeline subtitle menu
-    auto *timelineSubtitleMenu = new QMenu(this);
+    auto *timelineSubtitleMenu = new CustomMenu(this);
     timelineSubtitleMenu->addAction(actionCollection()->action(QStringLiteral("edit_copy")));
     timelineSubtitleMenu->addAction(actionCollection()->action(QStringLiteral("delete_subtitle_clip")));
 
     // Timeline headers menu
-    auto *timelineHeadersMenu = new QMenu(this);
+    auto *timelineHeadersMenu = new CustomMenu(this);
     timelineHeadersMenu->addAction(actionCollection()->action(QStringLiteral("insert_track")));
     timelineHeadersMenu->addAction(actionCollection()->action(QStringLiteral("delete_track")));
     timelineHeadersMenu->addAction(actionCollection()->action(QStringLiteral("show_track_record")));
@@ -650,7 +701,7 @@ void MainWindow::init(const QString &mltPath)
     connect(normalize_channels, &QAction::triggered, this, &MainWindow::slotNormalizeAudioChannel);
     timelineHeadersMenu->addAction(normalize_channels);
 
-    QMenu *thumbsMenu = new QMenu(i18n("Thumbnails"), this);
+    CustomMenu *thumbsMenu = new CustomMenu(i18n("Thumbnails"), this);
     auto *thumbGroup = new QActionGroup(this);
     QAction *inFrame = new QAction(i18n("In Frame"), thumbGroup);
     inFrame->setData(QStringLiteral("2"));
@@ -669,9 +720,9 @@ void MainWindow::init(const QString &mltPath)
     noFrame->setCheckable(true);
     thumbsMenu->addAction(noFrame);
 
-    QMenu *openGLMenu = static_cast<QMenu *>(factory()->container(QStringLiteral("qt_opengl"), this));
+    CustomMenu *openGLMenu = static_cast<CustomMenu *>(factory()->container(QStringLiteral("qt_opengl"), this));
 #if defined(Q_OS_WIN)
-    connect(openGLMenu, &QMenu::triggered, [&](QAction *ac) {
+    connect(openGLMenu, &CustomMenu::triggered, [&](QAction *ac) {
         KdenliveSettings::setOpengl_backend(ac->data().toInt());
         if (KMessageBox::questionYesNo(this, i18n("Kdenlive needs to be restarted to change this setting. Do you want to proceed?")) != KMessageBox::Yes) {
             return;
@@ -684,34 +735,34 @@ void MainWindow::init(const QString &mltPath)
     }
 #endif
     // Connect monitor overlay info menu.
-    QMenu *monitorOverlay = static_cast<QMenu *>(factory()->container(QStringLiteral("monitor_config_overlay"), this));
-    connect(monitorOverlay, &QMenu::triggered, this, &MainWindow::slotSwitchMonitorOverlay);
+    CustomMenu *monitorOverlay = static_cast<CustomMenu *>(factory()->container(QStringLiteral("monitor_config_overlay"), this));
+    connect(monitorOverlay, &CustomMenu::triggered, this, &MainWindow::slotSwitchMonitorOverlay);
 
-    m_projectMonitor->setupMenu(static_cast<QMenu *>(factory()->container(QStringLiteral("monitor_go"), this)), monitorOverlay, m_playZone, m_loopZone, nullptr,
+    m_projectMonitor->setupMenu(static_cast<CustomMenu *>(factory()->container(QStringLiteral("monitor_go"), this)), monitorOverlay, m_playZone, m_loopZone, nullptr,
                                 m_loopClip);
-    m_clipMonitor->setupMenu(static_cast<QMenu *>(factory()->container(QStringLiteral("monitor_go"), this)), monitorOverlay, m_playZone, m_loopZone,
-                             static_cast<QMenu *>(factory()->container(QStringLiteral("marker_menu"), this)));
+    m_clipMonitor->setupMenu(static_cast<CustomMenu *>(factory()->container(QStringLiteral("monitor_go"), this)), monitorOverlay, m_playZone, m_loopZone,
+                             static_cast<CustomMenu *>(factory()->container(QStringLiteral("marker_menu"), this)));
 
-    QMenu *clipInTimeline = static_cast<QMenu *>(factory()->container(QStringLiteral("clip_in_timeline"), this));
+    CustomMenu *clipInTimeline = static_cast<CustomMenu *>(factory()->container(QStringLiteral("clip_in_timeline"), this));
     clipInTimeline->setIcon(QIcon::fromTheme(QStringLiteral("go-jump")));
     pCore->bin()->setupGeneratorMenu();
 
     connect(pCore->monitorManager(), &MonitorManager::updateOverlayInfos, this, &MainWindow::slotUpdateMonitorOverlays);
 
     // Setup and fill effects and transitions menus.
-    QMenu *m = static_cast<QMenu *>(factory()->container(QStringLiteral("video_effects_menu"), this));
-    connect(m, &QMenu::triggered, this, &MainWindow::slotAddEffect);
-    connect(m_effectsMenu, &QMenu::triggered, this, &MainWindow::slotAddEffect);
-    connect(m_transitionsMenu, &QMenu::triggered, this, &MainWindow::slotAddTransition);
+    CustomMenu *m = static_cast<CustomMenu *>(factory()->container(QStringLiteral("video_effects_menu"), this));
+    connect(m, &CustomMenu::triggered, this, &MainWindow::slotAddEffect);
+    connect(m_effectsMenu, &CustomMenu::triggered, this, &MainWindow::slotAddEffect);
+    connect(m_transitionsMenu, &CustomMenu::triggered, this, &MainWindow::slotAddTransition);
 
-    m_timelineContextMenu = new QMenu(this);
+    m_timelineContextMenu = new CustomMenu(this);
 
     m_timelineContextMenu->addAction(actionCollection()->action(QStringLiteral("insert_space")));
     m_timelineContextMenu->addAction(actionCollection()->action(QStringLiteral("delete_space")));
     m_timelineContextMenu->addAction(actionCollection()->action(QStringLiteral("delete_space_all_tracks")));
     m_timelineContextMenu->addAction(actionCollection()->action(KStandardAction::name(KStandardAction::Paste)));
 
-    // QMenu *markersMenu = static_cast<QMenu *>(factory()->container(QStringLiteral("marker_menu"), this));
+    // CustomMenu *markersMenu = static_cast<CustomMenu *>(factory()->container(QStringLiteral("marker_menu"), this));
 
     /*m_timelineClipActions->addMenu(markersMenu);
     m_timelineClipActions->addSeparator();
@@ -819,6 +870,62 @@ void MainWindow::init(const QString &mltPath)
         }
     });
     // m_messageLabel->setMessage(QStringLiteral("This is a beta version. Always backup your data"), MltError);
+    
+    setWindowFlags(
+        windowFlags() |
+        Qt::FramelessWindowHint |
+        Qt::WindowCloseButtonHint |
+        Qt::WindowMinimizeButtonHint |
+        Qt::WindowMaximizeButtonHint |
+        Qt::WindowFullscreenButtonHint |
+        Qt::WindowTitleHint
+    );
+    
+    setupMenuBar();
+    
+    // 设置无边框窗口辅助类
+    m_framelessHelper = new FramelessHelper(this);
+    m_framelessHelper->activateOn(this);                  // 激活当前窗体
+    m_framelessHelper->setWidgetMovable(true);            // 设置窗体可移动
+    m_framelessHelper->setWidgetResizable(true);          // 设置窗体可缩放
+    
+    // 设置顶端导航栏
+    new TopNavigationBar(menuBar());
+    
+    // 处理由于删去dockWidget导致的widget残留显示
+
+    grabWidget->hide();
+    
+    m_undoView->hide();
+    m_effectList2->hide();
+    m_audioSpectrum->hide();    
+    m_transitionList2->hide();
+    
+    pCore->bin()->hide();
+    pCore->mixer()->hide();
+    pCore->library()->hide();
+    pCore->subtitleWidget()->hide();
+    pCore->textEditWidget()->hide();
+    
+    // 由于隐藏标题栏导致的窗口移动
+    QTimer::singleShot(1, this, [this] {
+        auto isMax = m_mwSettings.value("isMax", false).toBool();
+        if (isMax) {
+            m_framelessHelper->setMax(this, true);
+        } else {
+            auto&& scrRect = screen()->geometry();
+            
+            auto&& rect = m_mwSettings.value(
+                "geo",
+                QRect((scrRect.width() - 1280) / 2, (scrRect.height() - 720) / 2, 1280, 720)
+            ).toRect();
+            this->setGeometry(rect);
+        }
+    });
+    
+    m_projectMonitorFrame->update();
+    m_projectMonitorFrame->repaint();
+    m_projectMonitorFrame->resize(m_projectMonitor->width(), m_projectMonitor->height());
 }
 
 void MainWindow::slotThemeChanged(const QString &name)
@@ -891,6 +998,14 @@ void MainWindow::updateActionsToolTip()
 
 MainWindow::~MainWindow()
 {
+    if (m_framelessHelper->isMax(this)) {
+        m_mwSettings.setValue("isMax", true);
+    } else {
+        m_mwSettings.setValue("isMax", false);
+        auto&& geo = geometry();
+        m_mwSettings.setValue("geo", geo);
+    }
+    
     pCore->prepareShutdown();
     delete m_timelineTabs;
     delete m_audioSpectrum;
@@ -943,9 +1058,9 @@ bool MainWindow::queryClose()
 
 void MainWindow::loadGenerators()
 {
-    QMenu *addMenu = static_cast<QMenu *>(factory()->container(QStringLiteral("generators"), this));
+    CustomMenu *addMenu = static_cast<CustomMenu *>(factory()->container(QStringLiteral("generators"), this));
     Generators::getGenerators(KdenliveSettings::producerslist(), addMenu);
-    connect(addMenu, &QMenu::triggered, this, &MainWindow::buildGenerator);
+    connect(addMenu, &CustomMenu::triggered, this, &MainWindow::buildGenerator);
 }
 
 void MainWindow::buildGenerator(QAction *action)
@@ -976,12 +1091,12 @@ void MainWindow::saveNewToolbarConfig()
     loadDockActions();
     loadClipActions();
     pCore->bin()->rebuildMenu();
-    QMenu *monitorOverlay = static_cast<QMenu *>(factory()->container(QStringLiteral("monitor_config_overlay"), this));
+    CustomMenu *monitorOverlay = static_cast<CustomMenu *>(factory()->container(QStringLiteral("monitor_config_overlay"), this));
     if (monitorOverlay) {
-        m_projectMonitor->setupMenu(static_cast<QMenu *>(factory()->container(QStringLiteral("monitor_go"), this)), monitorOverlay, m_playZone, m_loopZone,
+        m_projectMonitor->setupMenu(static_cast<CustomMenu *>(factory()->container(QStringLiteral("monitor_go"), this)), monitorOverlay, m_playZone, m_loopZone,
                                     nullptr, m_loopClip);
-        m_clipMonitor->setupMenu(static_cast<QMenu *>(factory()->container(QStringLiteral("monitor_go"), this)), monitorOverlay, m_playZone, m_loopZone,
-                                 static_cast<QMenu *>(factory()->container(QStringLiteral("marker_menu"), this)));
+        m_clipMonitor->setupMenu(static_cast<CustomMenu *>(factory()->container(QStringLiteral("monitor_go"), this)), monitorOverlay, m_playZone, m_loopZone,
+                                 static_cast<CustomMenu *>(factory()->container(QStringLiteral("marker_menu"), this)));
     }
 }
 
@@ -1140,7 +1255,7 @@ void MainWindow::setupActions()
     clipTypeGroup->addAction(splitView2);
     connect(clipTypeGroup, &QActionGroup::triggered, this, &MainWindow::slotUpdateTimelineView);
 
-    auto tlsettings = new QMenu(this);
+    auto tlsettings = new CustomMenu(this);
     tlsettings->setIcon(QIcon::fromTheme(QStringLiteral("configure")));
     tlsettings->addAction(m_compositeAction);
     tlsettings->addAction(mixedView);
@@ -1165,7 +1280,11 @@ void MainWindow::setupActions()
     } else {
         m_timeFormatButton->setCurrentItem(0);
     }
+#if KWIDGETSADDONS_VERSION < QT_VERSION_CHECK(5,78,0)
     connect(m_timeFormatButton, static_cast<void (KSelectAction::*)(int)>(&KSelectAction::triggered), this, &MainWindow::slotUpdateTimecodeFormat);
+#else
+    connect(m_timeFormatButton, &KSelectAction::indexTriggered, this, &MainWindow::slotUpdateTimecodeFormat);
+#endif
     m_timeFormatButton->setToolBarMode(KSelectAction::MenuMode);
     m_timeFormatButton->setToolButtonPopupMode(QToolButton::InstantPopup);
     addAction(QStringLiteral("timeline_timecode"), m_timeFormatButton);
@@ -1290,6 +1409,7 @@ void MainWindow::setupActions()
     connect(m_zoomSlider, &QAbstractSlider::sliderMoved, this, &MainWindow::slotShowZoomSliderToolTip);
     connect(m_buttonFitZoom, &QAction::triggered, this, &MainWindow::slotFitZoom);
 
+    // timeline tool bar
     KToolBar *toolbar = new KToolBar(QStringLiteral("statusToolBar"), this, Qt::BottomToolBarArea);
     toolbar->setMovable(false);
     toolbar->setToolButtonStyle(Qt::ToolButtonIconOnly);
@@ -1513,7 +1633,11 @@ void MainWindow::setupActions()
     monitorGamma->addAction(i18n("Rec. 709 (TV)"));
     addAction(QStringLiteral("mlt_gamma"), monitorGamma);
     monitorGamma->setCurrentItem(KdenliveSettings::monitor_gamma());
+#if KWIDGETSADDONS_VERSION < QT_VERSION_CHECK(5,78,0)
     connect(monitorGamma, static_cast<void (KSelectAction::*)(int)>(&KSelectAction::triggered), this, &MainWindow::slotSetMonitorGamma);
+#else
+    connect(monitorGamma, &KSelectAction::indexTriggered, this, &MainWindow::slotSetMonitorGamma);
+#endif
     actionCollection()->setShortcutsConfigurable(monitorGamma, false);
 
     addAction(QStringLiteral("switch_trim"), i18n("Trim Mode"), this, SLOT(slotSwitchTrimMode()), QIcon::fromTheme(QStringLiteral("cursor-arrow")));
@@ -1810,6 +1934,9 @@ void MainWindow::setupActions()
         }
         redo->setEnabled(enable);
     });
+
+    addAction(QStringLiteral("copy_debuginfo"), i18n("Copy Debug Information"), this, SLOT(slotCopyDebugInfo()),
+              QIcon::fromTheme(QStringLiteral("edit-copy")));
 
     QAction *disableEffects = addAction(QStringLiteral("disable_timeline_effects"), i18n("Disable Timeline Effects"), pCore->projectManager(),
                                         SLOT(slotDisableTimelineEffects(bool)), QIcon::fromTheme(QStringLiteral("favorite")));
@@ -2208,11 +2335,11 @@ void MainWindow::slotUpdateMousePosition(int pos)
         switch (m_timeFormatButton->currentItem()) {
         case 0:
             m_timeFormatButton->setText(pCore->currentDoc()->timecode().getTimecodeFromFrames(pos) + QStringLiteral(" / ") +
-                                        pCore->currentDoc()->timecode().getTimecodeFromFrames(getMainTimeline()->controller()->duration()));
+                                        pCore->currentDoc()->timecode().getTimecodeFromFrames(getMainTimeline()->controller()->duration() - 1));
             break;
         default:
             m_timeFormatButton->setText(
-                QStringLiteral("%1 / %2").arg(pos, 6, 10, QLatin1Char('0')).arg(getMainTimeline()->controller()->duration(), 6, 10, QLatin1Char('0')));
+                QStringLiteral("%1 / %2").arg(pos, 6, 10, QLatin1Char('0')).arg(getMainTimeline()->controller()->duration() - 1, 6, 10, QLatin1Char('0')));
         }
     }
 }
@@ -2340,7 +2467,7 @@ void MainWindow::connectDocument()
     }, Qt::DirectConnection);
     connect(trackView, &Timeline::zoneMoved, this, &MainWindow::slotZoneMoved);
     trackView->projectView()->setContextMenu(m_timelineContextMenu, m_timelineClipActions, m_timelineContextTransitionMenu, m_clipTypeGroup,
-    static_cast<QMenu *>(factory()->container(QStringLiteral("marker_menu"), this)));
+    static_cast<CustomMenu *>(factory()->container(QStringLiteral("marker_menu"), this)));
     */
 
     getMainTimeline()->controller()->clipActions = kdenliveCategoryMap.value(QStringLiteral("timelineselection"))->actions();
@@ -2382,8 +2509,6 @@ void MainWindow::connectDocument()
     setTrimMode(QString());
 
     m_buttonSelectTool->setChecked(true);
-    connect(m_projectMonitorDock, &QDockWidget::visibilityChanged, m_projectMonitor, &Monitor::slotRefreshMonitor, Qt::UniqueConnection);
-    connect(m_clipMonitorDock, &QDockWidget::visibilityChanged, m_clipMonitor, &Monitor::slotRefreshMonitor, Qt::UniqueConnection);
     getMainTimeline()->focusTimeline();
 }
 
@@ -2411,7 +2536,7 @@ void MainWindow::slotEditKeys()
     if (schemesList) {
         foreach (QPushButton *button, dialog.findChildren<QPushButton *>()) {
             if (button->text() == i18n("More Actions")) {
-                QMenu *moreActionsMenu = button->menu();
+                auto moreActionsMenu = button->menu();
                 moreActionsMenu->addAction(i18n("Download New Keyboard Schemes..."), this, [this, schemesList] { slotGetNewKeyboardStuff(schemesList); });
                 break;
             }
@@ -2566,10 +2691,11 @@ void MainWindow::slotDeleteItem()
     } else {
         QWidget *widget = QApplication::focusWidget();
         while ((widget != nullptr) && widget != this) {
-            if (widget == m_effectStackDock) {
-                m_assetPanel->deleteCurrentEffect();
-                return;
-            }
+//            效果栈Dock
+//            if (widget == m_effectStackDock) {
+//                m_assetPanel->deleteCurrentEffect();
+//                return;
+//            }
             if (widget == pCore->bin()->clipPropertiesDock()) {
                 emit pCore->bin()->deleteMarkers();
                 return;
@@ -3189,7 +3315,7 @@ void MainWindow::slotPasteEffects()
 void MainWindow::slotClipInTimeline(const QString &clipId, const QList<int> &ids)
 {
     Q_UNUSED(clipId)
-    QMenu *inTimelineMenu = static_cast<QMenu *>(factory()->container(QStringLiteral("clip_in_timeline"), this));
+    CustomMenu *inTimelineMenu = static_cast<CustomMenu *>(factory()->container(QStringLiteral("clip_in_timeline"), this));
     QList<QAction *> actionList;
     for (int i = 0; i < ids.count(); ++i) {
         QString track = getMainTimeline()->controller()->getTrackNameFromIndex(pCore->getItemTrack(ObjectId(ObjectType::TimelineClip, ids.at(i))));
@@ -3220,8 +3346,7 @@ void MainWindow::slotClipInTimeline(const QString &clipId, const QList<int> &ids
 
 void MainWindow::raiseBin()
 {
-    m_projectBinDock->setVisible(true);
-    m_projectBinDock->raise();
+    // 设置binDock的层级和可见性
 }
 
 void MainWindow::slotClipInProjectTree()
@@ -3232,14 +3357,36 @@ void MainWindow::slotClipInProjectTree()
         ObjectId id(ObjectType::TimelineClip, ids.constFirst());
         int start = pCore->getItemIn(id);
         int duration = pCore->getItemDuration(id);
-        QPoint zone(start, start + duration);
-        qDebug() << " - - selecting clip on monitor, zone: " << zone;
         int pos = m_projectMonitor->position();
         int itemPos = pCore->getItemPosition(id);
-        if (pos >= itemPos && pos < itemPos + duration) {
-            pos -= (itemPos - start);
-        } else {
-            pos = -1;
+        bool containsPos = (pos >= itemPos && pos < itemPos + duration);
+        double speed = pCore->getClipSpeed(id.second);
+        if (containsPos) {
+            pos -= itemPos - start;
+        }
+        if (!qFuzzyCompare(speed, 1.)) {
+            if (speed > 0.) {
+                // clip has a speed effect, adjust zone
+                start = qRound(start * speed);
+                duration = qRound(duration * speed);
+                if (containsPos) {
+                    pos = qRound(pos * speed);
+                }
+            } else if (speed < 0.) {
+                int max = getMainTimeline()->controller()->clipMaxDuration(id.second);
+                if (max > 0) {
+                    int invertedPos = itemPos + duration - m_projectMonitor->position();
+                    start = qRound((max - (start + duration)) * -speed);
+                    duration = qRound(duration * -speed);
+                    if (containsPos) {
+                        pos = start + qRound(invertedPos * -speed);
+                    }
+                }
+            }
+        }
+        QPoint zone(start, start + duration);
+        if (!containsPos) {
+            pos = start;
         }
         pCore->selectBinClip(getMainTimeline()->controller()->getClipBinId(ids.constFirst()), true, pos, zone);
     }
@@ -3538,7 +3685,7 @@ void MainWindow::buildDynamicActions()
     ts = new KActionCategory(i18n("Transcoders"), m_extraFactory->actionCollection());
     KActionCategory *ats = new KActionCategory(i18n("Extract Audio"), m_extraFactory->actionCollection());
     KSharedConfigPtr config =
-        KSharedConfig::openConfig(QStandardPaths::locate(QStandardPaths::AppDataLocation, QStringLiteral("kdenlivetranscodingrc")), KConfig::CascadeConfig);
+        KSharedConfig::openConfig(QStringLiteral("kdenlivetranscodingrc"), KConfig::CascadeConfig, QStandardPaths::AppDataLocation);
     KConfigGroup transConfig(config, "Transcoding");
     // read the entries
     QMap<QString, QString> profiles = transConfig.entryMap();
@@ -3721,13 +3868,13 @@ void MainWindow::slotMonitorRequestRenderFrame(bool request)
         m_projectMonitor->sendFrameForAnalysis(true);
         return;
     }
-    for (int i = 0; i < m_gfxScopesList.count(); ++i) {
-        if (m_gfxScopesList.at(i)->isVisible() && tabifiedDockWidgets(m_gfxScopesList.at(i)).isEmpty() &&
-            static_cast<AbstractGfxScopeWidget *>(m_gfxScopesList.at(i)->widget())->autoRefreshEnabled()) {
-            request = true;
-            break;
-        }
-    }
+//    for (int i = 0; i < m_gfxScopesList.count(); ++i) {
+//        if (m_gfxScopesList.at(i)->isVisible() && tabifiedDockWidgets(m_gfxScopesList.at(i)).isEmpty() &&
+//            static_cast<AbstractGfxScopeWidget *>(m_gfxScopesList.at(i)->widget())->autoRefreshEnabled()) {
+//            request = true;
+//            break;
+//        }
+//    }
 
 #ifdef DEBUG_MAINW
     qCDebug(KDENLIVE_LOG) << "Any scope accepting new frames? " << request;
@@ -3769,8 +3916,10 @@ void MainWindow::slotDownloadResources()
     } else {
         currentFolder = KdenliveSettings::defaultprojectfolder();
     }
-    m_onlineResourcesDock->show();
-    m_onlineResourcesDock->raise();;
+    /*  下载资源后展示在线资源dock
+        m_onlineResourcesDock->show();
+        m_onlineResourcesDock->raise();
+     */
 }
 
 void MainWindow::slotProcessImportKeyframes(GraphicsRectItem type, const QString &tag, const QString &keyframes)
@@ -3821,20 +3970,6 @@ void MainWindow::triggerKey(QKeyEvent *ev)
     }
 }
 
-QDockWidget *MainWindow::addDock(const QString &title, const QString &objectName, QWidget *widget, Qt::DockWidgetArea area)
-{
-    QDockWidget *dockWidget = new QDockWidget(title, this);
-    dockWidget->setObjectName(objectName);
-    dockWidget->setWidget(widget);
-    addDockWidget(area, dockWidget);
-    return dockWidget;
-}
-
-bool MainWindow::isMixedTabbed() const
-{
-    return !tabifiedDockWidgets(m_mixerDock).isEmpty();
-}
-
 void MainWindow::slotUpdateDockLocation(Qt::DockWidgetArea dockLocationArea)
 {
     if (dockLocationArea == Qt::NoDockWidgetArea) {
@@ -3846,7 +3981,7 @@ void MainWindow::slotUpdateDockLocation(Qt::DockWidgetArea dockLocationArea)
 
 void MainWindow::slotUpdateMonitorOverlays(int id, int code)
 {
-    QMenu *monitorOverlay = static_cast<QMenu *>(factory()->container(QStringLiteral("monitor_config_overlay"), this));
+    CustomMenu *monitorOverlay = static_cast<CustomMenu *>(factory()->container(QStringLiteral("monitor_config_overlay"), this));
     if (!monitorOverlay) {
         return;
     }
@@ -3871,39 +4006,28 @@ void MainWindow::slotChangeStyle(QAction *a)
 
 void MainWindow::raiseMonitor(bool clipMonitor)
 {
-    if (clipMonitor) {
-        m_clipMonitorDock->show();
-        m_clipMonitorDock->raise();
-    } else {
-        m_projectMonitorDock->show();
-        m_projectMonitorDock->raise();
-    }
+//    if (clipMonitor) {
+//        m_clipMonitorDock->show();
+//        m_clipMonitorDock->raise();
+//    } else {
+//        m_projectMonitorDock->show();
+//        m_projectMonitorDock->raise();
+//    }
 }
 
 void MainWindow::doChangeStyle()
 {
     QString newStyle = KdenliveSettings::widgetstyle();
     if (newStyle.isEmpty() || newStyle == QStringLiteral("Default")) {
-        newStyle = defaultStyle("Breeze");
+        newStyle = defaultStyle("Classic");
     }
     QApplication::setStyle(QStyleFactory::create(newStyle));
-}
-
-bool MainWindow::isTabbedWith(QDockWidget *widget, const QString &otherWidget)
-{
-    QList<QDockWidget *> tabbed = tabifiedDockWidgets(widget);
-    for (auto tab : qAsConst(tabbed)) {
-        if (tab->objectName() == otherWidget) {
-            return true;
-        }
-    }
-    return false;
 }
 
 void MainWindow::updateDockTitleBars(bool isTopLevel)
 {
     QList<QTabBar *> tabbars = findChildren<QTabBar *>();
-    for (QTabBar *tab : tabbars) {
+    for (QTabBar *tab : qAsConst(tabbars)) {
         tab->setAcceptDrops(true);
         tab->setChangeCurrentOnDrag(true);
     }
@@ -3990,9 +4114,9 @@ void MainWindow::rebuildTimlineToolBar()
 
 void MainWindow::showTimelineToolbarMenu(const QPoint &pos)
 {
-    QMenu menu;
+    CustomMenu menu;
     menu.addAction(actionCollection()->action(KStandardAction::name(KStandardAction::ConfigureToolbars)));
-    QMenu *contextSize = new QMenu(i18n("Icon Size"));
+    CustomMenu *contextSize = new CustomMenu(i18n("Icon Size"));
     menu.addMenu(contextSize);
     auto *sizeGroup = new QActionGroup(contextSize);
     int currentSize = m_timelineToolBar->iconSize().width();
@@ -4068,7 +4192,7 @@ void MainWindow::showTimelineToolbarMenu(const QPoint &pos)
             }
         }
     }
-    connect(contextSize, &QMenu::triggered, this, &MainWindow::setTimelineToolbarIconSize);
+    connect(contextSize, &CustomMenu::triggered, this, &MainWindow::setTimelineToolbarIconSize);
     menu.exec(m_timelineToolBar->mapToGlobal(pos));
     contextSize->deleteLater();
 }
@@ -4088,17 +4212,9 @@ void MainWindow::setTimelineToolbarIconSize(QAction *a)
 
 void MainWindow::slotManageCache()
 {
-    QDialog d(this);
-    d.setWindowTitle(i18n("Manage Cache Data"));
-    auto *lay = new QVBoxLayout;
-    TemporaryData tmp(pCore->currentDoc(), false, this);
-    connect(&tmp, &TemporaryData::disableProxies, this, &MainWindow::slotDisableProxies);
-    QDialogButtonBox *buttonBox = new QDialogButtonBox(QDialogButtonBox::Close);
-    connect(buttonBox, &QDialogButtonBox::rejected, &d, &QDialog::reject);
-    lay->addWidget(&tmp);
-    lay->addWidget(buttonBox);
-    d.setLayout(lay);
-    d.exec();
+    QPointer<TemporaryData> d(new TemporaryData(pCore->currentDoc(), false, this));
+    connect(d, &TemporaryData::disableProxies, this, &MainWindow::slotDisableProxies);
+    d->exec();
 }
 
 void MainWindow::slotUpdateCompositing(QAction *compose)
@@ -4180,6 +4296,11 @@ TimelineWidget *MainWindow::getCurrentTimeline() const
     return m_timelineTabs->getCurrentTimeline();
 }
 
+bool MainWindow::hasTimeline() const
+{
+    return m_timelineTabs != nullptr;
+}
+
 void MainWindow::resetTimelineTracks()
 {
     TimelineWidget *current = getCurrentTimeline();
@@ -4218,10 +4339,10 @@ void MainWindow::slotCollapse()
     } else {
         QWidget *widget = QApplication::focusWidget();
         while ((widget != nullptr) && widget != this) {
-            if (widget == m_effectStackDock) {
-                m_assetPanel->collapseCurrentEffect();
-                return;
-            }
+//            if (widget == m_effectStackDock) {
+//                m_assetPanel->collapseCurrentEffect();
+//                return;
+//            }
             widget = widget->parentWidget();
         }
 
@@ -4314,13 +4435,10 @@ void MainWindow::slotEditSubtitle(QMap<QString, QString> subProperties)
     }
 }
 
-void MainWindow::slotAddSubtitle()
+void MainWindow::slotAddSubtitle(const QString &text)
 {
-    if (pCore->getSubtitleModel() == nullptr || !KdenliveSettings::showSubtitles()) {
-        slotEditSubtitle();
-        m_buttonSubtitleEditTool->setChecked(true);
-    }
-    getCurrentTimeline()->controller()->addSubtitle();
+    showSubtitleTrack();
+    getCurrentTimeline()->controller()->addSubtitle(-1, text);
 }
 
 void MainWindow::slotDisableSubtitle()
@@ -4333,12 +4451,17 @@ void MainWindow::slotLockSubtitle()
     getCurrentTimeline()->controller()->switchSubtitleLock();
 }
 
-void MainWindow::slotImportSubtitle()
+void MainWindow::showSubtitleTrack()
 {
     if (pCore->getSubtitleModel() == nullptr || !KdenliveSettings::showSubtitles()) {
-        slotEditSubtitle();
         m_buttonSubtitleEditTool->setChecked(true);
+        slotEditSubtitle();
     }
+}
+
+void MainWindow::slotImportSubtitle()
+{
+    showSubtitleTrack();
     getCurrentTimeline()->controller()->importSubtitle();
 }
 
@@ -4357,6 +4480,843 @@ void MainWindow::slotSpeechRecognition()
         slotEditSubtitle();
     }
     getCurrentTimeline()->controller()->subtitleSpeechRecognition();
+}
+
+#define GET_KDE_ACTION(__ENUM__) \
+    actionCollection()->action(KStandardAction::name(KStandardAction::StandardAction::__ENUM__))
+#define ACTION_COLL(__name__) \
+    actionCollection()->action(__name__)
+
+constexpr auto __menuBarHeight = 42;
+constexpr auto __windowCtrlBtnWidth = 54;
+constexpr auto __ltLabelWidth = 118;
+constexpr auto __menuTabWidth = 48;
+
+void MainWindow::setupMenuBar() {
+    menuBar()->deleteLater();
+    auto menuBar = new QMenuBar(this);
+    
+    std::array<QString, 3> ctrlBtnIcons = {
+        "minimum", "maximum", "close"
+    };
+    
+    // create window controller buttons
+    {   
+        m_windCtrlBtnFrame  = new QFrame(this);
+        m_windCtrlBtnFrame->setWindowFlag(Qt::WindowStaysOnTopHint);
+        m_windCtrlBtnFrame->setFixedSize(__windowCtrlBtnWidth * 3, __menuBarHeight - 1);
+        auto frameLayout    = new QHBoxLayout(m_windCtrlBtnFrame);
+        frameLayout->setContentsMargins(0, 0, 0, 0);
+        frameLayout->setSpacing(0);
+        
+        using BtnType = QPushButton;
+        std::array<BtnType*, 3> ctrlBtnGroup = {};
+        const char* btnQSS = R"(
+            QPushButton {
+                background-color: #FF2D2C39;
+                border-width: 0px;
+                border-color: transparent;
+                border-radius: 0px;
+            }
+            QPushButton::hover {
+                background-color: #FF3E3D4C;
+            }
+        )";
+        
+        for (decltype(ctrlBtnGroup.size()) i = 0; i < ctrlBtnGroup.size(); i++) {
+            auto btn = ctrlBtnGroup.at(i);
+//            btn = new std::remove_pointer<decltype(btn)>::type(m_windCtrlBtnFrame);
+            btn = new BtnType(m_windCtrlBtnFrame);
+            btn->setFixedSize(__windowCtrlBtnWidth, __menuBarHeight - 1);
+            btn->setIcon(QIcon(":/classic/controllers/window_"+ ctrlBtnIcons[i] +".png"));
+            btn->setStyleSheet(btnQSS);
+            
+            frameLayout->addWidget(btn, Qt::AlignLeft | Qt::AlignTop);
+            
+            if (i == 0) {
+                connect(btn, &BtnType::clicked, this, &MainWindow::showMinimized);
+            } else if (i == 1) {
+                connect(btn, &BtnType::clicked, [this] {
+                    m_framelessHelper->setMax(this, !m_framelessHelper->isMax(this));
+                });
+            } else if (i == 2) {
+                connect(btn, &BtnType::clicked, this, &MainWindow::close);
+            }
+        }
+        
+        m_windCtrlBtnFrame->setLayout(frameLayout);
+    }
+    
+    menuBar->setFixedHeight(__menuBarHeight);
+    menuBar->setStyleSheet(QString(R"(
+        QMenuBar {
+            padding-left: %1px;
+            padding-right: 0px;
+            padding-top: 0px;
+            padding-bottom: 0px;
+            background-color: #2D2C39;
+        }
+        
+        QMenuBar::item {
+            padding-left: 12px;
+            padding-right: 12px;
+            padding-top: 13px;
+            padding-bottom: 12px;
+
+            font-size: 12px;
+            font-family: "Microsoft YaHei";
+        }
+
+        QMenuBar::item:selected {
+            background: #FF3E3D4C;
+        }
+    )").arg(__ltLabelWidth)); // .arg(__menuBarHeight));
+    setMenuBar(menuBar);
+    menuBar->installEventFilter(this);
+    
+    // create left top icon-text label
+    {
+        auto ltLabel = new QWidget(menuBar);
+        ltLabel->setFixedSize(__ltLabelWidth, __menuBarHeight);
+        
+        auto iconLabel = new QLabel(menuBar);
+        iconLabel->setPixmap(QPixmap(":/classic/smartip_icon_14.png"));
+        
+        auto textLabel = new QLabel(menuBar);
+        textLabel->setText(i18n("NAME"));
+        textLabel->setStyleSheet(R"(QLabel { color: #E6FFFFFF; font-size: 14px; font-family: "Microsoft YaHei"; })");
+        
+        auto ltLabelLayout = new QHBoxLayout(ltLabel);
+        ltLabelLayout->addWidget(iconLabel, Qt::AlignVCenter);
+        ltLabelLayout->addWidget(textLabel, Qt::AlignVCenter);
+        ltLabelLayout->setContentsMargins(24, 0, 31, 0);
+        ltLabel->setLayout(ltLabelLayout);
+        ltLabel->move(0, 0);
+    }
+    
+    
+    // create custom menus
+    m_fileMenu      = new CustomMenu(i18n("文件"), this);
+    m_editMenu      = new CustomMenu(i18n("编辑"), this);
+    m_cutMenu       = new CustomMenu(i18n("剪辑"), this);
+    m_settingMenu   = new CustomMenu(i18n("设置"), this);
+    m_helpMenu      = new CustomMenu(i18n("帮助"), this);
+    
+    menuBar->addMenu(m_fileMenu);
+    menuBar->addMenu(m_editMenu);
+    menuBar->addMenu(m_cutMenu);
+    menuBar->addMenu(m_settingMenu);
+    menuBar->addMenu(m_helpMenu);
+    
+    // add contents
+    // 文件菜单
+    {
+        auto createNew = GET_KDE_ACTION(New);
+        createNew->setShortcut(QKeySequence(Qt::CTRL+Qt::Key_N));
+        createNew->setText(i18n("新建"));
+        createNew->setIcon(QIcon());
+        m_fileMenu->addAction(createNew);
+        
+        auto openProject = GET_KDE_ACTION(Open);
+        openProject->setText(i18n("打开项目"));
+        openProject->setIcon(QIcon());
+        m_fileMenu->addAction(openProject);
+        openProject->setShortcut(QKeySequence(Qt::CTRL+Qt::Key_O));
+        
+        auto openRecent = GET_KDE_ACTION(OpenRecent);
+        auto openRecent_subMenu = openRecent->menu();
+        openRecent_subMenu->setStyleSheet(CustomMenu::menuSheet + CustomMenu::menuItemSheet);
+        MOVE_MENU_ABOUT2SHOW(openRecent_subMenu, __customMenuLeftMargin, 0);
+        
+        openRecent->setIcon(QIcon());
+        openRecent->setText(i18n("打开最近项目"));
+        m_fileMenu->addAction(openRecent);
+
+        auto leadIn = new CustomMenu(m_fileMenu);
+        leadIn->setTitle("导入");
+        auto inFromPlayList = new QAction(tr("从播放列表导入"), leadIn);
+        auto inFromMylib    = new QAction(tr("从我的素材库导入"), leadIn);
+        auto inFromLocal    = new QAction(tr("从本地导入"), leadIn);
+        
+        connect(inFromLocal, SIGNAL(triggered()), this, SIGNAL(leadinRequested()));
+        
+        leadIn->addAction(inFromPlayList);
+        leadIn->addAction(inFromMylib);
+        leadIn->addAction(inFromLocal);
+
+        MOVE_MENU_ABOUT2SHOW(leadIn, __customMenuLeftMargin, 0);
+        m_fileMenu->addMenu(leadIn);
+        m_fileMenu->addSeparator();
+
+        auto save = GET_KDE_ACTION(Save);
+        save->setText(i18n("保存"));
+        save->setIcon(QIcon());
+        save->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_S));
+        m_fileMenu->addAction(save);
+
+        auto saveAs = GET_KDE_ACTION(SaveAs);
+        saveAs->setText(i18n("另存为"));
+        saveAs->setIcon(QIcon());
+        saveAs->setShortcut(QKeySequence(Qt::CTRL + Qt::SHIFT + Qt::Key_S));
+        
+        m_fileMenu->addAction(saveAs);
+        m_fileMenu->addSeparator();
+
+        auto projectRender = ACTION_COLL("project_render");
+        projectRender->setText(i18n("导出"));
+        projectRender->setIcon(QIcon());
+        projectRender->setShortcut(QKeySequence(Qt::CTRL+Qt::Key_E));
+        m_fileMenu->addAction(projectRender);
+            
+        auto packProjectFiles = ACTION_COLL("archive_project");
+        packProjectFiles->setShortcut(QKeySequence(Qt::Key_M));
+        packProjectFiles->setText(i18n("打包项目文件"));
+        packProjectFiles->setIcon(QIcon());
+        m_fileMenu->addAction(packProjectFiles);
+
+        m_fileMenu->addSeparator();
+        
+        auto _exit = new QAction(tr("退出"), m_fileMenu);
+        _exit->setShortcut(QKeySequence(Qt::CTRL + Qt::SHIFT + Qt::Key_Q));
+        m_fileMenu->addAction(_exit);
+//        auto saveAsBackup = new QAction(tr("存储为副本"), m_fileMenu);
+//        m_fileMenu->addAction(saveAsBackup);
+
+        connect(openProject,SIGNAL(triggered()),this,SLOT(openProject()));
+        connect(save,SIGNAL(triggered()),this,SLOT(on_actionSave_triggered()));
+        connect(saveAs,SIGNAL(triggered()),this,SLOT(on_actionSave_As_triggered()));
+        connect(_exit,SIGNAL(triggered()),this,SLOT(close()));
+    
+        inFromPlayList->setEnabled(false);
+        inFromMylib->setEnabled(false);
+    }
+    
+    // 编辑菜单
+    {
+        auto undo = new QAction(tr("撤销"), m_editMenu);
+        m_editMenu->addAction(undo);
+        undo->setShortcut(QKeySequence(Qt::CTRL+Qt::Key_Z));
+        
+        auto redo = new QAction(tr("重做"), m_editMenu);
+        m_editMenu->addAction(redo);
+        redo->setShortcut(QKeySequence(Qt::CTRL+Qt::Key_Y));
+        m_editMenu->addSeparator();
+        
+        auto shear = new QAction(tr("剪切"), m_editMenu);
+        m_editMenu->addAction(shear);
+        shear->setShortcut(QKeySequence(Qt::CTRL+Qt::Key_X));
+        
+        auto copy = new QAction(tr("复制"), m_editMenu);
+        m_editMenu->addAction(copy);
+        copy->setShortcut(QKeySequence(Qt::CTRL+Qt::Key_C));
+
+        auto copyAnVideoSetting =new QAction(tr("复制调整效果"),m_editMenu);
+        m_editMenu->addAction(copyAnVideoSetting);
+        copyAnVideoSetting->setShortcut(QKeySequence(Qt::CTRL+Qt::ALT+Qt::Key_C));
+
+        
+        auto paste = new QAction(tr("粘贴"), m_editMenu);
+        m_editMenu->addAction(paste);
+        paste->setShortcut(QKeySequence(Qt::CTRL+Qt::Key_V));
+
+        
+        auto pasteInsert = new QAction(tr("粘贴插入"), m_editMenu);
+        m_editMenu->addAction(pasteInsert);
+        pasteInsert->setShortcut(QKeySequence(Qt::CTRL+Qt::SHIFT+Qt::Key_V));
+
+        auto pasteAudioSetting = new QAction(tr("粘贴调整效果"),m_editMenu);
+        m_editMenu->addAction(pasteAudioSetting);
+        pasteAudioSetting->setShortcut(QKeySequence(Qt::CTRL+Qt::ALT+Qt::Key_V));
+
+
+//        auto pasteEffectAndAdjustion = new QAction(tr("粘贴效果和调整"), m_editMenu);
+//        m_editMenu->addAction(pasteEffectAndAdjustion);
+        
+        auto _delete = new QAction(tr("删除"), m_editMenu);
+        m_editMenu->addAction(_delete);
+        _delete->setShortcut(Qt::Key_Delete);
+
+        auto deleteNClearSeams = new QAction(tr("删除并消除间隙"),m_editMenu);
+        m_editMenu->addAction(deleteNClearSeams);
+        deleteNClearSeams->setShortcut(Qt::Key_Backspace);
+
+        auto _deleteAnVSetting = new QAction(tr("删除调整效果"), m_editMenu);
+        m_editMenu->addAction(_deleteAnVSetting);
+        
+        m_editMenu->addSeparator();
+        
+        auto selectAll = new QAction(tr("全选"), m_editMenu);
+        m_editMenu->addAction(selectAll);
+        selectAll->setShortcut(QKeySequence(Qt::CTRL+Qt::Key_A));
+
+        
+        auto selectNone = new QAction(tr("取消全选"), m_editMenu);
+        m_editMenu->addAction(selectNone);
+        selectNone->setShortcut(QKeySequence(Qt::CTRL+Qt::SHIFT+Qt::Key_A));
+
+        connect(undo, SIGNAL(triggered()),this,SLOT(on_actionUndo_triggered()));
+        connect(redo,SIGNAL(triggered()),this,SLOT(on_actionRedo_triggered()));
+        connect(shear,SIGNAL(triggered()),this,SLOT(on_actionCut_triggered()));
+        connect(copy,SIGNAL(triggered()),this,SLOT(on_actionCopy_triggered()));
+        connect(paste,SIGNAL(triggered()),this,SLOT(on_actionPaste_triggered()));
+    }
+    
+    // 剪辑菜单
+    {
+//        auto rename = new QAction(tr("重命名"), m_cutMenu);
+//        m_cutMenu->addAction(rename);
+        
+//        m_cutMenu->addSeparator();
+        
+        auto insert = new QAction(tr("插入"), m_cutMenu);
+        //insert->setShortcut(tr("."));
+        m_cutMenu->addAction(insert);
+        
+        auto replace = new QAction(tr("替换"), m_cutMenu);
+        //replace->setShortcut(tr(","));
+        m_cutMenu->addAction(replace);
+        
+        m_cutMenu->addSeparator();
+        
+//        auto linkAV = new QAction(tr("链接视频和音频"), m_cutMenu);
+//        m_cutMenu->addAction(linkAV);
+        
+        auto makeGroup = new QAction(tr("编组"), m_cutMenu);
+        makeGroup->setShortcut(QKeySequence(Qt::CTRL+Qt::Key_G));
+        m_cutMenu->addAction(makeGroup);
+        
+        auto cancelGroup = new QAction(tr("取消编组"), m_cutMenu);
+        cancelGroup->setShortcut(QKeySequence(Qt::CTRL+Qt::SHIFT+Qt::Key_G));
+        m_cutMenu->addAction(cancelGroup);
+
+        auto link = new QAction(tr("链接"), m_cutMenu);
+        m_cutMenu->addAction(link);
+        auto cancelLink = new QAction(tr("取消链接"), m_cutMenu);
+        m_cutMenu->addAction(cancelLink);
+
+//        auto extendTimeLine = new QAction(tr("时间线延长"), m_cutMenu);
+//        m_cutMenu->addAction(extendTimeLine);
+//        extendTimeLine->setShortcut(QKeySequence(Qt::CTRL+Qt::Key_R));
+
+//        auto replace = new QAction(tr("替换素材"), m_cutMenu);
+//        m_cutMenu->addAction(replace);
+        
+        m_cutMenu->addSeparator();
+
+
+//        auto toCutMark = new QAction(tr("转到剪辑标记"), m_cutMenu);
+//        m_cutMenu->addAction(toCutMark);
+//        //toCutMark->setShortcut(Qt::Key_G);
+//        auto clearCutMark = new QAction(tr("清除剪辑标记"), m_cutMenu);
+//        m_cutMenu->addAction(clearCutMark);
+//        //clearCutMark->setShortcut(Qt::Key_C);
+
+        
+//        auto videoEdit = new CustomMenu(m_cutMenu);
+//        videoEdit->setTitle(tr("视频编辑"));
+//        m_cutMenu->addMenu(videoEdit);
+//        auto malformScene=new QAction(tr("画面变形"),videoEdit);
+//        auto synthesisScene=new QAction(tr("影像合成"),videoEdit);
+//        auto correctScope=new QAction(tr("镜头校正"),videoEdit);
+//        auto contrast=new QAction(tr("对比度"),videoEdit);
+//        auto shadow=new QAction(tr("阴影"),videoEdit);
+//        videoEdit->addAction(malformScene);
+//        videoEdit->addAction(synthesisScene);
+//        videoEdit->addAction(correctScope);
+//        videoEdit->addAction(contrast);
+//        videoEdit->addAction(shadow);
+//        videoEdit->setStyleSheet(menuSheet+indicatorSheet+menuItemSheet+"QMenu::item{ width:70px;}");
+
+
+        
+//        auto audioEdit = new CustomMenu(m_cutMenu);
+//        audioEdit->setTitle(tr("音频编辑"));
+//        m_cutMenu->addMenu(audioEdit);
+//        auto audioAdjust=new QAction(tr("调节音频"),audioEdit);
+//        auto mute=new QAction(tr("调节音频"),audioEdit);
+//        audioEdit->addAction(audioAdjust);
+//        audioEdit->addAction(mute);
+//        audioEdit->setStyleSheet(menuSheet+indicatorSheet+menuItemSheet+"QMenu::item{ width:70px;}");
+        auto addMark=new QAction(tr("添加标记"),m_cutMenu);
+        auto toNextMark=new QAction(tr("转到下一标记"),m_cutMenu);
+        auto toPreMark=new QAction(tr("转到上一标记"),m_cutMenu);
+        auto clearSelectedMark=new QAction(tr("清除所选标记"),m_cutMenu);
+        auto clearAllMark=new QAction(tr("清除全部标记"),m_cutMenu);
+        m_cutMenu->addAction(addMark);
+        m_cutMenu->addAction(toNextMark);
+        m_cutMenu->addAction(toPreMark);
+        m_cutMenu->addAction(clearSelectedMark);
+        m_cutMenu->addAction(clearAllMark);
+
+
+        m_cutMenu->addSeparator();
+        auto mask = new CustomMenu(m_cutMenu);
+        mask->setTitle(tr("效果蒙版"));
+        m_cutMenu->addMenu(mask);
+        auto application=new QAction(tr("应用"),mask);
+        auto maskEdit=new QAction(tr("蒙版编辑"),mask);
+        auto delMask=new QAction(tr("删除蒙版"),mask);
+        mask->addAction(application);
+        mask->addAction(maskEdit);
+        mask->addAction(delMask);
+        mask->setStyleSheet(R"(
+            QMenu::item {
+                padding-top: 8px;
+                padding-right: 25px;
+                padding-bottom: 8px;
+            })" );
+        
+
+
+//        auto removeEffect = new CustomMenu(m_cutMenu);
+//        removeEffect->setTitle(tr("删除效果"));
+//        m_cutMenu->addMenu(removeEffect);
+//        auto videoEffect=new QAction(tr("视频效果"),removeEffect);
+//        auto audioEffect=new QAction(tr("音频效果"),removeEffect);
+//        auto allEffect=new QAction(tr("所有效果"),removeEffect);
+//        removeEffect->addAction(videoEffect);
+//        removeEffect->addAction(audioEffect);
+//        removeEffect->addAction(allEffect);
+//        removeEffect->setStyleSheet(menuSheet+indicatorSheet+menuItemSheet+"QMenu::item{ width:70px;}");
+
+
+        
+        m_cutMenu->addSeparator();
+        
+//        auto rhythmDetect = new QAction(tr("节拍检测"), m_cutMenu);
+//        m_cutMenu->addAction(rhythmDetect);
+        
+        // 设置时间线吸附菜单
+        auto enableTimelineSnap = new QAction(tr("启用时间线吸附"), m_cutMenu);
+        enableTimelineSnap->setCheckable(true);
+        m_cutMenu->addAction(enableTimelineSnap);
+        
+        QActionGroup* checkBoxEdit=new QActionGroup(m_cutMenu);
+        checkBoxEdit->addAction(enableTimelineSnap);
+        checkBoxEdit->setExclusive(false);
+
+
+
+
+
+
+
+    }
+    
+    // 设置菜单
+    {
+        auto projectHeader=new QAction(tr("项目"),m_settingMenu);
+        QFont settingLabelFont;
+        settingLabelFont.setFamily("Microsoft Yahei");
+        settingLabelFont.setPixelSize(16);
+        projectHeader->setFont(settingLabelFont);
+        projectHeader->setDisabled(true);
+
+        m_settingMenu->addAction(projectHeader);
+
+
+        auto projectSetting=new QAction(tr("项目设置"),m_settingMenu);
+        projectSetting->setShortcut(Qt::Key_P);
+        m_settingMenu->addAction(projectSetting);
+        m_settingMenu->addSeparator();
+
+        auto player=new QAction(tr("播放器"),m_settingMenu);
+        m_settingMenu->addAction(player);
+        player->setFont(settingLabelFont);
+        player->setDisabled(true);
+
+        QActionGroup *checkBoxes=new QActionGroup(m_settingMenu);
+        auto viewWhileFastPull=new QAction(tr("快速拖动时预览音频"),m_settingMenu);
+        auto realTimeProcess=new QAction(tr("实时处理(丢帧)"),m_settingMenu);
+        auto lineByLine=new QAction(tr("逐行"),m_settingMenu);
+        viewWhileFastPull->setCheckable(true);
+        realTimeProcess->setCheckable(true);
+        lineByLine->setCheckable(true);
+        m_settingMenu->addAction(viewWhileFastPull);
+        m_settingMenu->addAction(realTimeProcess);
+        m_settingMenu->addAction(lineByLine);
+
+        checkBoxes->addAction(viewWhileFastPull);
+        checkBoxes->addAction(realTimeProcess);
+        checkBoxes->addAction(lineByLine);
+        
+        connect(lineByLine, SIGNAL(triggered(bool)), this, SLOT(on_actionRealtime_triggered(bool)));
+        connect(realTimeProcess, SIGNAL(triggered(bool)), this, SLOT(on_actionProgressive_triggered(bool)));
+        connect(viewWhileFastPull, SIGNAL(triggered(bool)), this, SLOT(on_actionScrubAudio_triggered(bool)));
+
+        auto previewScaling=new CustomMenu;
+        previewScaling->setTitle(tr("预览缩放"));//QMenu("预览缩放",m_settingMenu);
+        auto _none=new QAction("无",previewScaling);
+        auto _360p=new QAction("360p",previewScaling);
+        auto _540p=new QAction("540p",previewScaling);
+        auto _720p=new QAction("720p",previewScaling);
+        _none->setCheckable(true);
+        _none->setChecked(true);
+        _360p->setCheckable(true);
+        _540p->setCheckable(true);
+        _720p->setCheckable(true);
+        _none->setShortcut(Qt::Key_F6);
+        _360p->setShortcut(Qt::Key_F7);
+        _540p->setShortcut(Qt::Key_F8);
+        _720p->setShortcut(Qt::Key_F9);
+        auto previewScalingActionBox= new QActionGroup(previewScaling);
+        previewScalingActionBox->addAction(_none);
+        previewScalingActionBox->addAction(_360p);
+        previewScalingActionBox->addAction(_540p);
+        previewScalingActionBox->addAction(_720p);
+        previewScalingActionBox->setExclusive(true);
+        previewScaling->addAction(_none);
+        previewScaling->addAction(_360p);
+        previewScaling->addAction(_540p);
+        previewScaling->addAction(_720p);
+
+
+        const QString previewScalItemSheet="QMenu::item{width:130px; padding:8px 10px 8px 0px;}";
+        const QString dotSheet="QMenu::indicator { padding-left:14px; padding-right:10px; width: 6px;height:6px;} QMenu::indicator:unchecked { image:url(:/icons/menu/backgrounddot.png); } QMenu::indicator:checked { image:url(:/icons/menu/whitedot.png); }";
+        previewScaling->setStyleSheet(dotSheet+R"(
+            QMenu::item {
+                padding-top: 8px;
+                padding-left: 0px;
+                padding-right: 25px;
+                padding-bottom: 8px;
+            })");//previewScalItemSheet);
+
+
+        auto proxy=new CustomMenu;
+        proxy->setTitle(tr("代理"));//QMenu("代理",m_settingMenu);
+        auto useProxy=new QAction(tr("使用代理"),proxy);
+        auto useHardwareEncoder=new QAction(tr("使用硬件编码器"),proxy);
+        useProxy->setCheckable(true);
+        useHardwareEncoder->setCheckable(true);
+        auto proxyActionGroup=new QActionGroup(proxy);
+        proxyActionGroup->addAction(useProxy);
+        proxyActionGroup->addAction(useHardwareEncoder);
+        proxyActionGroup->setExclusive(false);
+        auto storage=new  CustomMenu;
+        storage->setTitle(tr("Storage"));//QMenu(tr("Storage"),proxy);
+        auto _setting=new QAction(tr("设定..."),storage);
+        auto _display=new QAction(tr("显示..."),storage);
+        auto useProjFolder=new QAction("Use Project Folder", storage);
+        useProjFolder->setCheckable(true);
+        auto storageActionGroup=new QActionGroup(storage);
+        storageActionGroup->addAction(useProjFolder);
+        storageActionGroup->setExclusive(false);
+        storage->addAction(_setting);
+        storage->addAction(_display);
+        storage->addAction(useProjFolder);
+        const QString storageItemSheet="QMenu::item{ width:100px;}";
+        storage->setStyleSheet(storageItemSheet+ R"(
+            QMenu::item {
+                padding-top: 8px;
+                padding-left: 0px;
+                padding-right: 25px;
+                padding-bottom: 8px;
+            })" );
+
+
+
+        auto configHardwareEncoder=new QAction(tr("配置硬件编码器..."),proxy);
+        proxy->addAction(useProxy);
+        proxy->addMenu(storage);
+        proxy->addAction(useHardwareEncoder);
+        proxy->addAction(configHardwareEncoder);
+        useProxy->setShortcut(Qt::Key_F4);
+        const QString proxyItemSheet="QMenu::item{width:100px;}";
+        const QString proxymenuItemSheet="QMenu::item{padding:8px 27px;} QMenu::item:non-exclusive{padding:8px 10px 8px 0px;} QMenu::item:selected {background-color: #7781F4;}";
+        proxy->setStyleSheet(proxymenuItemSheet+ R"(
+            QMenu::item {
+                padding-top: 8px;
+                padding-right: 25px;
+                padding-bottom: 8px;
+            })" );//proxyItemSheet);
+
+
+        auto antiAliasing=new CustomMenu;
+        antiAliasing->setTitle(tr("反交错"));//QMenu("反交错",m_settingMenu);
+        auto singleScene=new QAction(tr("仅用单场(快速)"),antiAliasing);
+        auto linearCombination=new QAction(tr("线性混合（快速）"),antiAliasing);
+        singleScene->setCheckable(true);
+        singleScene->setChecked(true);
+        linearCombination->setCheckable(true);
+        auto antiAliasingActionBox=new QActionGroup(antiAliasing);
+        antiAliasingActionBox->addAction(singleScene);
+        antiAliasingActionBox->addAction(linearCombination);
+        antiAliasing->addAction(singleScene);
+        antiAliasing->addAction(linearCombination);
+        antiAliasing->setStyleSheet(dotSheet+ R"(
+            QMenu::item {
+                padding-top: 8px;
+                padding-left: 0px;
+                padding-right: 25px;
+                padding-bottom: 8px;
+            })" );//previewScalItemSheet);
+
+
+        auto insertValue=new CustomMenu;
+        insertValue->setTitle(tr("插值"));//QMenu(tr("插值"),m_settingMenu);
+        auto recentPixel=new QAction(tr("最近像素（快速）"),insertValue);
+        auto biLinear=new QAction(tr("双线性（良好）"),insertValue);
+        auto biCube=new QAction(tr("双立方（更佳）"),insertValue);
+        auto hyper_Lanczos=new QAction(tr("Hyper/Lanczos(最佳)"),insertValue);
+        hyper_Lanczos->setCheckable(true);
+        recentPixel->setCheckable(true);
+        recentPixel->setChecked(true);
+        biLinear->setCheckable(true);
+        biCube->setCheckable(true);
+        auto insertValueActionGroup=new QActionGroup(insertValue);
+        insertValueActionGroup->addAction(recentPixel);
+        insertValueActionGroup->addAction(biLinear);
+        insertValueActionGroup->addAction(biCube);
+        insertValueActionGroup->addAction(hyper_Lanczos);
+        insertValueActionGroup->setExclusive(true);
+        insertValue->addAction(recentPixel);
+        insertValue->addAction(biLinear);
+        insertValue->addAction(biCube);
+        insertValue->addAction(hyper_Lanczos);
+        insertValue->setStyleSheet(dotSheet+ R"(
+            QMenu::item {
+                padding-top: 8px;
+                padding-left: 0px;
+                padding-right: 25px;
+                padding-bottom: 8px;
+            })" );//"QMenu::item{padding:8px 10px 8px 0px;}");
+
+
+
+        auto sync=new QAction("Synchronization...",m_settingMenu);
+        m_settingMenu->addMenu(previewScaling);
+        m_settingMenu->addMenu(proxy);
+        m_settingMenu->addMenu(antiAliasing);
+        m_settingMenu->addMenu(insertValue);
+        m_settingMenu->addAction(sync);
+        m_settingMenu->addSeparator();
+
+
+
+        auto userInterface=new QAction(tr("用户界面"),m_settingMenu);
+        m_settingMenu->addAction(userInterface);
+        userInterface->setFont(settingLabelFont);
+        userInterface->setDisabled(true);
+        auto lang=new QMenu("语言",m_settingMenu);
+        auto theme=new CustomMenu;
+        theme->setTitle(tr("主题"));//QMenu("主题",m_settingMenu);
+
+        auto _system=new QAction(tr("系统"),theme);
+        auto fusionDark=new QAction("Fusion Dark",theme);
+        auto fusionLight=new QAction("Fusion Light",theme);
+        _system->setCheckable(true);
+        _system->setChecked(true);
+        fusionDark->setCheckable(true);
+        fusionLight->setCheckable(true);
+        auto themeActionGroup=new QActionGroup(theme);
+        themeActionGroup->addAction(_system);
+        themeActionGroup->addAction(fusionDark);
+        themeActionGroup->addAction(fusionLight);
+        themeActionGroup->setExclusive(true);
+        theme->addAction(_system);
+        theme->addAction(fusionDark);
+        theme->addAction(fusionLight);
+        theme->setStyleSheet(dotSheet+ R"(
+            QMenu::item {
+                padding-top: 8px;
+                padding-left: 0px;
+                padding-right: 25px;
+                padding-bottom: 8px;
+            })" );//previewScalItemSheet);
+
+
+#if !defined(Q_OS_MAC)
+    auto displayMethod  = new CustomMenu;
+    displayMethod->setTitle(tr("显示方式"));
+    auto displayMethodActionGroup = new QActionGroup(displayMethod);
+    
+    if (true) {    
+#if defined(Q_OS_WIN)
+        auto automation     = new QAction(tr("自动"), displayMethod);
+        auto directX        = new QAction("DirectX(ANGLE)", displayMethod);
+        
+        automation->setCheckable(true);
+        automation->setData(0);
+        directX->setCheckable(true);
+        directX->setData(Qt::AA_UseOpenGLES);
+        
+        displayMethodActionGroup->addAction(automation);
+        displayMethodActionGroup->addAction(directX);
+#endif
+        auto openGl         = new QAction("OpenGL", displayMethod);
+        auto _software      = new QAction(tr("软件(Mesa)"), displayMethod);
+        
+        openGl->setCheckable(true);
+        openGl->setData(Qt::AA_UseDesktopOpenGL);
+        _software->setCheckable(true);
+        _software->setData(Qt::AA_UseSoftwareOpenGL);
+        
+        displayMethodActionGroup->addAction(openGl);
+        displayMethodActionGroup->addAction(_software);
+        
+        displayMethodActionGroup->setExclusive(true);
+        displayMethod->addActions(displayMethodActionGroup->actions());
+        displayMethod->setStyleSheet(dotSheet + R"(
+            QMenu::item {
+                padding-top: 8px;
+                padding-left: 0px;
+                padding-right: 25px;
+                padding-bottom: 8px;
+            })" );
+        connect(displayMethodActionGroup, SIGNAL(triggered(QAction *)), this,
+                SLOT(onDrawingMethodTriggered(QAction *)));
+
+    }
+    
+// DO NOTHING IN MACOS
+#endif
+        
+        
+
+        auto programDataDir = new CustomMenu;
+        programDataDir->setTitle(tr("程序数据目录"));//QMenu("程序数据目录",m_settingMenu);
+        auto __setting = new QAction(tr("设定..."),programDataDir);
+        auto __display = new QAction(tr("显示..."),programDataDir);
+        programDataDir->addAction(__setting);
+        programDataDir->addAction(__display);
+        programDataDir->setStyleSheet(proxymenuItemSheet+R"(
+            QMenu::item {
+                padding-top: 8px;
+                padding-right: 25px;
+                padding-bottom: 8px;
+            })" );
+
+        m_settingMenu->addMenu(lang);
+        m_settingMenu->addMenu(theme);
+        m_settingMenu->addMenu(displayMethod);
+        m_settingMenu->addMenu(programDataDir);
+
+        auto clearHistoryWhileExiting=new QAction(tr("退出时清除最近打开历史"),m_settingMenu);
+        clearHistoryWhileExiting->setCheckable(true);
+        m_settingMenu->addAction(clearHistoryWhileExiting);
+        checkBoxes->addAction(clearHistoryWhileExiting);
+        checkBoxes->setExclusive(false);
+
+
+        connect(useProxy,SIGNAL(triggered(bool)),this,SLOT(on_actionUseProxy_triggered(bool)));
+        connect(_setting,SIGNAL(triggered()),this,SLOT(on_actionProxyStorageSet_triggered()));
+        connect(_display,SIGNAL(triggered()),this,SLOT(on_actionProxyStorageShow_triggered()));
+        connect(useProjFolder,SIGNAL(triggered(bool)),this,SLOT(on_actionProxyUseProjectFolder_triggered(bool)));
+        connect(useHardwareEncoder,SIGNAL(triggered(bool)),this,SLOT(on_actionProxyUseHardware_triggered(bool)));
+        connect(configHardwareEncoder,SIGNAL(triggered()),this,SLOT(on_actionProxyConfigureHardware_triggered()));
+
+        connect(recentPixel,SIGNAL(triggered(bool)),this,SLOT(on_actionNearest_triggered(bool)));
+        connect(biLinear,SIGNAL(triggered(bool)),this,SLOT(on_actionBilinear_triggered(bool)));
+        connect(biCube,SIGNAL(triggered(bool)),this,SLOT(on_actionBicubic_triggered(bool)));
+        connect(hyper_Lanczos,SIGNAL(triggered(bool)),this,SLOT(on_actionHyper_triggered(bool)));
+
+        connect(_none,SIGNAL(triggered(bool)),this,SLOT(on_actionPreviewNone_triggered(bool)));
+        connect(_360p,SIGNAL(triggered(bool)),this,SLOT(on_actionPreview360_triggered(bool)));
+        connect(_540p,SIGNAL(triggered(bool)),this,SLOT(on_actionPreview540_triggered(bool)));
+        connect(_720p,SIGNAL(triggered(bool)),this,SLOT(on_actionPreview720_triggered(bool)));
+// departed
+//        connect(_system,SIGNAL(triggered(bool)),this,SLOT(on_actionSystemTheme_triggered(bool)));
+//        connect(fusionDark,SIGNAL(triggered(bool)),this,SLOT(on_actionFusionDark_triggered(bool)));
+//        connect(fusionLight,SIGNAL(triggered(bool)),this,SLOT(on_actionFusionLight_triggered(bool)));
+    }
+
+
+    
+    // 帮助菜单
+    {
+        auto softwareUpdate= new QAction(tr("软件升级"), m_helpMenu);
+        m_helpMenu->addAction(softwareUpdate);
+        auto snoobGuide= new QAction(tr("新手教程"),m_helpMenu);
+        m_helpMenu->addAction(snoobGuide);
+        auto userBBS= new QAction(tr("用户论坛"),m_helpMenu);
+        m_helpMenu->addAction(userBBS);
+        auto feedBack = new QAction(tr("反馈"),m_helpMenu);
+        m_helpMenu->addAction(feedBack);
+        m_helpMenu->addSeparator();
+        auto about = new QAction(tr("关于"), m_helpMenu);
+        m_helpMenu->addAction(about);
+
+        connect(softwareUpdate,SIGNAL(triggered()),this,SLOT(on_actionUpgrade_triggered()));
+        connect(snoobGuide,SIGNAL(triggered()),this,SLOT(on_actionTutorials_triggered()));
+        connect(userBBS,SIGNAL(triggered()),this,SLOT(on_actionForum_triggered()));
+        connect(about,SIGNAL(triggered()),this,SLOT(on_actionAbout_Shotcut_triggered()));
+
+    }
+    
+}
+
+bool MainWindow::eventFilter(QObject* tgt, QEvent* e) {    
+    switch(e->type()) {
+    // this fixed draging window may trigger menu item
+    case QEvent::MouseMove: {
+        if (tgt == menuBar()) {
+            m_framelessHelper->exportedEventFilter(this, e);
+        }
+    } return true;
+        
+    case QEvent::HoverMove:
+    case QEvent::Leave:
+    case QEvent::MouseButtonRelease:{
+        if (tgt == menuBar()) {
+            m_framelessHelper->exportedEventFilter(this, e);
+        }
+    }; return false;
+        
+    case QEvent::MouseButtonDblClick:
+    case QEvent::MouseButtonPress: {
+        if (tgt == menuBar()) {
+            auto mbpe = dynamic_cast<QMouseEvent*>(e);
+            if (mbpe->pos().x() > __ltLabelWidth + __menuTabWidth * 5 || mbpe->pos().x() <= __ltLabelWidth) {
+                m_framelessHelper->exportedEventFilter(this, e);
+            }
+        }
+    }; return false;
+        
+    // prevent displaying menubar contextmenu
+    case QEvent::ContextMenu: {
+        if (tgt == menuBar()) {
+            return true;
+        }
+    }; return false;
+        
+    default:
+        return false;
+    }
+    return QWidget::eventFilter(tgt, e);
+}
+
+constexpr auto __projectMonitorResizeFactor = 0.54403125f;
+
+void MainWindow::resizeEvent(QResizeEvent*) {
+    m_windCtrlBtnFrame->move(width() - m_windCtrlBtnFrame->width(), 0);
+}
+
+void MainWindow::setWindowModified(bool isModified) {
+    QWidget::setWindowModified(isModified);
+    
+    auto&&  title = windowTitle();
+    auto    index = title.lastIndexOf('[');
+    title = title.mid(0, index);
+    
+    if (isModified) {
+        m_editorToolBar->setDocumentString(title + " - " + i18n("已修改"));        
+    } else {
+        m_editorToolBar->setDocumentString(title);        
+    }
+}
+
+void MainWindow::slotCopyDebugInfo() {
+    QString debuginfo = QStringLiteral("Kdenlive: %1\n").arg(KAboutData::applicationData().version());
+    debuginfo.append(QStringLiteral("MLT: %1\n").arg(mlt_version_get_string()));
+    debuginfo.append(QStringLiteral("Qt: %1 (built against %2 %3)\n").arg(QString::fromLocal8Bit(qVersion())).arg(QT_VERSION_STR).arg(QSysInfo::buildAbi()));
+    debuginfo.append(QStringLiteral("Frameworks: %2\n").arg(KCoreAddons::versionString()));
+    debuginfo.append(QStringLiteral("System: %1\n").arg(QSysInfo::prettyProductName()));
+    debuginfo.append(QStringLiteral("Kernel: %1 %2\n").arg(QSysInfo::kernelType()).arg(QSysInfo::kernelVersion()));
+    debuginfo.append(QStringLiteral("CPU: %1\n").arg(QSysInfo::currentCpuArchitecture()));
+    debuginfo.append(QStringLiteral("Windowing System: %1\n").arg(QGuiApplication::platformName()));
+    debuginfo.append(QStringLiteral("Movit (GPU): %1\n").arg(KdenliveSettings::gpu_accel() ? QStringLiteral("enabled") : QStringLiteral("disabled")));
+    QClipboard *clipboard = QApplication::clipboard();
+    clipboard->setText(debuginfo);
 }
 
 #ifdef DEBUG_MAINW

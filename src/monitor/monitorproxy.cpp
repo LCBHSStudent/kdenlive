@@ -39,6 +39,7 @@ MonitorProxy::MonitorProxy(GLWidget *parent)
     , m_zoneIn(0)
     , m_zoneOut(-1)
     , m_hasAV(false)
+    , m_speed(0)
     , m_clipType(0)
     , m_clipId(-1)
     , m_seekFinished(true)
@@ -73,7 +74,7 @@ void MonitorProxy::seek(int delta, uint modifiers)
 
 int MonitorProxy::overlayType() const
 {
-    return (q->m_id == int(Kdenlive::ClipMonitor ? KdenliveSettings::clipMonitorOverlayGuides() : KdenliveSettings::projectMonitorOverlayGuides()));
+    return (q->m_id == int(Kdenlive::ClipMonitor) ? KdenliveSettings::clipMonitorOverlayGuides() : KdenliveSettings::projectMonitorOverlayGuides());
 }
 
 void MonitorProxy::setOverlayType(int ix)
@@ -83,11 +84,6 @@ void MonitorProxy::setOverlayType(int ix)
     } else {
         KdenliveSettings::setProjectMonitorOverlayGuides(ix);
     }
-}
-
-QString MonitorProxy::markerComment() const
-{
-    return m_markerComment;
 }
 
 bool MonitorProxy::setPosition(int pos)
@@ -122,13 +118,14 @@ void MonitorProxy::positionFromConsumer(int pos, bool playing)
     }
 }
 
-void MonitorProxy::setMarkerComment(const QString &comment)
+void MonitorProxy::setMarker(const QString &comment, const QColor &color)
 {
     if (m_markerComment == comment) {
         return;
     }
     m_markerComment = comment;
-    emit markerCommentChanged();
+    m_markerColor = color;
+    emit markerChanged();
 }
 
 int MonitorProxy::zoneIn() const
@@ -398,4 +395,13 @@ void MonitorProxy::setTimeCode(TimecodeDisplay *td)
 void MonitorProxy::setWidgetKeyBinding(const QString &text) const
 {
     pCore->setWidgetKeyBinding(text);
+}
+
+void MonitorProxy::setSpeed(double speed)
+{
+    if (qAbs(m_speed) > 1. || qAbs(speed) > 1.) {
+        // check if we have or had a speed > 1 or < -1
+        m_speed = speed;
+        emit speedChanged();
+    }
 }

@@ -796,7 +796,7 @@ bool KdenliveDoc::isModified() const
 const QString KdenliveDoc::description() const
 {
     if (!m_url.isValid()) {
-        return i18n("Untitled") + QStringLiteral("[*] / ") + pCore->getCurrentProfile()->description();
+        return i18n("新项目") + QStringLiteral("[*] / ") + pCore->getCurrentProfile()->description();
     }
     return m_url.fileName() + QStringLiteral(" [*]/ ") + pCore->getCurrentProfile()->description();
 }
@@ -1048,6 +1048,15 @@ void KdenliveDoc::backupLastSavedVersion(const QString &path)
         if (!QFile::copy(path, backupFile)) {
             KMessageBox::information(QApplication::activeWindow(), i18n("Cannot create backup copy:\n%1", backupFile));
         }
+        // backup subitle file in case we have one
+        QString subpath(path + QStringLiteral(".srt"));
+        QString subbackupFile(backupFile + QStringLiteral(".srt"));
+        if(QFile(subpath).exists()) {
+            QFile::remove(subbackupFile);
+            if (!QFile::copy(subpath, subbackupFile)) {
+                KMessageBox::information(QApplication::activeWindow(), i18n("Cannot create backup copy:\n%1", subbackupFile));
+            }
+        }
     }
 }
 
@@ -1131,21 +1140,25 @@ void KdenliveDoc::cleanupBackupFiles()
         f = hourList.takeFirst();
         QFile::remove(f);
         QFile::remove(f + QStringLiteral(".png"));
+        QFile::remove(f + QStringLiteral(".srt"));
     }
     while (dayList.count() > 0) {
         f = dayList.takeFirst();
         QFile::remove(f);
         QFile::remove(f + QStringLiteral(".png"));
+        QFile::remove(f + QStringLiteral(".srt"));
     }
     while (weekList.count() > 0) {
         f = weekList.takeFirst();
         QFile::remove(f);
         QFile::remove(f + QStringLiteral(".png"));
+        QFile::remove(f + QStringLiteral(".srt"));
     }
     while (oldList.count() > 0) {
         f = oldList.takeFirst();
         QFile::remove(f);
         QFile::remove(f + QStringLiteral(".png"));
+        QFile::remove(f + QStringLiteral(".srt"));
     }
 }
 

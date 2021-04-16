@@ -128,6 +128,7 @@ ProjectSettings::ProjectSettings(KdenliveDoc *doc, QMap<QString, QString> metada
         }
         project_folder->setUrl(QUrl::fromLocalFile(doc->projectTempFolder()));
         auto *cacheWidget = new TemporaryData(doc, true, this);
+        cacheWidget->buttonBox->hide();
         connect(cacheWidget, &TemporaryData::disableProxies, this, &ProjectSettings::disableProxies);
         connect(cacheWidget, &TemporaryData::disablePreview, this, &ProjectSettings::disablePreview);
         tabWidget->addTab(cacheWidget, i18n("Cache Data"));
@@ -597,7 +598,7 @@ QStringList ProjectSettings::extractPlaylistUrls(const QString &path)
             } else if (type == QLatin1String("framebuffer")) {
                 url = url.section(QLatin1Char('?'), 0, 0);
             }
-            if (!url.isEmpty()) {
+            if (!url.isEmpty() && url != QLatin1String("<producer>")) {
                 if (QFileInfo(url).isRelative()) {
                     url.prepend(root);
                 }

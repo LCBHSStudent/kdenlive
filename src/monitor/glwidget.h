@@ -26,7 +26,7 @@
 #include <QOpenGLFramebufferObject>
 #include <QOpenGLFunctions>
 #include <QOpenGLShaderProgram>
-#include <QQuickView>
+#include <QQuickWidget>
 #include <QRect>
 #include <QSemaphore>
 #include <QThread>
@@ -62,7 +62,7 @@ using thread_function_t = void *(*)(void *);
  *    C. RGB gl texture multithreaded w/ GPU filter acceleration and no sync
  *    D. RGB gl texture multithreaded w/ GPU filter acceleration and sync
  */
-class GLWidget : public QQuickView, protected QOpenGLFunctions
+class GLWidget : public QQuickWidget, protected QOpenGLFunctions
 {
     Q_OBJECT
     Q_PROPERTY(QRect rect READ rect NOTIFY rectChanged)
@@ -75,7 +75,7 @@ public:
     friend class MonitorProxy;
     using ClientWaitSync_fp = GLenum (*)(GLsync, GLbitfield, GLuint64);
 
-    GLWidget(int id, QObject *parent = nullptr);
+    GLWidget(int id, QWidget *parent = nullptr);
     ~GLWidget() override;
 
     int requestedSeekPosition;
@@ -86,7 +86,6 @@ public:
     // TODO: currently unused
     int reconfigureMulti(const QString &params, const QString &path, Mlt::Profile *profile);
     void stopCapture();
-    int reconfigure();
     /** @brief Get the current MLT producer playlist.
      * @return A string describing the playlist */
     const QString sceneList(const QString &root, const QString &fullPath = QString(), QString filterData = QString());
@@ -141,6 +140,8 @@ public:
     void purgeCache();
     /** @brief Show / hide monitor ruler */
     void switchRuler(bool show);
+    /** @brief Returns true if consumer is initialized */
+    bool isReady() const;
 
 protected:
     void mouseReleaseEvent(QMouseEvent *event) override;
@@ -158,7 +159,7 @@ public slots:
     void slotZoom(bool zoomIn);
     void initializeGL();
     void releaseAnalyse();
-    void switchPlay(bool play, double speed = 1.0);
+    void switchPlay(bool play, int offset = 0, double speed = 1.0);
     void reloadProfile();
     /** @brief Update MLT's consumer scaling 
      *  @returns true is scaling was changed
@@ -253,6 +254,7 @@ private slots:
     void updateTexture(GLuint yName, GLuint uName, GLuint vName);
     void paintGL();
     void onFrameDisplayed(const SharedFrame &frame);
+    int reconfigure();
     void refresh();
 
 protected:

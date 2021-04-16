@@ -218,7 +218,7 @@ QList<int> TimelineModel::getTracksIds(bool audio) const
 
 int TimelineModel::getTrackIndexFromPosition(int pos) const
 {
-    Q_ASSERT(pos >= 0 && pos < m_allTracks.size());
+    Q_ASSERT(pos >= 0 && pos < int(m_allTracks.size()));
     READ_LOCK();
     auto it = m_allTracks.cbegin();
     while (pos > 0) {
@@ -1584,7 +1584,7 @@ bool TimelineModel::requestClipInsertion(const QString &binClipId, int trackId, 
             // Find first possible audio target
             QList <int> audioTargetTracks = m_audioTarget.keys();
             trackId = -1;
-            for (int tid : audioTargetTracks) {
+            for (int tid : qAsConst(audioTargetTracks)) {
                 if (tid > -1 && !getTrackById_const(tid)->isLocked() && allowedTracks.contains(tid)) {
                     trackId = tid;
                     break;
@@ -1816,7 +1816,7 @@ bool TimelineModel::requestItemDeletion(int itemId, bool logUndo)
             actionLabel = i18n("Delete Clip");
         } else if (isComposition(itemId)) {
             actionLabel = i18n("Delete Composition");
-        } else if (isComposition(itemId)) {
+        } else if (isSubTitle(itemId)) {
             actionLabel = i18n("Delete Subtitle");
         }
     }
@@ -3612,10 +3612,11 @@ void TimelineModel::registerGroup(int groupId)
 Fun TimelineModel::deregisterTrack_lambda(int id)
 {
     return [this, id]() {
-        emit checkTrackDeletion(id);
+        if (!m_closing) {
+            emit checkTrackDeletion(id);
+        }
         auto it = m_iteratorTable[id];                        // iterator to the element
         int index = getTrackPosition(id);                     // compute index in list
-
         // send update to the model
         beginRemoveRows(QModelIndex(), index, index);
         // melt operation, add 1 to account for black background track
@@ -3626,8 +3627,10 @@ Fun TimelineModel::deregisterTrack_lambda(int id)
         m_iteratorTable.erase(id);
         // Finish operation
         endRemoveRows();
-        int cache = int(QThread::idealThreadCount()) + int(m_allTracks.size() + 1) * 2;
-        mlt_service_cache_set_size(nullptr, "producer_avformat", qMax(4, cache));
+        if (!m_closing) {
+            int cache = int(QThread::idealThreadCount()) + int(m_allTracks.size() + 1) * 2;
+            mlt_service_cache_set_size(nullptr, "producer_avformat", qMax(4, cache));
+        }
         return true;
     };
 }
@@ -3637,7 +3640,9 @@ Fun TimelineModel::deregisterClip_lambda(int clipId)
     return [this, clipId]() {
         // Clear effect stack
         clearAssetView(clipId);
-        emit checkItemDeletion(clipId);
+        if (!m_closing) {
+            emit checkItemDeletion(clipId);
+        }
         Q_ASSERT(m_allClips.count(clipId) > 0);
         Q_ASSERT(getClipTrackId(clipId) == -1); // clip must be deleted from its track at this point
         Q_ASSERT(!m_groups->isInGroup(clipId)); // clip must be ungrouped at this point
@@ -3822,6 +3827,7 @@ void TimelineModel::updateDuration()
         // update black track length
         m_blackClip->set("out", duration + TimelineModel::seekDuration);
         emit durationUpdated();
+        m_masterStack->dataChanged(QModelIndex(), QModelIndex(), {});
     }
 }
 
@@ -3861,7 +3867,10 @@ void TimelineModel::setUndoStack(std::weak_ptr<DocUndoStack> undo_stack)
 
 int TimelineModel::suggestSnapPoint(int pos, int snapDistance)
 {
+    int cursorPosition = pCore->getTimelinePosition();
+    m_snaps->addPoint(cursorPosition);
     int snapped = m_snaps->getClosestPoint(pos);
+    m_snaps->removePoint(cursorPosition);
     return (qAbs(snapped - pos) < snapDistance ? snapped : pos);
 }
 
@@ -4649,6 +4658,9 @@ QStringList TimelineModel::extractCompositionLumas() const
     QStringList urls;
     for (const auto &compo : m_allCompositions) {
         QString luma = compo.second->getProperty(QStringLiteral("resource"));
+        if(luma.isEmpty()) {
+            luma = compo.second->getProperty(QStringLiteral("luma"));
+        }
         if (!luma.isEmpty()) {
             urls << QUrl::fromLocalFile(luma).toLocalFile();
         }

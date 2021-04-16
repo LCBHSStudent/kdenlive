@@ -67,7 +67,7 @@ QPixmap PatternsModel::paintScene(const QString & pattern)
 
     QList<QGraphicsItem *> items;
     int width, height, duration, missing;
-    TitleDocument::loadFromXml(doc, items, width, height, nullptr, nullptr, &duration, missing);
+    TitleDocument::loadFromXml(doc, items, width, height, nullptr, nullptr, nullptr, &duration, missing);
 
     QGraphicsScene scene(0, 0, width, height);
 
@@ -128,7 +128,7 @@ QByteArray PatternsModel::serialize()
     QByteArray encodedData;
     QDataStream stream(&encodedData, QIODevice::WriteOnly);
 
-    for (auto p : patterns) {
+    for (const auto &p : qAsConst(patterns)) {
         stream << p;
     }
     modified_counter = 0;

@@ -80,9 +80,6 @@ TimelineController::TimelineController(QObject *parent)
 {
     m_disablePreview = pCore->currentDoc()->getAction(QStringLiteral("disable_preview"));
     connect(m_disablePreview, &QAction::triggered, this, &TimelineController::disablePreview);
-    connect(this, &TimelineController::selectionChanged, this, &TimelineController::updateClipActions);
-    connect(this, &TimelineController::videoTargetChanged, this, &TimelineController::updateVideoTarget);
-    connect(this, &TimelineController::audioTargetChanged, this, &TimelineController::updateAudioTarget);
     m_disablePreview->setEnabled(false);
     connect(pCore.get(), &Core::finalizeRecording, this, &TimelineController::finishRecording);
     connect(pCore.get(), &Core::autoScrollChanged, this, &TimelineController::autoScrollChanged);
@@ -91,18 +88,22 @@ TimelineController::TimelineController(QObject *parent)
 
 TimelineController::~TimelineController()
 {
-    prepareClose();
 }
 
 void TimelineController::prepareClose()
 {
-    // Clear roor so we don't call its methods anymore
+    // Clear root so we don't call its methods anymore
     QObject::disconnect( m_deleteConnection );
+    disconnect(this, &TimelineController::selectionChanged, this, &TimelineController::updateClipActions);
+    disconnect(m_model.get(), &TimelineModel::selectionChanged, this, &TimelineController::selectionChanged);
+    disconnect(this, &TimelineController::videoTargetChanged, this, &TimelineController::updateVideoTarget);
+    disconnect(this, &TimelineController::audioTargetChanged, this, &TimelineController::updateAudioTarget);
     m_ready = false;
     m_root = nullptr;
     // Delete timeline preview before resetting model so that removing clips from timeline doesn't invalidate
     delete m_timelinePreview;
     m_timelinePreview = nullptr;
+    m_model.reset();
 }
 
 void TimelineController::setModel(std::shared_ptr<TimelineItemModel> model)
@@ -125,6 +126,9 @@ void TimelineController::setModel(std::shared_ptr<TimelineItemModel> model)
             showMasterEffects();
         }
     });
+    connect(this, &TimelineController::selectionChanged, this, &TimelineController::updateClipActions);
+    connect(this, &TimelineController::videoTargetChanged, this, &TimelineController::updateVideoTarget);
+    connect(this, &TimelineController::audioTargetChanged, this, &TimelineController::updateAudioTarget);
     connect(m_model.get(), &TimelineItemModel::requestMonitorRefresh, [&]() { pCore->requestMonitorRefresh(); });
     connect(m_model.get(), &TimelineModel::invalidateZone, this, &TimelineController::invalidateZone, Qt::DirectConnection);
     connect(m_model.get(), &TimelineModel::durationUpdated, this, &TimelineController::checkDuration);
@@ -685,7 +689,7 @@ void TimelineController::deleteMultipleTracks(int tid)
     }
     if (d->exec() == QDialog::Accepted) {
         QList<int> allIds = d->toDeleteTrackIds();
-        for (int selectedTrackIx : allIds) {
+        for (int selectedTrackIx : qAsConst(allIds)) {
             result = m_model->requestTrackDeletion(selectedTrackIx, undo, redo);
             if (!result) {
                 break;
@@ -1148,6 +1152,13 @@ void TimelineController::moveGuide(int frame, int newFrame)
     GenTime pos(frame, pCore->getCurrentFps());
     GenTime newPos(newFrame, pCore->getCurrentFps());
     guideModel->editMarker(pos, newPos);
+}
+
+void TimelineController::moveGuideWithoutUndo(int mid, int newFrame)
+{
+    auto guideModel = pCore->projectManager()->current()->getGuideModel();
+    GenTime newPos(newFrame, pCore->getCurrentFps());
+    guideModel->moveMarker(mid, newPos);
 }
 
 bool TimelineController::moveGuidesInRange(int start, int end, int offset)
@@ -1739,6 +1750,10 @@ void TimelineController::adjustFade(int cid, const QString &effectId, int durati
     }
     if (duration <= 0) {
         // remove fade
+        if (initialDuration > 0) {
+            // Restore original fade duration
+            m_model->adjustEffectLength(cid, effectId, initialDuration, -1);
+        }
         m_model->removeFade(cid, effectId == QLatin1String("fadein"));
     } else {
         m_model->adjustEffectLength(cid, effectId, duration, initialDuration);
@@ -2176,8 +2191,10 @@ void TimelineController::changeItemSpeed(int clipId, double speed)
         }
         QScopedPointer<SpeedDialog> d(new SpeedDialog(QApplication::activeWindow(), std::abs(speed), duration, minSpeed, maxSpeed, speed < 0, pitchCompensate));
         if (d->exec() != QDialog::Accepted) {
+            emit regainFocus();
             return;
         }
+        emit regainFocus();
         speed = d->getValue();
         pitchCompensate = d->getPitchCompensate();
         qDebug() << "requesting speed " << speed;
@@ -2429,7 +2446,7 @@ int TimelineController::insertZone(const QString &binId, QPoint zone, bool overw
     int vTrack = -1;
     if (clip->hasAudio() && !m_model->m_audioTarget.isEmpty()) {
         QList<int> audioTracks = m_model->m_audioTarget.keys();
-        for (int tid : audioTracks) {
+        for (int tid : qAsConst(audioTracks)) {
             if (m_model->getTrackById_const(tid)->shouldReceiveTimelineOp()) {
                 aTrack = tid;
                 break;
@@ -3147,6 +3164,7 @@ void TimelineController::editItemDuration(int id)
             undo();
         }
     }
+    emit regainFocus();
 }
 
 void TimelineController::editTitleClip(int id)
@@ -3169,6 +3187,7 @@ void TimelineController::editTitleClip(int id)
         pCore->displayMessage(i18n("Item is not a title clip"), ErrorMessage, 500);
         return;
     }
+    seekToMouse();
     pCore->bin()->showTitleWidget(binClip);
 }
 
@@ -3800,6 +3819,7 @@ void TimelineController::urlDropped(QStringList droppedFile, int frame, int tid)
     qDebug()<<"=== GOT DROPPED FILED: "<<droppedFile<<"\n======";
     if (droppedFile.first().endsWith(QLatin1String(".ass")) || droppedFile.first().endsWith(QLatin1String(".srt"))) {
         // Subtitle dropped, import
+        pCore->window()->showSubtitleTrack();
         importSubtitle(droppedFile.first());
     } else {
         finishRecording(QUrl(droppedFile.first()).toLocalFile());
@@ -4089,7 +4109,7 @@ void TimelineController::resizeSubtitle(int startFrame, int endFrame, int oldEnd
 }
 
 
-void TimelineController::addSubtitle(int startframe)
+void TimelineController::addSubtitle(int startframe, QString text)
 {
     if (startframe == -1) {
         startframe = pCore->getTimelinePosition();
@@ -4097,13 +4117,16 @@ void TimelineController::addSubtitle(int startframe)
     int endframe = startframe + pCore->getDurationFromString(KdenliveSettings::subtitle_duration());
     auto subtitleModel = pCore->getSubtitleModel(true);
     int id = TimelineModel::getNextId();
+    if (text.isEmpty()) {
+        text = i18n("Add text");
+    }
     Fun local_undo = [subtitleModel, id, startframe, endframe]() {
         subtitleModel->removeSubtitle(id);
         pCore->refreshProjectRange({startframe, endframe});
         return true;
     };
-    Fun local_redo = [subtitleModel, id, startframe, endframe]() {
-        if (subtitleModel->addSubtitle(id, GenTime(startframe, pCore->getCurrentFps()), GenTime(endframe, pCore->getCurrentFps()), i18n("Add text"))) {
+    Fun local_redo = [subtitleModel, id, startframe, endframe, text]() {
+        if (subtitleModel->addSubtitle(id, GenTime(startframe, pCore->getCurrentFps()), GenTime(endframe, pCore->getCurrentFps()), text)) {
             pCore->refreshProjectRange({startframe, endframe});
             return true;
         }
@@ -4136,6 +4159,7 @@ void TimelineController::importSubtitle(const QString path)
         }
         subtitleModel->importSubtitle(view.subtitle_url->url().toLocalFile(), offset, true);
     }
+    emit regainFocus();
 }
 
 void TimelineController::exportSubtitle()
@@ -4272,3 +4296,10 @@ void TimelineController::updateMasterZones(QVariantList zones)
     emit masterZonesChanged();
 }
 
+int TimelineController::clipMaxDuration(int cid)
+{
+    if (!m_model->isClip(cid)) {
+        return -1;
+    }
+    return m_model->m_allClips[cid]->getMaxDuration();
+}

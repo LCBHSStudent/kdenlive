@@ -22,7 +22,6 @@
 
 #include <QComboBox>
 #include <QDBusAbstractAdaptor>
-#include <QDockWidget>
 #include <QEvent>
 #include <QImage>
 #include <QMap>
@@ -60,6 +59,10 @@ class TimelineTabs;
 class TimelineWidget;
 class TimelineContainer;
 class Transition;
+class CustomMenu;
+class FramelessHelper;
+class ProjectMonitorFrame;
+class CustomEditorToolBar;
 
 class MltErrorEvent : public QEvent
 {
@@ -103,16 +106,6 @@ public:
     QAction *addAction(const QString &name, const QString &text, const QObject *receiver, const char *member, const QIcon &icon = QIcon(),
                        const QKeySequence &shortcut = QKeySequence(), KActionCategory *category = nullptr);
 
-    /**
-     * @brief Adds a new dock widget to this window.
-     * @param title title of the dock widget
-     * @param objectName objectName of the dock widget (required for storing layouts)
-     * @param widget widget to use in the dock
-     * @param area area to which the dock should be added to
-     * @returns the created dock widget
-     */
-    QDockWidget *addDock(const QString &title, const QString &objectName, QWidget *widget, Qt::DockWidgetArea area = Qt::TopDockWidgetArea);
-
     QUndoGroup *m_commandStack;
     QUndoView *m_undoView;
     /** @brief holds info about whether movit is available on this system */
@@ -120,17 +113,15 @@ public:
     int m_exitCode{EXIT_SUCCESS};
     QMap<QString, KActionCategory *> kdenliveCategoryMap;
     QList<QAction *> getExtraActions(const QString &name);
-    /** @brief Returns true if docked widget is tabbed with another widget from its object name */
-    bool isTabbedWith(QDockWidget *widget, const QString &otherWidget);
-    
-    /** @brief Returns true if mixer widget is tabbed */
-    bool isMixedTabbed() const;
 
     /** @brief Returns a ptr to the main timeline widget of the project */
     TimelineWidget *getMainTimeline() const;
 
     /** @brief Returns a pointer to the current timeline */
     TimelineWidget *getCurrentTimeline() const;
+
+    /** @brief Returns true if a timeline widget is available */
+    bool hasTimeline() const;
     
     /** @brief Returns true if the timeline widget is visible */
     bool timelineVisible() const;
@@ -153,6 +144,8 @@ public:
     void setWidgetKeyBinding(const QString &text = QString());
     /** @brief Show a key binding in status bar */
     void showKeyBinding(const QString &text = QString());
+    /** @brief Override for QWidget::setWindowModified(void) */
+    void setWindowModified(bool isModified = true);
 
 protected:
     /** @brief Closes the window.
@@ -172,48 +165,41 @@ protected:
     void saveProperties(KConfigGroup &config) override;
 
     void saveNewToolbarConfig() override;
+    bool eventFilter(QObject*, QEvent*) override;
+    void resizeEvent(QResizeEvent*) override;
 
 private:
     /** @brief Sets up all the actions and attaches them to the collection. */
     void setupActions();
+    void setupMenuBar();
 
     OtioConvertions m_otioConvertions;
     KColorSchemeManager *m_colorschemes;
 
-    QDockWidget *m_projectBinDock;
-    QDockWidget *m_effectListDock;
-    QDockWidget *m_transitionListDock;
     TransitionListWidget *m_transitionList2;
     EffectListWidget *m_effectList2;
 
     AssetPanel *m_assetPanel{nullptr};
-    QDockWidget *m_effectStackDock;
 
-    QDockWidget *m_clipMonitorDock;
     Monitor *m_clipMonitor{nullptr};
 
-    QDockWidget *m_projectMonitorDock;
     Monitor *m_projectMonitor{nullptr};
+    
+    ProjectMonitorFrame* m_projectMonitorFrame = nullptr;
+    CustomEditorToolBar* m_editorToolBar = nullptr;
 
     AudioGraphSpectrum *m_audioSpectrum;
-
-    QDockWidget *m_undoViewDock;
-    QDockWidget *m_mixerDock;
-    QDockWidget *m_onlineResourcesDock;
 
     KSelectAction *m_timeFormatButton;
     KSelectAction *m_compositeAction;
 
     TimelineTabs *m_timelineTabs{nullptr};
 
-    /** This list holds all the scopes used in Kdenlive, allowing to manage some global settings */
-    QList<QDockWidget *> m_gfxScopesList;
-
     KActionCategory *m_effectActions;
     KActionCategory *m_transitionActions;
-    QMenu *m_effectsMenu;
-    QMenu *m_transitionsMenu;
-    QMenu *m_timelineContextMenu;
+    CustomMenu *m_effectsMenu;
+    CustomMenu *m_transitionsMenu;
+    CustomMenu *m_timelineContextMenu;
     QList<QAction *> m_timelineClipActions;
     KDualAction *m_useTimelineZone;
 
@@ -256,6 +242,15 @@ private:
     TimelineContainer *m_timelineToolBarContainer;
     QLabel *m_trimLabel;
     QActionGroup *m_scaleGroup;
+    
+    CustomMenu  *m_fileMenu     = nullptr,
+                *m_editMenu     = nullptr,
+                *m_cutMenu      = nullptr,
+                *m_settingMenu  = nullptr,
+                *m_helpMenu     = nullptr;
+    
+    FramelessHelper* m_framelessHelper = nullptr;
+    QFrame* m_windCtrlBtnFrame = nullptr;
 
     /** @brief initialize startup values, return true if first run. */
     bool readOptions();
@@ -280,6 +275,8 @@ private:
     void doChangeStyle();
     void updateActionsToolTip();
 
+    QSettings m_mwSettings;
+    
 public slots:
     void slotReloadEffects(const QStringList &paths);
     Q_SCRIPTABLE void setRenderingProgress(const QString &url, int progress, int frame);
@@ -311,6 +308,10 @@ public slots:
     void slotDownloadResources();
     void slotEditSubtitle(QMap<QString, QString> subProperties = {});
     void slotTranscode(const QStringList &urls = QStringList());
+    /** @brief Add subtitle clip to timeline */
+    void slotAddSubtitle(const QString &text = QString());
+    /** @brief Ensure subtitle track is displayed */
+    void showSubtitleTrack();
 
 private slots:
     /** @brief Shows the shortcut dialog. */
@@ -524,8 +525,6 @@ private slots:
     void slotActivateVideoTrackSequence();
     /** @brief Select target for current track */
     void slotActivateTarget();
-    /** @brief Add subtitle clip to timeline */
-    void slotAddSubtitle();
     /** @brief Enable/disable subtitle track */
     void slotDisableSubtitle();
     /** @brief Lock / unlock subtitle track */
@@ -536,6 +535,8 @@ private slots:
     void slotExportSubtitle();
     /** @brief Start a speech recognition on timeline zone */
     void slotSpeechRecognition();
+    /** @brief Copy debug information like lib versions, gpu mode state,... to clipboard */
+    void slotCopyDebugInfo();
 
 signals:
     Q_SCRIPTABLE void abortRenderJob(const QString &url);

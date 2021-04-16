@@ -19,13 +19,11 @@ class ProjectManager;
 class QDockWidget;
 class QToolBar;
 
-/**
- * @class NotesPlugin
- * @brief Handles connection of NotesWidget
- *
- * Supposed to become a plugin/ProjectPart (@see refactoring branch).
+/** @class NotesPlugin
+    @brief Handles connection of NotesWidget
+ 
+    Supposed to become a plugin/ProjectPart (\@see refactoring branch).
  */
-
 class NotesPlugin : public QObject
 {
     Q_OBJECT
@@ -47,7 +45,7 @@ private slots:
 
 private:
     NotesWidget *m_widget;
-    QDockWidget *m_notesDock;
+    QWidget *m_container;
     QToolBar *m_tb;
 };
 

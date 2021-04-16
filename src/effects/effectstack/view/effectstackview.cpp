@@ -173,9 +173,7 @@ void EffectStackView::dropEvent(QDropEvent *event)
                 m_model->setActiveEffect(m_model->rowCount() - 1);
             }
         }
-        if (!added) {
-            pCore->displayMessage(i18n("Cannot add effect to clip"), ErrorMessage);
-        } else {
+        if (added) {
             m_scrollTimer.start();
         }
     }
@@ -202,15 +200,18 @@ void EffectStackView::setModel(std::shared_ptr<EffectStackModel> model, const QS
     m_scrollTimer.start();
     connect(m_model.get(), &EffectStackModel::dataChanged, this, &EffectStackView::refresh);
     connect(m_model.get(), &EffectStackModel::enabledStateChanged, this, &EffectStackView::changeEnabledState);
-    connect(m_model.get(), &EffectStackModel::currentChanged, this, [=](QModelIndex ix, bool active) {
-        m_effectsTree->setCurrentIndex(ix);
-        auto *w = static_cast<CollapsibleEffectView *>(m_effectsTree->indexWidget(ix));
-        if (w) {
-            w->slotActivateEffect(active);
-        }
-    });
+    connect(m_model.get(), &EffectStackModel::currentChanged, this, &EffectStackView::activateEffect, Qt::DirectConnection);
     connect(this, &EffectStackView::removeCurrentEffect, m_model.get(), &EffectStackModel::removeCurrentEffect);
     // m_builtStack->setModel(model, stackOwner());
+}
+
+void EffectStackView::activateEffect(QModelIndex ix, bool active)
+{
+    m_effectsTree->setCurrentIndex(ix);
+    auto *w = static_cast<CollapsibleEffectView *>(m_effectsTree->indexWidget(ix));
+    if (w) {
+        w->slotActivateEffect(active);
+    }
 }
 
 void EffectStackView::changeEnabledState()
@@ -407,12 +408,14 @@ void EffectStackView::unsetModel(bool reset)
         disconnect(m_model.get(), &EffectStackModel::dataChanged, this, &EffectStackView::refresh);
         disconnect(m_model.get(), &EffectStackModel::enabledStateChanged, this, &EffectStackView::changeEnabledState);
         disconnect(this, &EffectStackView::removeCurrentEffect, m_model.get(), &EffectStackModel::removeCurrentEffect);
+        disconnect(m_model.get(), &EffectStackModel::currentChanged, this, &EffectStackView::activateEffect);
         disconnect(&m_timerHeight, &QTimer::timeout, this, &EffectStackView::updateTreeHeight);
+        emit pCore->disconnectEffectStack();
     }
     if (reset) {
         QMutexLocker lock(&m_mutex);
-        m_effectsTree->setModel(nullptr);
         m_model.reset();
+        m_effectsTree->setModel(nullptr);
     }
     if (id != Kdenlive::NoMonitor) {
         pCore->getMonitor(id)->slotShowEffectScene(MonitorSceneDefault);

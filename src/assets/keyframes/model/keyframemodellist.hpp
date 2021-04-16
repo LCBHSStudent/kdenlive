@@ -37,11 +37,11 @@
 class AssetParameterModel;
 class DocUndoStack;
 
-/** @brief This class is a container for the keyframe models.
+/** @class KeyframeModelList
+    @brief This class is a container for the keyframe models.
    If an asset has several keyframable parameters, each one has its own keyframeModel,
    but we regroup all of these in a common class to provide unified access.
  */
-
 class KeyframeModelList : public QObject
 {
     Q_OBJECT
@@ -146,6 +146,9 @@ public:
 
     /** @brief Parent item size change, update keyframes*/
     void resizeKeyframes(int oldIn, int oldOut, int in, int out, int offset, bool adjustFromEnd, Fun &undo, Fun &redo);
+    
+    /** @brief Parent item size change, update keyframes*/
+    void moveKeyframes(int oldIn, int oldOut, int in, int out, Fun &undo, Fun &redo);
     
     /** @brief Return position of the nth keyframe (ix = nth)*/
     GenTime getPosAtIndex(int ix);

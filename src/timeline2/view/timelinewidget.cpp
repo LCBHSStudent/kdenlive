@@ -19,6 +19,8 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
+#include <KLocalizedContext>
+
 #include "timelinewidget.h"
 #include "../model/builders/meltBuilder.hpp"
 #include "assets/keyframes/model/keyframemodel.hpp"
@@ -58,7 +60,7 @@ TimelineWidget::TimelineWidget(QWidget *parent)
     KDeclarative::KDeclarative kdeclarative;
     kdeclarative.setDeclarativeEngine(engine());
     kdeclarative.setupEngine(engine());
-    kdeclarative.setupContext();
+    engine()->rootContext()->setContextObject(new KLocalizedContext(this));
     setClearColor(palette().window().color());
     setMouseTracking(true);
     registerTimelineItems();
@@ -66,6 +68,7 @@ TimelineWidget::TimelineWidget(QWidget *parent)
     m_proxy = new TimelineController(this);
     connect(m_proxy, &TimelineController::zoneMoved, this, &TimelineWidget::zoneMoved);
     connect(m_proxy, &TimelineController::ungrabHack, this, &TimelineWidget::slotUngrabHack);
+    connect(m_proxy, &TimelineController::regainFocus, this, &TimelineWidget::regainFocus, Qt::DirectConnection);
     setResizeMode(QQuickWidget::SizeRootObjectToView);
     engine()->addImageProvider(QStringLiteral("thumbnail"), new ThumbnailProvider);
     setVisible(false);
@@ -75,6 +78,8 @@ TimelineWidget::TimelineWidget(QWidget *parent)
     m_favCompositions = new QMenu(i18n("Insert a composition..."), this);
     installEventFilter(this);
     m_targetsMenu = new QMenu(this);
+    
+    setMinimumHeight(260);
 }
 
 TimelineWidget::~TimelineWidget()
@@ -154,6 +159,12 @@ void TimelineWidget::setTimelineMenu(QMenu *clipMenu, QMenu *compositionMenu, QM
     m_timelineMenu->addMenu(m_favCompositions);
 }
 
+void TimelineWidget::unsetModel()
+{
+    m_sortModel->setSourceModel(nullptr);
+    m_proxy->prepareClose();
+}
+
 void TimelineWidget::setModel(const std::shared_ptr<TimelineItemModel> &model, MonitorProxy *proxy)
 {
     m_sortModel->setSourceModel(model.get());
@@ -198,11 +209,24 @@ void TimelineWidget::setModel(const std::shared_ptr<TimelineItemModel> &model, M
     m_proxy->checkDuration();
 }
 
+#include "utils/framelesswindowhelper.h"
+
 void TimelineWidget::mousePressEvent(QMouseEvent *event)
 {
     emit focusProjectMonitor();
     m_clickPos = event->globalPos();
-    QQuickWidget::mousePressEvent(event);
+    
+    auto x = event->pos().x();
+    auto y = event->pos().y();
+    
+    if (x <= CursorPosCalculator::m_nBorderWidth ||
+        x >= width() - CursorPosCalculator::m_nBorderWidth ||
+        y >= height() - CursorPosCalculator::m_nBorderWidth
+    ) {
+        qApp->sendEvent(pCore->window(), event);
+    } else {
+        QQuickWidget::mousePressEvent(event);
+    }
 }
 
 void TimelineWidget::showClipMenu(int cid)
@@ -437,6 +461,8 @@ void TimelineWidget::slotUngrabHack()
         QTimer::singleShot(200, this, [this]() {
             rootObject()->setProperty("mainFrame", -1);
         });
+        QPoint mousePos = mapFromGlobal(QCursor::pos());
+        QMetaObject::invokeMethod(rootObject(), "regainFocus", Qt::DirectConnection, Q_ARG(QVariant, mousePos));
     }
 }
 
@@ -494,9 +520,10 @@ bool TimelineWidget::eventFilter(QObject *object, QEvent *event)
 
 void TimelineWidget::regainFocus()
 {
+    qDebug()<<"=== REG FOCUS: "<<underMouse();
     if (underMouse() && rootObject()) {
         QPoint mousePos = mapFromGlobal(QCursor::pos());
-        QMetaObject::invokeMethod(rootObject(), "regainFocus", Q_ARG(QVariant, mousePos));
+        QMetaObject::invokeMethod(rootObject(), "regainFocus", Qt::DirectConnection, Q_ARG(QVariant, mousePos));
     }
 }
 

@@ -72,6 +72,10 @@ namespace Mlt {
 class Producer;
 }
 
+/** @class MyListView
+    @brief \@todo Describe class MyListView
+    @todo Describe class MyListView
+ */
 class MyListView : public QListView
 {
     Q_OBJECT
@@ -95,6 +99,10 @@ private:
     PlaylistState::ClipState m_dragType;
 };
 
+/** @class MyTreeView
+    @brief \@todo Describe class MyTreeView
+    @todo Describe class MyTreeView
+ */
 class MyTreeView : public QTreeView
 {
     Q_OBJECT
@@ -130,6 +138,10 @@ signals:
     void editingChanged();
 };
 
+/** @class SmallJobLabel
+    @brief \@todo Describe class SmallJobLabel
+    @todo Describe class SmallJobLabel
+ */
 class SmallJobLabel : public QPushButton
 {
     Q_OBJECT
@@ -153,6 +165,10 @@ private slots:
     void slotTimeLineFinished();
 };
 
+/** @class LineEventEater
+    @brief \@todo Describe class LineEventEater
+    @todo Describe class LineEventEater
+ */
 class LineEventEater : public QObject
 {
     Q_OBJECT
@@ -167,11 +183,10 @@ signals:
     void showClearButton(bool);
 };
 
-/**
- * @class Bin
- * @brief The bin widget takes care of both item model and view upon project opening.
+/** @class ClipWidget
+    @brief \@todo Describe class ClipWidget
+    @todo Describe class ClipWidget
  */
-
 class ClipWidget : public QWidget
 {
 public:
@@ -180,6 +195,10 @@ public:
     void init(QDockWidget* m_DockClipWidget);
 };
 
+/**
+ * @class Bin
+ * @brief The bin widget takes care of both item model and view upon project opening.
+ */
 class Bin : public QWidget
 {
     Q_OBJECT
@@ -225,7 +244,7 @@ public:
     /** @brief Returns the state of a given clip: AudioOnly, VideoOnly, Disabled (Disabled means it has audio and video capabilities */
     PlaylistState::ClipState getClipState(int itemId) const;
 
-    /** @brief Add markers on clip @param binId at @param positions with @comments text if given */
+    /** @brief Add markers on clip \@param binId at \@param positions with @comments text if given */
     void addClipMarker(const QString binId, QList<int> positions, QStringList comments = {});
 
     /** @brief Returns a list of selected clip ids.
@@ -297,7 +316,7 @@ public:
     /** @brief Get usage stats for project bin. */
     void getBinStats(uint *used, uint *unused, qint64 *usedSize, qint64 *unusedSize);
     /** @brief Returns the clip properties dockwidget. */
-    QDockWidget *clipPropertiesDock();
+    QWidget *clipPropertiesDock();
     /** @brief Returns a document's cache dir. ok is set to false if folder does not exist */
     QDir getCacheDir(CacheType type, bool *ok) const;
     void rebuildProxies();
@@ -475,7 +494,6 @@ private:
     /** @brief Keeps the column width info of the tree view. */
     QByteArray m_headerInfo;
     QVBoxLayout *m_layout;
-    QDockWidget *m_propertiesDock;
     QScrollArea *m_propertiesPanel;
     QSlider *m_slider;
     Monitor *m_monitor;

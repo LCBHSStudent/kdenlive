@@ -306,11 +306,14 @@ Rectangle {
             dragProxy.height = tentativeClip.height
             dragProxy.masterObject = tentativeClip
             dragProxy.sourceTrack = tk
-            console.log('missing item', tentativeClip.clipId, ', COORDS: ', tentativeClip.x, 'x', tentativeClip.y, ', TK id: ', tk, ', TKY: ', Logic.getTrackYFromId(tk))
             dragProxy.sourceFrame = tentativeClip.modelStart
             dragProxy.isComposition = tentativeClip.isComposition
+            console.log('missing item', tentativeClip.clipId, ', COORDS: ', tentativeClip.x, 'x', tentativeClip.y, ', TK id: ', tk, ', TKY: ', Logic.getTrackYFromId(tk),' STARTFRM: ', dragProxy.sourceFrame)
         } else {
             console.log('item not found')
+            if (dragProxy.draggedItem > -1) {
+                endDrag()
+            }
         }
     }
 
@@ -727,23 +730,14 @@ Rectangle {
                 var track = Logic.getTrackIndexFromPos(drag.y + scrollView.contentY - yOffset)
                 if (track >= 0  && track < tracksRepeater.count) {
                     timeline.activeTrack = tracksRepeater.itemAt(track).trackInternalId
-                    var frame = Math.round((drag.x + scrollView.contentX) / timeline.scaleFactor)
-                    if (clipBeingDroppedId >= 0) {
-                        //fakeFrame = controller.suggestClipMove(clipBeingDroppedId, timeline.activeTrack, frame, root.consumerPosition, Math.floor(root.snapping))
-                        //fakeTrack = timeline.activeTrack
-                        //controller.requestClipMove(clipBeingDroppedId, timeline.activeTrack, frame, true, false, false)
-                        continuousScrolling(drag.x + scrollView.contentX, drag.y + scrollView.contentY)
-                    } else {
-                        frame = controller.suggestSnapPoint(frame, root.snapping)
-                        if (controller.normalEdit()) {
-                            //clipBeingDroppedId = insertAndMaybeGroup(timeline.activeTrack, frame, drag.getDataAsString('kdenlive/producerslist'), false, true)
-                        } else {
+                    continuousScrolling(drag.x + scrollView.contentX, drag.y + scrollView.contentY)
+                    if (clipBeingDroppedId == -1) {
+                        if (controller.normalEdit() == false) {
                             // we want insert/overwrite mode, make a fake insert at end of timeline, then move to position
                             //clipBeingDroppedId = insertAndMaybeGroup(timeline.activeTrack, timeline.fullDuration, clipBeingDroppedData)
                             //fakeFrame = controller.suggestClipMove(clipBeingDroppedId, timeline.activeTrack, frame, root.consumerPosition, Math.floor(root.snapping))
                             fakeTrack = timeline.activeTrack
                         }
-                        continuousScrolling(drag.x + scrollView.contentX, drag.y + scrollView.contentY)
                     }
                 }
             }
@@ -837,7 +831,8 @@ Rectangle {
                     height: trackHeaders.height + subtitleTrackHeader.height
                     acceptedButtons: Qt.NoButton
                     onWheel: {
-                        zoomByWheel(wheel)
+                        verticalScroll(wheel)
+                        wheel.accepted = true
                     }
                 }
                 Rectangle {
@@ -1171,8 +1166,11 @@ Rectangle {
                     } else if (root.activeTool === 0 || mouse.y <= ruler.height) {
                         if (mouse.y > ruler.height) {
                             controller.requestClearSelection();
+                            proxy.position = Math.min((scrollView.contentX + mouse.x) / timeline.scaleFactor, timeline.fullDuration - 1)
+                        } else if (mouse.y > ruler.guideLabelHeight) {
+                            proxy.position = Math.min((scrollView.contentX + mouse.x) / timeline.scaleFactor, timeline.fullDuration - 1)
                         }
-                        proxy.position = Math.min((scrollView.contentX + mouse.x) / timeline.scaleFactor, timeline.fullDuration - 1)
+                        
                     }
                 } else if (mouse.button & Qt.RightButton) {
                     if (mouse.y > ruler.height) {
@@ -1255,7 +1253,7 @@ Rectangle {
                     if (root.activeTool === 0 || mouse.y < ruler.height) {
                         proxy.position = Math.max(0, Math.min((scrollView.contentX + mouse.x) / timeline.scaleFactor, timeline.fullDuration - 1))
                     } else if (root.activeTool === 2 && spacerGroup > -1) {
-                        // Move group
+                        // Spacer tool, move group
                         var track = controller.getItemTrackId(spacerGroup)
                         var frame = Math.round((mouse.x + scrollView.contentX) / timeline.scaleFactor) + spacerFrame - spacerClickFrame
                         finalSpacerFrame = controller.suggestItemMove(spacerGroup, track, frame, root.consumerPosition, (mouse.modifiers & Qt.ShiftModifier) ? 0 : root.snapping)[0]
@@ -1397,7 +1395,7 @@ Rectangle {
                     height: rulercontainer.height
                     width: rulercontainer.width
                     acceptedButtons: Qt.NoButton
-                    cursorShape: ruler.resizeActive ? Qt.SizeHorCursor : tracksArea.cursorShape
+                    cursorShape: ruler.cursorShape
                 }
 
                 Item {
@@ -1692,8 +1690,10 @@ Rectangle {
                                     id: dragContainer
                                     z: 100
                                 }
-                                Repeater { id: guidesRepeater; model: guidesDelegateModel }
                             }
+                        }
+                        Repeater { id: guidesRepeater;
+                            model: guidesDelegateModel
                         }
                         Rectangle {
                             id: cursor
@@ -1701,7 +1701,7 @@ Rectangle {
                             color: root.textColor
                             width: 1
                             opacity: 1
-                            height: tracksContainerArea.height + subtitleTrack.height
+                            height: tracksContainerArea.height
                             x: root.consumerPosition * timeline.scaleFactor
                             Rectangle {
                                 color: root.textColor
@@ -1844,7 +1844,7 @@ Rectangle {
             Rectangle {
                 id: guideBase
                 width: 1
-                height: tracksContainer.height
+                height: tracksContainerArea.height
                 x: model.frame * timeScale;
                 color: model.color
             }
@@ -1867,6 +1867,8 @@ Rectangle {
 
     Connections {
         target: timeline
+        // This connection type is deprecated in Qt >= 5.15, switch to function onFrameFormatChanged() {} once 
+        // we require Qt >= 5.15
         onFrameFormatChanged: {
             ruler.adjustFormat()
         }

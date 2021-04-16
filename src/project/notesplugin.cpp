@@ -22,27 +22,27 @@ the Free Software Foundation, either version 3 of the License, or
 NotesPlugin::NotesPlugin(ProjectManager *projectManager)
     : QObject(projectManager)
 {
-    QWidget *container = new QWidget();
+    m_container = new QWidget();
+    
     auto *lay = new QVBoxLayout();
     lay->setSpacing(0);
     m_tb = new QToolBar();
     m_tb->setToolButtonStyle(Qt::ToolButtonIconOnly);
-    int size = container->style()->pixelMetric(QStyle::PM_SmallIconSize);
+    int size = m_container->style()->pixelMetric(QStyle::PM_SmallIconSize);
     QSize iconSize(size, size);
     m_tb->setIconSize(iconSize);
     lay->addWidget(m_tb);
     m_widget = new NotesWidget();
     lay->addWidget(m_widget);
-    container->setLayout(lay);
+    m_container->setLayout(lay);
     connect(m_widget, &NotesWidget::insertNotesTimecode, this, &NotesPlugin::slotInsertTimecode);
     connect(m_widget, &NotesWidget::insertTextNote, this, &NotesPlugin::slotInsertText);
 
     connect(m_widget, &NotesWidget::reAssign, this, &NotesPlugin::slotReAssign);
     m_widget->setTabChangesFocus(true);
     m_widget->setPlaceholderText(i18n("Enter your project notes here ..."));
-    m_notesDock = pCore->window()->addDock(i18n("Project Notes"), QStringLiteral("notes_widget"), container);
-    m_notesDock->close();
     connect(projectManager, &ProjectManager::docOpened, this, &NotesPlugin::setProject);
+    m_container->hide();
 }
 
 void NotesPlugin::setProject(KdenliveDoc *document)
@@ -63,7 +63,7 @@ void NotesPlugin::setProject(KdenliveDoc *document)
 
 void NotesPlugin::showDock()
 {
-    m_notesDock->show();
+    m_container->show();
 }
 
 void NotesPlugin::slotInsertTimecode()

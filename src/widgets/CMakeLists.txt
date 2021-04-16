@@ -7,5 +7,11 @@ set(kdenlive_SRCS
   widgets/positionwidget.cpp
   widgets/progressbutton.cpp
   widgets/geometrywidget.cpp
+  widgets/custommenu.cpp
+  widgets/customtooltip.cpp
+  widgets/topnavigationbar.cpp
+  widgets/customeditortoolbar.cpp
+  widgets/projectmonitorframe.cpp
+  widgets/rstoolbar.cpp
   PARENT_SCOPE
 )

@@ -69,6 +69,7 @@ RTTR_REGISTRATION
 QStringList waitingBinIds;
 QMap<QString, QString> mappedIds;
 QMap<int, int> tracksMap;
+QMap<int, int> spacerUngroupedItems;
 QSemaphore semaphore(1);
 
 bool TimelineFunctions::cloneClip(const std::shared_ptr<TimelineItemModel> &timeline, int clipId, int &newId, PlaylistState::ClipState state, Fun &undo,
@@ -324,9 +325,61 @@ bool TimelineFunctions::requestClipCutAll(std::shared_ptr<TimelineItemModel> tim
 int TimelineFunctions::requestSpacerStartOperation(const std::shared_ptr<TimelineItemModel> &timeline, int trackId, int position)
 {
     std::unordered_set<int> clips = timeline->getItemsInRange(trackId, position, -1);
+    timeline->requestClearSelection();
     if (!clips.empty()) {
-        timeline->requestSetSelection(clips);
-        return (*clips.cbegin());
+        // Remove grouped items that are before the click position
+        // First get top groups ids
+        std::unordered_set<int> roots;
+        spacerUngroupedItems.clear();
+        std::transform(clips.begin(), clips.end(), std::inserter(roots, roots.begin()), [&](int id) { return timeline->m_groups->getRootId(id); });
+        std::unordered_set<int> groupsToRemove;
+        int firstCid = -1;
+        int firstPosition = -1;
+        for (int r : roots) {
+            if (timeline->isGroup(r)) {
+                std::unordered_set<int> leaves = timeline->m_groups->getLeaves(r);
+                std::unordered_set<int> leavesToRemove;
+                std::unordered_set<int> leavesToKeep;
+                for (int l : leaves) {
+                    int pos = timeline->getItemPosition(l);
+                    if (pos + timeline->getItemPlaytime(l) < position) {
+                        leavesToRemove.insert(l);
+                    } else {
+                        leavesToKeep.insert(l);
+                        // Find first item
+                        if (firstPosition == -1 || pos < firstPosition) {
+                            firstCid = l;
+                            firstPosition = pos;
+                        }
+                    }
+                }
+                if (leavesToKeep.size() == 1) {
+                    // Only 1 item left in group, group will be deleted
+                    int master = *leavesToKeep.begin();
+                    roots.insert(master);
+                    for (int l : leavesToRemove) {
+                        spacerUngroupedItems.insert(l, master);
+                    }
+                    groupsToRemove.insert(r);
+                } else {
+                    for (int l : leavesToRemove) {
+                        spacerUngroupedItems.insert(l, r);
+                    }
+                }
+            }
+        }
+        for (int r : groupsToRemove) {
+            roots.erase(r);
+        }
+        Fun undo = []() { return true; };
+        Fun redo = []() { return true; };
+        QMapIterator<int, int> i(spacerUngroupedItems);
+        while (i.hasNext()) {
+            i.next();
+            timeline->m_groups->ungroupItem(i.key(), undo, redo);
+        }
+        timeline->requestSetSelection(roots);
+        return (firstCid);
     }
     return -1;
 }
@@ -389,6 +442,20 @@ bool TimelineFunctions::requestSpacerEndOperation(const std::shared_ptr<Timeline
         } else {
             pCore->pushUndo(undo, redo, i18n("Remove space"));
         }
+        // Regroup temporarily ungrouped items
+        QMapIterator<int, int> i(spacerUngroupedItems);
+        Fun local_undo = []() { return true; };
+        Fun local_redo = []() { return true; };
+        while (i.hasNext()) {
+            i.next();
+            if (timeline->isGroup(i.value())) {
+                timeline->m_groups->setInGroupOf(i.key(), i.value(), local_undo, local_redo);
+            } else {
+                std::unordered_set<int> items = {i.key(), i.value()};
+                timeline->m_groups->groupItems(items, local_undo, local_redo);
+            }
+        }
+        spacerUngroupedItems.clear();
         return true;
     } else {
         undo();
@@ -1590,7 +1657,7 @@ bool TimelineFunctions::pasteClips(const std::shared_ptr<TimelineItemModel> &tim
         audioOffsetCalculated = true;
     }
 
-    for (int oldPos : singleAudioTracks) {
+    for (int oldPos : qAsConst(singleAudioTracks)) {
         if (tracksMap.contains(oldPos)) {
             continue;
         }

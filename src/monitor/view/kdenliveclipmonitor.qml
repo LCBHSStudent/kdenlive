@@ -438,6 +438,22 @@ Item {
                 }
             }
             Label {
+                id: labelSpeed
+                font: fixedFont
+                anchors {
+                    left: parent.left
+                    top: parent.top
+                }
+                visible: Math.abs(controller.speed) > 1
+                text: "x" + controller.speed
+                color: "white"
+                background: Rectangle {
+                    color: "darkgreen"
+                }
+                padding: 5
+                horizontalAlignment: TextInput.AlignHCenter
+            }
+            Label {
                 id: inPoint
                 font: fixedFont
                 anchors {
@@ -492,9 +508,9 @@ Item {
                 width: fontMetrics.boundingRect(displayText).width + 10
                 horizontalAlignment: displayText == text ? TextInput.AlignHCenter : TextInput.AlignLeft
                 background: Rectangle {
-                        color: "#990000ff"
+                    color: controller.markerColor
                 }
-                color: "#ffffff"
+                color: "#000"
                 padding: 0
                 maximumLength: 20
             }

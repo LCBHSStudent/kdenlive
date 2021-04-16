@@ -26,6 +26,7 @@
 #include <mlt++/Mlt.h>
 
 #include "klocalizedstring.h"
+#include <kwidgetsaddons_version.h>
 #include <KDualAction>
 
 #include "kdenlive_debug.h"
@@ -116,9 +117,9 @@ void MonitorManager::refreshProjectMonitor()
     m_projectMonitor->refreshMonitorIfActive();
 }
 
-void MonitorManager::refreshClipMonitor()
+void MonitorManager::refreshClipMonitor(bool directUpdate)
 {
-    m_clipMonitor->refreshMonitorIfActive();
+    m_clipMonitor->refreshMonitorIfActive(directUpdate);
 }
 
 void MonitorManager::forceProjectMonitorRefresh()
@@ -129,6 +130,11 @@ void MonitorManager::forceProjectMonitorRefresh()
 bool MonitorManager::projectMonitorVisible() const
 {
     return (m_projectMonitor->monitorIsFullScreen() || (m_projectMonitor->isVisible() && !m_projectMonitor->visibleRegion().isEmpty()));
+}
+
+bool MonitorManager::clipMonitorVisible() const
+{
+    return (m_clipMonitor->monitorIsFullScreen() || (m_clipMonitor->isVisible() && !m_clipMonitor->visibleRegion().isEmpty()));
 }
 
 bool MonitorManager::activateMonitor(Kdenlive::MonitorId name)
@@ -315,8 +321,12 @@ void MonitorManager::slotEnd()
 
 void MonitorManager::resetProfiles()
 {
-    m_clipMonitor->resetProfile();
-    m_projectMonitor->resetProfile();
+    if (m_clipMonitor) {
+        m_clipMonitor->resetProfile();
+    }
+    if (m_projectMonitor) {
+        m_projectMonitor->resetProfile();
+    }
 }
 
 void MonitorManager::resetConsumers(bool fullReset)
@@ -461,7 +471,11 @@ void MonitorManager::setupActions()
     } else {
         interlace->setCurrentItem(0);
     }
+#if KWIDGETSADDONS_VERSION < QT_VERSION_CHECK(5,78,0)
     connect(interlace, static_cast<void (KSelectAction::*)(int)>(&KSelectAction::triggered), this, &MonitorManager::slotSetDeinterlacer);
+#else
+    connect(interlace, &KSelectAction::indexTriggered, this, &MonitorManager::slotSetDeinterlacer);
+#endif
     pCore->window()->addAction(QStringLiteral("mlt_interlace"), interlace);
     pCore->window()->actionCollection()->setShortcutsConfigurable(interlace, false);
 
@@ -479,7 +493,11 @@ void MonitorManager::setupActions()
     } else {
         interpol->setCurrentItem(0);
     }
+#if KWIDGETSADDONS_VERSION < QT_VERSION_CHECK(5,78,0)
     connect(interpol, static_cast<void (KSelectAction::*)(int)>(&KSelectAction::triggered), this, &MonitorManager::slotSetInterpolation);
+#else
+    connect(interpol, &KSelectAction::indexTriggered, this, &MonitorManager::slotSetInterpolation);
+#endif
     pCore->window()->addAction(QStringLiteral("mlt_interpolation"), interpol);
     pCore->window()->actionCollection()->setShortcutsConfigurable(interpol, false);
 

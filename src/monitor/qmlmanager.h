@@ -19,25 +19,23 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
-/*!
- * @class QmlManager
- * @brief Manages all Qml monitor overlays
- * @author Jean-Baptiste Mardelle
- */
-
 #ifndef QMLMANAGER_H
 #define QMLMANAGER_H
 
 #include "definitions.h"
 
-class QQuickView;
+class QQuickWidget;
 
+/** @class QmlManager
+    @brief Manages all Qml monitor overlays
+    @author Jean-Baptiste Mardelle
+ */
 class QmlManager : public QObject
 {
     Q_OBJECT
 
 public:
-    explicit QmlManager(QQuickView *view);
+    explicit QmlManager(QQuickWidget *view);
 
     /** @brief return current active scene type */
     MonitorSceneType sceneType() const;
@@ -47,7 +45,7 @@ public:
     void setScene(Kdenlive::MonitorId id, MonitorSceneType type, QSize profile, double profileStretch, QRect displayRect, double zoom, int duration);
 
 private:
-    QQuickView *m_view;
+    QQuickWidget *m_view;
     MonitorSceneType m_sceneType;
 
 private slots:

@@ -41,6 +41,7 @@
 #include "timeline2/model/snapmodel.hpp"
 #include "transitions/transitionsrepository.hpp"
 #include "utils/thumbnailcache.hpp"
+#include "macros.hpp"
 
 #include "klocalizedstring.h"
 #include <KDualAction>
@@ -50,7 +51,6 @@
 #include <KRecentDirs>
 #include <KSelectAction>
 #include <KWindowConfig>
-#include <KColorScheme>
 #include <kio_version.h>
 
 #include "kdenlive_debug.h"
@@ -143,18 +143,17 @@ Monitor::Monitor(Kdenlive::MonitorId id, MonitorManager *manager, QWidget *paren
     layout->setSpacing(0);
     // Create container widget
     m_glWidget = new QWidget;
-    m_glWidget->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::MinimumExpanding);
     auto *glayout = new QGridLayout(m_glWidget);
     glayout->setSpacing(0);
     glayout->setContentsMargins(0, 0, 0, 0);
     // Create QML OpenGL widget
-    m_glMonitor = new GLWidget(id);
+    m_glMonitor = new GLWidget(id, this);
     connect(m_glMonitor, &GLWidget::passKeyEvent, this, &Monitor::doKeyPressEvent);
     connect(m_glMonitor, &GLWidget::panView, this, &Monitor::panView);
     connect(m_glMonitor->getControllerProxy(), &MonitorProxy::requestSeek, this, &Monitor::processSeek, Qt::DirectConnection);
     connect(m_glMonitor->getControllerProxy(), &MonitorProxy::positionChanged, this, &Monitor::slotSeekPosition);
 
-    m_videoWidget = QWidget::createWindowContainer(qobject_cast<QWindow *>(m_glMonitor));
+    m_videoWidget = m_glMonitor;
     m_videoWidget->setAcceptDrops(true);
     auto *leventEater = new QuickEventEater(this);
     m_videoWidget->installEventFilter(leventEater);
@@ -167,6 +166,7 @@ Monitor::Monitor(Kdenlive::MonitorId id, MonitorManager *manager, QWidget *paren
     connect(m_qmlManager, &QmlManager::activateTrack, this, &Monitor::activateTrack);
 
     glayout->addWidget(m_videoWidget, 0, 0);
+    m_videoWidget->update();
     m_verticalScroll = new QScrollBar(Qt::Vertical);
     glayout->addWidget(m_verticalScroll, 0, 1);
     m_verticalScroll->hide();
@@ -185,8 +185,7 @@ Monitor::Monitor(Kdenlive::MonitorId id, MonitorManager *manager, QWidget *paren
     connect(m_glMonitor, &GLWidget::showContextMenu, this, &Monitor::slotShowMenu);
     connect(m_glMonitor, &GLWidget::gpuNotSupported, this, &Monitor::gpuError);
 
-    m_glWidget->setMinimumSize(QSize(320, 180));
-    layout->addWidget(m_glWidget, 10);
+    layout->addWidget(m_glWidget, 1);
     layout->addStretch();
 
     // Tool bar buttons
@@ -248,13 +247,6 @@ Monitor::Monitor(Kdenlive::MonitorId id, MonitorManager *manager, QWidget *paren
     m_toolbar->addWidget(scalingAction);
     m_toolbar->addSeparator();
 
-    m_speedLabel = new QLabel(this);
-    m_speedLabel->setFont(QFontDatabase::systemFont(QFontDatabase::SmallestReadableFont));
-    KColorScheme scheme(palette().currentColorGroup(), KColorScheme::Button);
-    QColor bg = scheme.background(KColorScheme::PositiveBackground).color();
-    m_speedLabel->setStyleSheet(QString("padding-left: %4; padding-right: %4;background-color: rgb(%1,%2,%3);").arg(bg.red()).arg(bg.green()).arg(bg.blue()).arg(m_speedLabel->sizeHint().height()/4));
-    m_toolbar->addWidget(m_speedLabel);
-    m_speedLabel->setFixedWidth(0);
     if (id == Kdenlive::ClipMonitor) {
         // Add options for recording
         m_recManager = new RecManager(this);
@@ -415,7 +407,6 @@ Monitor::Monitor(Kdenlive::MonitorId id, MonitorManager *manager, QWidget *paren
     }
     m_audioButton->setIcon(icon);*/
 
-    setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Expanding);
     setLayout(layout);
     setMinimumHeight(200);
 
@@ -461,10 +452,11 @@ Monitor::Monitor(Kdenlive::MonitorId id, MonitorManager *manager, QWidget *paren
     }
 
     connect(m_timePos, SIGNAL(timeCodeEditingFinished()), this, SLOT(slotSeek()));
-    layout->addWidget(m_toolbar);
+    // layout->addWidget(m_toolbar);
     if (m_recManager) {
-        layout->addWidget(m_recManager->toolbar());
+        // layout->addWidget(m_recManager->toolbar());
     }
+    m_toolbar->hide();
 
     // Load monitor overlay qml
     loadQmlScene(MonitorSceneDefault);
@@ -484,7 +476,6 @@ Monitor::~Monitor()
 {
     delete m_audioMeterWidget;
     delete m_glMonitor;
-    delete m_videoWidget;
     delete m_glWidget;
     delete m_timePos;
 }
@@ -867,8 +858,12 @@ void Monitor::slotShowMenu(const QPoint pos)
     }
 }
 
+#include "utils/util.h"
+
 void Monitor::resizeEvent(QResizeEvent *event)
 {
+    // Util::printStackTrace();
+    
     Q_UNUSED(event)
     if (m_glMonitor->zoom() > 0.0f) {
         float horizontal = float(m_horizontalScroll->value()) / float(m_horizontalScroll->maximum());
@@ -1247,6 +1242,7 @@ void Monitor::checkOverlay(int pos)
         return;
     }
     QString overlayText;
+    QColor color;
     if (pos == -1) {
         pos = m_timePos->getValue();
     }
@@ -1264,9 +1260,10 @@ void Monitor::checkOverlay(int pos)
         CommentedTime marker = model->getMarker(GenTime(pos, pCore->getCurrentFps()), &found);
         if (found) {
             overlayText = marker.comment();
+            color = model->markerTypes.at(marker.markerType());
         }
     }
-    m_glMonitor->getControllerProxy()->setMarkerComment(overlayText);
+    m_glMonitor->getControllerProxy()->setMarker(overlayText, color);
 }
 
 int Monitor::getZoneStart()
@@ -1305,19 +1302,16 @@ void Monitor::slotRewind(double speed)
         if (currentspeed > -1) {
             m_glMonitor->purgeCache();
             speed = -1;
-            resetSpeedInfo();
         } else {
             m_speedIndex++;
             if (m_speedIndex > 4) {
                 m_speedIndex = 0;
             }
             speed = -MonitorManager::speedArray[m_speedIndex];
-            m_speedLabel->setFixedWidth(QWIDGETSIZE_MAX);
-            m_speedLabel->setText(QString("x%1").arg(speed));
         }
     }
     updatePlayAction(true);
-    m_glMonitor->switchPlay(true, speed);
+    m_glMonitor->switchPlay(true, m_offset, speed);
 }
 
 void Monitor::slotForward(double speed, bool allowNormalPlay)
@@ -1330,9 +1324,8 @@ void Monitor::slotForward(double speed, bool allowNormalPlay)
         if (currentspeed < 1) {
             if (allowNormalPlay) {
                 m_glMonitor->purgeCache();
-                resetSpeedInfo();
                 updatePlayAction(true);
-                m_glMonitor->switchPlay(true, 1);
+                m_glMonitor->switchPlay(true, m_offset);
                 return;
             } else {
                 m_speedIndex = 0;
@@ -1344,11 +1337,9 @@ void Monitor::slotForward(double speed, bool allowNormalPlay)
             m_speedIndex = 0;
         }
         speed = MonitorManager::speedArray[m_speedIndex];
-        m_speedLabel->setFixedWidth(QWIDGETSIZE_MAX);
-        m_speedLabel->setText(QString("x%1").arg(speed));
     }
     updatePlayAction(true);
-    m_glMonitor->switchPlay(true, speed);
+    m_glMonitor->switchPlay(true, m_offset, speed);
 }
 
 void Monitor::slotRewindOneFrame(int diff)
@@ -1433,6 +1424,9 @@ void Monitor::forceMonitorRefresh()
 
 void Monitor::refreshMonitorIfActive(bool directUpdate)
 {
+    if (!m_glMonitor->isReady()) {
+        return;
+    }
     if (isActive()) {
         if (directUpdate) {
             m_glMonitor->refresh();
@@ -1466,8 +1460,7 @@ void Monitor::switchPlay(bool play)
     if (!KdenliveSettings::autoscroll()) {
         emit pCore->autoScrollChanged();
     }
-    m_glMonitor->switchPlay(play);
-    resetSpeedInfo();
+    m_glMonitor->switchPlay(play, m_offset);
 }
 
 void Monitor::updatePlayAction(bool play)
@@ -1486,7 +1479,7 @@ void Monitor::slotSwitchPlay()
     if (!KdenliveSettings::autoscroll()) {
         emit pCore->autoScrollChanged();
     }
-    m_glMonitor->switchPlay(m_playAction->isActive());
+    m_glMonitor->switchPlay(m_playAction->isActive(), m_offset);
     bool showDropped = false;
     if (m_id == Kdenlive::ClipMonitor) {
         showDropped =  KdenliveSettings::displayClipMonitorInfo() & 0x20;
@@ -1499,7 +1492,6 @@ void Monitor::slotSwitchPlay()
     } else {
         m_droppedTimer.stop();
     }
-    resetSpeedInfo();
 }
 
 void Monitor::slotPlay()
@@ -1565,7 +1557,7 @@ void Monitor::updateClipProducer(const QString &playlist)
     // TODO
     // Mlt::Producer *prod = new Mlt::Producer(*m_glMonitor->profile(), playlist.toUtf8().constData());
     // m_glMonitor->setProducer(prod, isActive(), render->seekFramePosition());
-    m_glMonitor->switchPlay(true);
+    m_glMonitor->switchPlay(true, m_offset);
 }
 
 void Monitor::slotOpenClip(const std::shared_ptr<ProjectClip> &controller, int in, int out)
@@ -1747,7 +1739,6 @@ void Monitor::slotPreviewResource(const QString &path, const QString &title)
     slotOpenClip(nullptr);
     m_streamAction->setVisible(false);
     m_glMonitor->setProducer(path);
-    m_glMonitor->producer();
     m_timePos->setRange(0, m_glMonitor->producer()->get_length() - 1);
     m_glMonitor->getControllerProxy()->setClipProperties(-1, ClipType::Unknown, false, title);
     m_glMonitor->setRulerInfo(m_glMonitor->producer()->get_length() - 1);
@@ -2433,7 +2424,6 @@ void Monitor::slotStart()
     }
     m_glMonitor->switchPlay(false);
     m_glMonitor->getControllerProxy()->setPosition(0);
-    resetSpeedInfo();
 }
 
 void Monitor::slotEnd()
@@ -2442,19 +2432,11 @@ void Monitor::slotEnd()
         return;
     }
     m_glMonitor->switchPlay(false);
-    resetSpeedInfo();
     if (m_id == Kdenlive::ClipMonitor) {
         m_glMonitor->getControllerProxy()->setPosition(m_glMonitor->duration() - 1);
     } else {
         m_glMonitor->getControllerProxy()->setPosition(pCore->projectDuration() - 1);
     }
-}
-
-void Monitor::resetSpeedInfo()
-{
-    m_speedIndex = -1;
-    m_speedLabel->setFixedWidth(0);
-    m_speedLabel->clear();
 }
 
 void Monitor::addSnapPoint(int pos)

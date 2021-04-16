@@ -110,6 +110,7 @@ public:
     friend class GroupsModel;
     friend class TimelineController;
     friend class SubtitleModel;
+    friend class MarkerListModel;
     friend struct TimelineFunctions;
 
     /// Two level model: tracks and clips on track
@@ -759,7 +760,7 @@ protected:
     void registerGroup(int groupId);
 
     /** @brief Deregister and destruct the track with given id.
-       @parame updateView Whether to send updates to the model. Must be false when called from a constructor/destructor
+       @param updateView Whether to send updates to the model. Must be false when called from a constructor/destructor
      */
     Fun deregisterTrack_lambda(int id);
 

@@ -82,7 +82,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
  * @class BinItemDelegate
  * @brief This class is responsible for drawing items in the QTreeView.
  */
-
 class BinItemDelegate : public QStyledItemDelegate
 {
 public:
@@ -1054,11 +1053,11 @@ Bin::Bin(std::shared_ptr<ProjectItemModel> model, QWidget *parent)
     });
 
     QAction *disableEffects = new QAction(i18n("Disable Bin Effects"), this);
-    connect(disableEffects, &QAction::triggered, this, [this](bool disable) { this->setBinEffectsEnabled(!disable); });
     disableEffects->setIcon(QIcon::fromTheme(QStringLiteral("favorite")));
     disableEffects->setData("disable_bin_effects");
     disableEffects->setCheckable(true);
     disableEffects->setChecked(false);
+    connect(disableEffects, &QAction::triggered, this, [this](bool disable) { this->setBinEffectsEnabled(!disable); });
     pCore->window()->actionCollection()->addAction(QStringLiteral("disable_bin_effects"), disableEffects);
     
     QAction *hoverPreview = new QAction(i18n("Show video preview in thumbnails"), this);
@@ -1067,8 +1066,6 @@ Bin::Bin(std::shared_ptr<ProjectItemModel> model, QWidget *parent)
     connect(hoverPreview, &QAction::triggered, [] (bool checked) {
         KdenliveSettings::setHoverPreview(checked);
     });
-    connect(disableEffects, &QAction::triggered, this, [this](bool disable) { this->setBinEffectsEnabled(!disable); });
-    disableEffects->setIcon(QIcon::fromTheme(QStringLiteral("favorite")));
 
     listType->setToolBarMode(KSelectAction::MenuMode);
     connect(listType, static_cast<void (KSelectAction::*)(QAction *)>(&KSelectAction::triggered), this, &Bin::slotInitView);
@@ -1295,9 +1292,9 @@ Bin::~Bin()
     m_itemModel->clean();
 }
 
-QDockWidget *Bin::clipPropertiesDock()
+QWidget *Bin::clipPropertiesDock()
 {
-    return m_propertiesDock;
+    return m_propertiesPanel;
 }
 
 void Bin::abortOperations()
@@ -1757,7 +1754,16 @@ void Bin::setDocument(KdenliveDoc *project)
     // connect(m_itemModel, SIGNAL(updateCurrentItem()), this, SLOT(autoSelect()));
     slotInitView(nullptr);
     bool binEffectsDisabled = getDocumentProperty(QStringLiteral("disablebineffects")).toInt() == 1;
-    setBinEffectsEnabled(!binEffectsDisabled, false);
+    QAction *disableEffects = pCore->window()->actionCollection()->action(QStringLiteral("disable_bin_effects"));
+    if (disableEffects) {
+        if (binEffectsDisabled != disableEffects->isChecked()) {
+            QSignalBlocker bk(disableEffects);
+            disableEffects->setChecked(binEffectsDisabled);
+        }
+    }
+    m_itemModel->setBinEffectsEnabled(!binEffectsDisabled);
+
+    //setBinEffectsEnabled(!binEffectsDisabled, false);
     QMap <QString, QString> projectTags = m_doc->getProjectTags();
     m_tagsWidget->rebuildTags(projectTags);
     rebuildFilters(projectTags);
@@ -1979,6 +1985,7 @@ void Bin::selectClipById(const QString &clipId, int frame, const QPoint &zone, b
     if (activateMonitor) {
         if (frame > -1) {
             m_monitor->slotSeek(frame);
+            m_monitor->refreshMonitorIfActive();
         } else {
             m_monitor->slotActivateMonitor();
         }
@@ -2516,8 +2523,8 @@ void Bin::slotSwitchClipProperties(const std::shared_ptr<ProjectClip> &clip)
     } else {
         m_propertiesPanel->setEnabled(true);
         showClipProperties(clip);
-        m_propertiesDock->show();
-        m_propertiesDock->raise();
+//        m_propertiesDock->show();
+//        m_propertiesDock->raise();
     }
     // Check if properties panel is not tabbed under Bin
     // if (!pCore->window()->isTabbedWith(m_propertiesDock, QStringLiteral("project_bin"))) {
@@ -2895,8 +2902,9 @@ void Bin::setupMenu()
     m_addButton->setPopupMode(QToolButton::MenuButtonPopup);
     m_toolbar->insertWidget(m_upAction, m_addButton);
     m_menu = new QMenu(this);
-    m_propertiesDock = pCore->window()->addDock(i18n("Clip Properties"), QStringLiteral("clip_properties"), m_propertiesPanel);
-    m_propertiesDock->close();
+//    m_propertiesDock = pCore->window()->addDock(i18n("Clip Properties"), QStringLiteral("clip_properties"), m_propertiesPanel);
+//    m_propertiesDock->close();
+    m_propertiesPanel->hide();
 }
 
 const QString Bin::getDocumentProperty(const QString &key)
@@ -3000,7 +3008,10 @@ void Bin::doDisplayMessage(const QString &text, KMessageWidget::MessageType type
 void Bin::refreshClip(const QString &id)
 {
     if (m_monitor->activeClipId() == id) {
-        m_monitor->refreshMonitorIfActive();
+        if (pCore->monitorManager()->clipMonitorVisible()) {
+            m_monitor->slotActivateMonitor();
+        }
+        m_monitor->refreshMonitorIfActive(true);
     }
 }
 
@@ -3928,15 +3939,6 @@ void Bin::showSlideshowWidget(const std::shared_ptr<ProjectClip> &clip)
 
 void Bin::setBinEffectsEnabled(bool enabled, bool refreshMonitor)
 {
-    QAction *disableEffects = pCore->window()->actionCollection()->action(QStringLiteral("disable_bin_effects"));
-    if (disableEffects) {
-        if (enabled == disableEffects->isChecked()) {
-            return;
-        }
-        disableEffects->blockSignals(true);
-        disableEffects->setChecked(!enabled);
-        disableEffects->blockSignals(false);
-    }
     m_itemModel->setBinEffectsEnabled(enabled);
     pCore->projectManager()->disableBinEffects(!enabled, refreshMonitor);
 }
@@ -4424,7 +4426,7 @@ QList<int> Bin::getUsedClipIds()
 {
     QList<int> timelineClipIds;
     QList<std::shared_ptr<ProjectClip>> allClipIds = m_itemModel->getRootFolder()->childClips();
-    for(auto clip : allClipIds) {
+    for(auto clip : qAsConst(allClipIds)) {
         if(clip->isIncludedInTimeline()) {
             timelineClipIds.push_back(clip->binId().toInt());
         }

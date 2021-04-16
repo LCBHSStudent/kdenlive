@@ -55,31 +55,49 @@ Rectangle {
         Drag.proposedAction: Qt.MoveAction
         MouseArea {
             id: moveMouseArea
-            anchors.fill: parent
+            anchors.left: parent.left
+            anchors.top: parent.top
+            width: parent.width
+            height: parent.height
             hoverEnabled: true
-            drag.target: rzone
             drag.axis: Drag.XAxis
             drag.smoothed: false
             property var startZone
             onPressed: {
                 startZone = Qt.point(frameIn, frameOut)
+                anchors.left= undefined
             }
             onEntered: {
                 resizeActive = true
             }
             onExited: {
-                resizeActive = false
+                if (!pressed) {
+                    resizeActive = false
+                }
             }
             onReleased: {
                 updateZone(startZone, Qt.point(frameIn, frameOut), true)
                 resizeActive = false
+                anchors.left= parent.left
             }
             onPositionChanged: {
                 if (mouse.buttons === Qt.LeftButton) {
                     resizeActive = true
-                    var offset = Math.round(rzone.x/ timeline.scaleFactor) - frameIn
+                    var offset = Math.round(mouseX/ timeline.scaleFactor)
                     if (offset != 0) {
-                        var newPos = Math.max(0, controller.suggestSnapPoint(frameIn + offset,root.snapping))
+                        var newPos = Math.max(0, controller.suggestSnapPoint(frameIn + offset,mouse.modifiers & Qt.ShiftModifier ? -1 : root.snapping))
+                        if (newPos == frameIn + offset) {
+                            // No snap at start, check end
+                            var newPos = Math.max(0, controller.suggestSnapPoint(frameOut + offset,mouse.modifiers & Qt.ShiftModifier ? -1 : root.snapping))
+                            if (newPos == frameOut + offset) {
+                                newPos = frameIn + offset
+                            } else {
+                                newPos = frameIn + (newPos - frameOut)
+                            }
+                        }
+                        if (newPos < 0) {
+                            newPos = frameIn + offset;
+                        }
                         frameOut += newPos - frameIn
                         frameIn = newPos
                     }
@@ -122,7 +140,7 @@ Rectangle {
     Rectangle {
         id: durationRect
         anchors.bottom: rzone.top
-        visible: (!useTimelineRuler && moveMouseArea.containsMouse) || ((useTimelineRuler || trimInMouseArea.drag.active || trimOutMouseArea.drag.active) && showZoneLabels && parent.width > 3 * width) || (useTimelineRuler && !trimInMouseArea.drag.active && !trimOutMouseArea.drag.active) || moveMouseArea.drag.active
+        visible: (!useTimelineRuler && moveMouseArea.containsMouse && !moveMouseArea.pressed) || ((useTimelineRuler || trimInMouseArea.drag.active || trimOutMouseArea.drag.active) && showZoneLabels && parent.width > 3 * width) || (useTimelineRuler && !trimInMouseArea.drag.active && !trimOutMouseArea.drag.active)
         anchors.horizontalCenter: parent.horizontalCenter
         width: durationLabel.contentWidth + 4
         height: durationLabel.contentHeight
@@ -176,7 +194,7 @@ Rectangle {
                 onPositionChanged: {
                     if (mouse.buttons === Qt.LeftButton) {
                         resizeActive = true
-                        var newPos = controller.suggestSnapPoint(frameIn + Math.round(trimIn.x / timeline.scaleFactor), root.snapping)
+                        var newPos = controller.suggestSnapPoint(frameIn + Math.round(trimIn.x / timeline.scaleFactor), mouse.modifiers & Qt.ShiftModifier ? -1 : root.snapping)
                         if (newPos < 0) {
                             newPos = 0
                         }
@@ -225,7 +243,7 @@ Rectangle {
                 onPositionChanged: {
                     if (mouse.buttons === Qt.LeftButton) {
                         resizeActive = true
-                        frameOut = Math.max(controller.suggestSnapPoint(frameIn + Math.round((trimOut.x + trimOut.width) / timeline.scaleFactor), root.snapping), frameIn + 1)
+                        frameOut = Math.max(controller.suggestSnapPoint(frameIn + Math.round((trimOut.x + trimOut.width) / timeline.scaleFactor), mouse.modifiers & Qt.ShiftModifier ? -1 : root.snapping), frameIn + 1)
                     }
                 }
             }

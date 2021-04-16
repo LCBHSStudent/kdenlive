@@ -44,16 +44,16 @@ Item {
 
     signal editCurrentMarker()
 
-    onDurationChanged: {
-        clipMonitorRuler.updateRuler()
-    }
+//    onDurationChanged: {
+//        clipMonitorRuler.updateRuler()
+//    }
 
-    onWidthChanged: {
-        clipMonitorRuler.updateRuler()
-    }
-    function updatePalette() {
-        clipMonitorRuler.forceRepaint()
-    }
+//    onWidthChanged: {
+//        clipMonitorRuler.updateRuler()
+//    }
+//    function updatePalette() {
+//        clipMonitorRuler.forceRepaint()
+//    }
 
     function switchOverlay() {
         if (controller.overlayType >= 5) {
@@ -78,16 +78,18 @@ Item {
             controller.setWidgetKeyBinding();
         }
     }
-    SceneToolBar {
-        id: sceneToolBar
-        anchors {
-            right: parent.right
-            top: parent.top
-            topMargin: 4
-            rightMargin: 4
-            leftMargin: 4
-        }
-    }
+
+/*    floating tool    */ 
+//    SceneToolBar {
+//        id: sceneToolBar
+//        anchors {
+//            right: parent.right
+//            top: parent.top
+//            topMargin: 4
+//            rightMargin: 4
+//            leftMargin: 4
+//        }
+//    }
 
     Item {
         height: root.height - controller.rulerHeight
@@ -120,116 +122,134 @@ Item {
                 }
             }
         }
-        Item {
-            id: monitorOverlay
-            anchors.fill: parent
+//        Item {
+//            id: monitorOverlay
+//            anchors.fill: parent
 
-            Label {
-                id: timecode
-                font.family: fontMetrics.font.family
-                font.pointSize: 1.5 * fontMetrics.font.pointSize
-                objectName: "timecode"
-                color: "#ffffff"
-                padding: 2
-                background: Rectangle {
-                    color: "#66000000"
-                }
-                text: controller.timecode
-                visible: root.showTimecode
-                anchors {
-                    right: parent.right
-                    bottom: parent.bottom
-                    bottomMargin: root.zoomOffset
-                }
-            }
-            Label {
-                id: fpsdropped
-                font.family: fontMetrics.font.family
-                font.pointSize: 1.5 * fontMetrics.font.pointSize
-                objectName: "fpsdropped"
-                color: "#ffffff"
-                padding: 2
-                background: Rectangle {
-                    color: root.dropped ? "#99ff0000" : "#66004400"
-                }
-                text: i18n("%1fps", root.fps)
-                visible: root.showFps
-                anchors {
-                    right: timecode.visible ? timecode.left : parent.right
-                    bottom: parent.bottom
-                    bottomMargin: root.zoomOffset
-                }
-            }
-            Label {
-                id: inPoint
-                font: fixedFont
-                anchors {
-                    left: parent.left
-                    bottom: parent.bottom
-                    bottomMargin: root.zoomOffset
-                }
-                visible: root.showMarkers && controller.position == controller.zoneIn
-                text: i18n("In Point")
-                color: "white"
-                background: Rectangle {
-                    color: "#228b22"
-                }
-                padding: 5
-                horizontalAlignment: TextInput.AlignHCenter
-            }
-            Label {
-                id: outPoint
-                font: fixedFont
-                anchors {
-                    left: inPoint.visible ? inPoint.right : parent.left
-                    bottom: parent.bottom
-                    bottomMargin: root.zoomOffset
-                }
-                visible: root.showMarkers && controller.position + 1 == controller.zoneOut
-                text: i18n("Out Point")
-                color: "white"
-                background: Rectangle {
-                    color: "#770000"
-                }
-                padding: 5
-                horizontalAlignment: TextInput.AlignHCenter
-            }
-            TextField {
-                id: marker
-                font: fixedFont
-                objectName: "markertext"
-                activeFocusOnPress: true
-                onEditingFinished: {
-                    root.markerText = marker.displayText
-                    marker.focus = false
-                    root.editCurrentMarker()
-                }
-                anchors {
-                    left: outPoint.visible ? outPoint.right : inPoint.visible ? inPoint.right : parent.left
-                    bottom: parent.bottom
-                    bottomMargin: root.zoomOffset
-                }
-                visible: root.showMarkers && text != ""
-                text: controller.markerComment
-                height: inPoint.height
-                width: fontMetrics.boundingRect(displayText).width + 10
-                horizontalAlignment: displayText == text ? TextInput.AlignHCenter : TextInput.AlignLeft
-                background: Rectangle {
-                        color: "#990000ff"
-                }
-                color: "#ffffff"
-                padding: 0
-                maximumLength: 25
-            }
-        }
+//            Label {
+//                id: timecode
+//                font.family: fontMetrics.font.family
+//                font.pointSize: 1.5 * fontMetrics.font.pointSize
+//                objectName: "timecode"
+//                color: "#ffffff"
+//                padding: 2
+//                background: Rectangle {
+//                    color: "#66000000"
+//                }
+//                text: controller.timecode
+//                visible: root.showTimecode
+//                anchors {
+//                    right: parent.right
+//                    bottom: parent.bottom
+//                    bottomMargin: root.zoomOffset
+//                }
+//            }
+//            Label {
+//                id: fpsdropped
+//                font.family: fontMetrics.font.family
+//                font.pointSize: 1.5 * fontMetrics.font.pointSize
+//                objectName: "fpsdropped"
+//                color: "#ffffff"
+//                padding: 2
+//                background: Rectangle {
+//                    color: root.dropped ? "#99ff0000" : "#66004400"
+//                }
+//                text: i18n("%1fps", root.fps)
+//                visible: root.showFps
+//                anchors {
+//                    right: timecode.visible ? timecode.left : parent.right
+//                    bottom: parent.bottom
+//                    bottomMargin: root.zoomOffset
+//                }
+//            }
+//            Label {
+//                id: labelSpeed
+//                font: fixedFont
+//                anchors {
+//                    left: parent.left
+//                    top: parent.top
+//                }
+//                visible: Math.abs(controller.speed) > 1
+//                text: "x" + controller.speed
+//                color: "white"
+//                background: Rectangle {
+//                    color: "darkgreen"
+//                }
+//                padding: 5
+//                horizontalAlignment: TextInput.AlignHCenter
+//            }
+//            Label {
+//                id: inPoint
+//                font: fixedFont
+//                anchors {
+//                    left: parent.left
+//                    bottom: parent.bottom
+//                    bottomMargin: root.zoomOffset
+//                }
+//                visible: root.showMarkers && controller.position == controller.zoneIn
+//                text: i18n("In Point")
+//                color: "white"
+//                background: Rectangle {
+//                    color: "#228b22"
+//                }
+//                padding: 5
+//                horizontalAlignment: TextInput.AlignHCenter
+//            }
+//            Label {
+//                id: outPoint
+//                font: fixedFont
+//                anchors {
+//                    left: inPoint.visible ? inPoint.right : parent.left
+//                    bottom: parent.bottom
+//                    bottomMargin: root.zoomOffset
+//                }
+//                visible: root.showMarkers && controller.position + 1 == controller.zoneOut
+//                text: i18n("Out Point")
+//                color: "white"
+//                background: Rectangle {
+//                    color: "#770000"
+//                }
+//                padding: 5
+//                horizontalAlignment: TextInput.AlignHCenter
+//            }
+//            TextField {
+//                id: marker
+//                font: fixedFont
+//                objectName: "markertext"
+//                activeFocusOnPress: true
+//                onEditingFinished: {
+//                    root.markerText = marker.displayText
+//                    marker.focus = false
+//                    root.editCurrentMarker()
+//                }
+//                anchors {
+//                    left: outPoint.visible ? outPoint.right : inPoint.visible ? inPoint.right : parent.left
+//                    bottom: parent.bottom
+//                    bottomMargin: root.zoomOffset
+//                }
+//                visible: root.showMarkers && text != ""
+//                text: controller.markerComment
+//                height: inPoint.height
+//                width: fontMetrics.boundingRect(displayText).width + 10
+//                horizontalAlignment: displayText == text ? TextInput.AlignHCenter : TextInput.AlignLeft
+//                background: Rectangle {
+//                    color: controller.markerColor
+//                }
+//                color: "#000"
+//                padding: 0
+//                maximumLength: 25
+//            }
+//        }
     }
-    MonitorRuler {
-        id: clipMonitorRuler
-        anchors {
-            left: root.left
-            right: root.right
-            bottom: root.bottom
-        }
-        height: controller.rulerHeight
-    }
+    
+//    
+//    MonitorRuler {
+//        id: clipMonitorRuler
+//        anchors {
+//            left: root.left
+//            right: root.right
+//            bottom: root.bottom
+//        }
+//        height: controller.rulerHeight
+//    }
 }

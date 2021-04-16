@@ -203,7 +203,7 @@ TitleWidget::TitleWidget(const QUrl &url, QString projectTitlePath, Monitor *mon
         twinfo->setMessageType(KMessageWidget::Warning);
         twinfo->setCloseButtonVisible(false);
         twinfo->setEnabled(true);
-        gridLayout_12->addWidget(twinfo, 3, 0, 1, 4, 0);
+        gridLayout_12->addWidget(twinfo, 3, 0, 1, 4);
     }
 
     connect(fontColorButton, &KColorButton::changed, this, &TitleWidget::slotUpdateText);
@@ -1003,7 +1003,7 @@ void TitleWidget::slotUpdateZoom(int pos)
 {
     zoom_spin->setValue(pos);
     zoom_slider->setValue(pos);
-    m_scene->setZoom(pos / 100);
+    m_scene->setZoom(pos / 100.);
 }
 
 void TitleWidget::slotZoom(bool up)
@@ -2269,7 +2269,7 @@ void TitleWidget::setXml(const QDomDocument &doc, const QString &id)
         delete m_missingMessage;
         m_missingMessage = nullptr;
     }
-    m_count = m_titledocument.loadFromXml(doc, m_startViewport, m_endViewport, &duration, m_projectTitlePath);
+    m_count = m_titledocument.loadFromXml(doc, m_scene, m_startViewport, m_endViewport, &duration, m_projectTitlePath);
     adjustFrameSize();
     if (m_titledocument.invalidCount() > 0) {
         m_missingMessage = new KMessageWidget(this);
@@ -2327,6 +2327,7 @@ void TitleWidget::setXml(const QDomDocument &doc, const QString &id)
     backgroundAlpha->blockSignals(true);
     backgroundColor->blockSignals(true);
     backgroundAlpha->setValue(background_color.alpha());
+    bgAlphaSlider->setValue(background_color.alpha());
     background_color.setAlpha(255);
     backgroundColor->setColor(background_color);
     backgroundAlpha->blockSignals(false);
@@ -2525,7 +2526,6 @@ void TitleWidget::slotAnimStart(bool anim)
     } else {
         m_startViewport->setZValue(-1000);
         m_startViewport->setBrush(QBrush());
-        m_startViewport->setFlags(nullptr);
         if (!anim_end->isChecked()) {
             deleteAnimInfoText();
         }
@@ -3475,7 +3475,7 @@ void TitleWidget::slotPatternDblClicked(const QModelIndex& idx)
 
     QList<QGraphicsItem *> items;
     int width, height, duration, missing;
-    TitleDocument::loadFromXml(doc, items, width, height, nullptr, nullptr, &duration, missing);
+    TitleDocument::loadFromXml(doc, items, width, height, nullptr, nullptr, nullptr, &duration, missing);
 
     for (QGraphicsItem *item : qAsConst(items)) {
         item->setZValue(m_count++);
@@ -3502,7 +3502,7 @@ void TitleWidget::slotPatternBtnRemoveClicked()
     QModelIndexList items =  patternsList->selectionModel()->selectedIndexes();
     std::sort(items.begin(), items.end());
     std::reverse(items.begin(), items.end());
-    for (auto idx : items) {
+    for (auto idx : qAsConst(items)) {
         m_patternsModel->removeScene(idx);
     }
     btn_removeAll->setEnabled(m_patternsModel->rowCount(QModelIndex()) != 0);

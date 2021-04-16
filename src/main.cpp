@@ -94,7 +94,9 @@ int main(int argc, char *argv[])
     } else {
         // Default to OpenGLES (QtAngle) on first start
         QCoreApplication::setAttribute(Qt::AA_UseOpenGLES, true);
+        grp1.writeEntry("opengl_backend", int(Qt::AA_UseOpenGLES));
     }
+    configWin->sync();
 #endif
     QApplication app(argc, argv);
     app.setApplicationName(QStringLiteral("kdenlive"));
@@ -114,7 +116,8 @@ int main(int argc, char *argv[])
     qputenv("KDE_FORK_SLAVES", "1");
     QString path = qApp->applicationDirPath() + QLatin1Char(';') + qgetenv("PATH");
     qputenv("PATH", path.toUtf8().constData());
-
+#endif
+#if defined(Q_OS_WIN) || defined (Q_OS_MACOS)
     const QStringList themes {"/icons/breeze/breeze-icons.rcc", "/icons/breeze-dark/breeze-icons-dark.rcc"};
     for(const QString theme : themes ) {
         const QString themePath = QStandardPaths::locate(QStandardPaths::AppDataLocation, theme);
@@ -156,7 +159,7 @@ int main(int argc, char *argv[])
 #endif
 
     // Init DBus services
-    KDBusService programDBusService;
+    KDBusService programDBusService(KDBusService::NoExitOnFailure);
     bool forceBreeze = grp.readEntry("force_breeze", QVariant(false)).toBool();
     if (forceBreeze) {
         bool darkBreeze = grp.readEntry("use_dark_breeze", QVariant(false)).toBool();

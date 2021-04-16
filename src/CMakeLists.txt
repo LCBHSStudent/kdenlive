@@ -88,7 +88,7 @@ set_property(SOURCE definitions.h PROPERTY SKIP_AUTOMOC ON)
 
 add_library(kdenliveLib STATIC ${kdenlive_SRCS} ${kdenlive_UIS} ${kdenlive_MOC} lib/localeHandling.cpp lib/localeHandling.h)
 
-qt5_add_resources(kdenlive_extra_SRCS icons.qrc uiresources.qrc)
+qt5_add_resources(kdenlive_extra_SRCS icons.qrc uiresources.qrc icon.qrc)
 ## Icon for Windows and OSX
 file(GLOB ICONS_SRCS "${CMAKE_CURRENT_SOURCE_DIR}/../data/icons/*-apps-kdenlive.png")
 ecm_add_app_icon(kdenlive ICONS ${ICONS_SRCS}) # icon name = variable name
@@ -151,8 +151,8 @@ target_link_libraries(kdenliveLib
 if(BUILD_COVERAGE)
   target_link_libraries(kdenliveLib gcov)
 endif()
-set_property(TARGET kdenliveLib PROPERTY CXX_STANDARD 14)
-add_definitions(${qt5gui_definitions} -DQT_STRICT_ITERATORS -DQT_NO_CAST_FROM_BYTEARRAY)
+set_property(TARGET kdenliveLib PROPERTY CXX_STANDARD 17)
+add_definitions(${qt5gui_definitions} -DQT_STRICT_ITERATORS -DQT_NO_CAST_FROM_BYTEARRAY -D__LOG_DEBUG)
 
 # Optional deps
 if(CRASH_AUTO_TEST)
@@ -204,3 +204,21 @@ if(HAVE_LINUX_INPUT_H)
     target_compile_definitions(kdenliveLib PRIVATE -DUSE_JOGSHUTTLE)
     target_link_libraries(kdenliveLib media_ctrl)
 endif()
+
+target_link_libraries(kdenliveLib DbgHelp)
+
+if (BUILD_QCH)
+    ecm_add_qch(
+        Kdenlive_QCH
+        NAME kdenlive
+        VERSION ${KDENLIVE_VERSION}
+        ORG_DOMAIN org.kde
+        SOURCE_DIRS
+            .
+        MD_MAINPAGE "${CMAKE_SOURCE_DIR}/README.md"
+        TAGFILE_INSTALL_DESTINATION ${CMAKE_INSTALL_PREFIX}/share/docs/tags
+        QCH_INSTALL_DESTINATION ${CMAKE_INSTALL_PREFIX}/share/docs/qch
+        COMPONENT Devel
+    )
+endif()
+

@@ -94,4 +94,20 @@ reading a Read-protected property. In that case, we try to write lock it first (
     LOCK_IN_LAMBDA(reverse)                                                                                                                                    \
     UPDATE_UNDO_REDO_NOLOCK(operation, reverse, undo, redo)
 
+#if defined(__LOG_DEBUG)
+#include <QDebug>
+    #define LOG_DEBUG() (qDebug().noquote().nospace() << QString::asprintf("\n[LOG] At line [%d] in file [%s]\n    Function <%s>:\n", __LINE__, __FILE__, __PRETTY_FUNCTION__))
+#else
+#include <QDebug>
+    #define LOG_DEBUG() if (false) (qDebug)
+#endif
+
+constexpr int __customMenuLeftMargin = 3;
+#define MOVE_MENU_ABOUT2SHOW(__PMENU__, __POSX__, __POSY__)                                                                                                     \
+    connect(__PMENU__, &QMenu::aboutToShow, [__PMENU__] {                                                                                                        \
+        QTimer::singleShot(0, __PMENU__, [__PMENU__] {                                                                                                          \
+            __PMENU__->move(__PMENU__->pos() + QPoint(__POSX__, __POSY__));                                                                                     \
+        });                                                                                                                                                     \
+    })
+
 #endif

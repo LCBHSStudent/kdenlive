@@ -60,7 +60,6 @@ namespace Mlt {
  * Needs to be initialize before any widgets are created in MainWindow.
  * Plugins should be loaded after the widget setup.
  */
-
 class /*KDENLIVECORE_EXPORT*/ Core : public QObject
 {
     Q_OBJECT
@@ -249,6 +248,9 @@ public:
     void setWidgetKeyBinding(const QString &mess = QString());
     KSharedDataCache audioThumbCache;
 
+protected:
+    bool eventFilter(QObject*, QEvent*) override;
+    
 private:
     explicit Core();
     static std::unique_ptr<Core> m_self;
@@ -315,6 +317,8 @@ signals:
     void updateVoskAvailability();
     /** @brief Update current effect zone */
     void updateEffectZone(const QPoint p, bool withUndo);
+    /** @brief The effect stask is about to be deleted, disconnect everything */
+    void disconnectEffectStack();
 };
 
 #endif

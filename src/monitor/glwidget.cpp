@@ -39,6 +39,7 @@
 #include "monitorproxy.h"
 #include "profiles/profilemodel.hpp"
 #include "timeline2/view/qml/timelineitems.h"
+#include "widgets/customtooltip.h"
 #include <mlt++/Mlt.h>
 #include <lib/localeHandling.h>
 
@@ -63,8 +64,8 @@
 
 using namespace Mlt;
 
-GLWidget::GLWidget(int id, QObject *parent)
-    : QQuickView(static_cast<QWindow *>(parent))
+GLWidget::GLWidget(int id, QWidget *parent)
+    : QQuickWidget(parent)
     , sendFrameForAnalysis(false)
     , m_glslManager(nullptr)
     , m_consumer(nullptr)
@@ -117,10 +118,10 @@ GLWidget::GLWidget(int id, QObject *parent)
     }
     m_displayRulerHeight = m_rulerHeight;
 
-    setPersistentOpenGLContext(true);
-    setPersistentSceneGraph(true);
-    setClearBeforeRendering(false);
-    setResizeMode(QQuickView::SizeRootObjectToView);
+    quickWindow()->setPersistentOpenGLContext(true);
+    quickWindow()->setPersistentSceneGraph(true);
+    quickWindow()->setClearBeforeRendering(false);
+    setResizeMode(QQuickWidget::SizeRootObjectToView);
     m_offscreenSurface.setFormat(QOpenGLContext::globalShareContext()->format());
     m_offscreenSurface.create();
 
@@ -136,8 +137,8 @@ GLWidget::GLWidget(int id, QObject *parent)
         disableGPUAccel();
     }
 
-    connect(this, &QQuickWindow::sceneGraphInitialized, this, &GLWidget::initializeGL, Qt::DirectConnection);
-    connect(this, &QQuickWindow::beforeRendering, this, &GLWidget::paintGL, Qt::DirectConnection);
+    connect(quickWindow(), &QQuickWindow::sceneGraphInitialized, this, &GLWidget::initializeGL, Qt::DirectConnection);
+    connect(quickWindow(), &QQuickWindow::beforeRendering, this, &GLWidget::paintGL, Qt::DirectConnection);
     connect(pCore.get(), &Core::updateMonitorProfile, this, &GLWidget::reloadProfile);
 
     registerTimelineItems();
@@ -181,7 +182,7 @@ void GLWidget::initializeGL()
 {
     if (m_isInitialized) return;
 
-    openglContext()->makeCurrent(&m_offscreenSurface);
+    quickWindow()->openglContext()->makeCurrent(&m_offscreenSurface);
     initializeOpenGLFunctions();
 
     // C & D
@@ -201,22 +202,22 @@ void GLWidget::initializeGL()
         // See this Qt bug for more info: https://bugreports.qt.io/browse/QTBUG-44677
         // TODO: QTBUG-44677 is closed. still applicable?
         m_shareContext = new QOpenGLContext;
-        m_shareContext->setFormat(openglContext()->format());
-        m_shareContext->setShareContext(openglContext());
+        m_shareContext->setFormat(quickWindow()->openglContext()->format());
+        m_shareContext->setShareContext(quickWindow()->openglContext());
         m_shareContext->create();
     }
 
-    m_frameRenderer = new FrameRenderer(openglContext(), &m_offscreenSurface, m_ClientWaitSync);
+    m_frameRenderer = new FrameRenderer(quickWindow()->openglContext(), &m_offscreenSurface, m_ClientWaitSync);
 
     m_frameRenderer->sendAudioForAnalysis = KdenliveSettings::monitor_audio();
 
-    openglContext()->makeCurrent(this);
+    quickWindow()->openglContext()->makeCurrent(quickWindow());
     connect(m_frameRenderer, &FrameRenderer::textureReady, this, &GLWidget::updateTexture, Qt::DirectConnection);
     connect(m_frameRenderer, &FrameRenderer::frameDisplayed, this, &GLWidget::onFrameDisplayed, Qt::QueuedConnection);
     connect(m_frameRenderer, &FrameRenderer::frameDisplayed, this, &GLWidget::frameDisplayed, Qt::QueuedConnection);
     m_initSem.release();
     m_isInitialized = true;
-    reconfigure();
+    QMetaObject::invokeMethod(this, "reconfigure", Qt::QueuedConnection);
 }
 
 void GLWidget::resizeGL(int width, int height)
@@ -261,7 +262,7 @@ void GLWidget::resizeGL(int width, int height)
 void GLWidget::resizeEvent(QResizeEvent *event)
 {
     resizeGL(event->size().width(), event->size().height());
-    QQuickView::resizeEvent(event);
+    QQuickWidget::resizeEvent(event);
 }
 
 void GLWidget::createGPUAccelFragmentProg()
@@ -405,12 +406,12 @@ void GLWidget::releaseAnalyse()
 bool GLWidget::acquireSharedFrameTextures()
 {
     // A
-    if ((m_glslManager == nullptr) && !openglContext()->supportsThreadedOpenGL()) {
+    if ((m_glslManager == nullptr) && !quickWindow()->openglContext()->supportsThreadedOpenGL()) {
         QMutexLocker locker(&m_contextSharedAccess);
         if (!m_sharedFrame.is_valid()) {
             return false;
         }
-        uploadTextures(openglContext(), m_sharedFrame, m_texture);
+        uploadTextures(quickWindow()->openglContext(), m_sharedFrame, m_texture);
     } else if (m_glslManager) {
         // C & D
         m_contextSharedAccess.lock();
@@ -475,7 +476,7 @@ void GLWidget::disableGPUAccel()
 
 bool GLWidget::onlyGLESGPUAccel() const
 {
-    return (m_glslManager != nullptr) && openglContext()->isOpenGLES();
+    return (m_glslManager != nullptr) && quickWindow()->openglContext()->isOpenGLES();
 }
 
 #if defined(Q_OS_WIN)
@@ -507,7 +508,7 @@ bool GLWidget::initGPUAccelSync()
 
 void GLWidget::paintGL()
 {
-    QOpenGLFunctions *f = openglContext()->functions();
+    QOpenGLFunctions *f = quickWindow()->openglContext()->functions();
     float width = float(this->width() * devicePixelRatio());
     float height = float(this->height() * devicePixelRatio());
 
@@ -644,6 +645,11 @@ void GLWidget::updateRulerHeight(int addedHeight)
     resizeGL(width(), height());
 }
 
+bool GLWidget::isReady() const
+{
+    return m_consumer != nullptr;
+}
+
 void GLWidget::requestSeek(int position)
 {
     m_consumer->set("scrub_audio", 1);
@@ -691,6 +697,7 @@ bool GLWidget::checkFrameNumber(int pos, int offset, bool isPlaying)
             }
             m_producer->seek(m_isZoneMode ? m_proxy->zoneIn() : m_loopIn);
             m_producer->set_speed(1.0);
+            m_proxy->setSpeed(1.);
             m_consumer->set("refresh", 1);
             return true;
         }
@@ -700,6 +707,7 @@ bool GLWidget::checkFrameNumber(int pos, int offset, bool isPlaying)
         if (pos >= (maxPos - 1) && !(speed < 0.)) {
             // Playing past last clip, pause
             m_producer->set_speed(0);
+            m_proxy->setSpeed(0);
             m_consumer->set("refresh", 0);
             m_consumer->purge();
             m_proxy->setPosition(qMax(0, maxPos));
@@ -708,6 +716,7 @@ bool GLWidget::checkFrameNumber(int pos, int offset, bool isPlaying)
         } else if (pos <= 0 && speed < 0.) {
             // rewinding reached 0, pause
             m_producer->set_speed(0);
+            m_proxy->setSpeed(0);
             m_consumer->set("refresh", 0);
             m_consumer->purge();
             m_proxy->setPosition(0);
@@ -723,7 +732,7 @@ void GLWidget::mousePressEvent(QMouseEvent *event)
     if ((rootObject() != nullptr) && rootObject()->objectName() != QLatin1String("root") && !(event->modifiers() & Qt::ControlModifier) &&
         !(event->buttons() & Qt::MiddleButton)) {
         event->ignore();
-        QQuickView::mousePressEvent(event);
+        QQuickWidget::mousePressEvent(event);
         return;
     }
     if ((event->button() & Qt::LeftButton) != 0u) {
@@ -741,31 +750,32 @@ void GLWidget::mousePressEvent(QMouseEvent *event)
         setCursor(Qt::ClosedHandCursor);
     }
     event->accept();
-    QQuickView::mousePressEvent(event);
+    QQuickWidget::mousePressEvent(event);
 }
 
 void GLWidget::mouseMoveEvent(QMouseEvent *event)
 {
+    CustomToolTip::hideToolTip();
     if ((rootObject() != nullptr) && rootObject()->objectName() != QLatin1String("root") && !(event->modifiers() & Qt::ControlModifier) &&
         !(event->buttons() & Qt::MiddleButton)) {
         event->ignore();
-        QQuickView::mouseMoveEvent(event);
+        QQuickWidget::mouseMoveEvent(event);
         return;
     }
     /*    if (event->modifiers() == Qt::ShiftModifier && m_producer) {
         emit seekTo(m_producer->get_length() *  event->x() / width());
         return;
     }*/
-    QQuickView::mouseMoveEvent(event);
+    QQuickWidget::mouseMoveEvent(event);
     if (!m_panStart.isNull()) {
         emit panView(m_panStart - event->pos());
         m_panStart = event->pos();
         event->accept();
-        QQuickView::mouseMoveEvent(event);
+        QQuickWidget::mouseMoveEvent(event);
         return;
     }
     if (!(event->buttons() & Qt::LeftButton)) {
-        QQuickView::mouseMoveEvent(event);
+        QQuickWidget::mouseMoveEvent(event);
         return;
     }
     if (!event->isAccepted() && !m_dragStart.isNull() && (event->pos() - m_dragStart).manhattanLength() >= QApplication::startDragDistance()) {
@@ -776,7 +786,7 @@ void GLWidget::mouseMoveEvent(QMouseEvent *event)
 
 void GLWidget::keyPressEvent(QKeyEvent *event)
 {
-    QQuickView::keyPressEvent(event);
+    QQuickWidget::keyPressEvent(event);
     if (!event->isAccepted()) {
         emit passKeyEvent(event);
     }
@@ -876,6 +886,10 @@ int GLWidget::setProducer(const QString &file)
         m_producer.reset();
     }
     m_producer = std::make_shared<Mlt::Producer>(new Mlt::Producer(pCore->getCurrentProfile()->profile(), nullptr, file.toUtf8().constData()));
+    if (!m_producer && !m_producer->is_valid()) {
+        m_producer.reset();
+        m_producer = m_blackClip;
+    }
     if (m_consumer) {
         //m_consumer->stop();
         if (!m_consumer->is_stopped()) {
@@ -913,6 +927,7 @@ int GLWidget::setProducer(const std::shared_ptr<Mlt::Producer> &producer, bool i
     }
     // redundant check. postcondition of above is m_producer != null
     m_producer->set_speed(0);
+    m_proxy->setSpeed(0);
     error = reconfigure();
     if (error == 0) {
         // The profile display aspect ratio may have changed.
@@ -1270,7 +1285,7 @@ void GLWidget::onFrameDisplayed(const SharedFrame &frame)
 
 void GLWidget::mouseReleaseEvent(QMouseEvent *event)
 {
-    QQuickView::mouseReleaseEvent(event);
+    QQuickWidget::mouseReleaseEvent(event);
     if (m_dragStart.isNull() && m_panStart.isNull() && (rootObject() != nullptr) && rootObject()->objectName() != QLatin1String("root") &&
         !(event->modifiers() & Qt::ControlModifier)) {
         event->ignore();
@@ -1295,7 +1310,7 @@ void GLWidget::purgeCache()
 
 void GLWidget::mouseDoubleClickEvent(QMouseEvent *event)
 {
-    QQuickView::mouseDoubleClickEvent(event);
+    QQuickWidget::mouseDoubleClickEvent(event);
     if (event->isAccepted()) {
         return;
     }
@@ -1602,7 +1617,7 @@ void GLWidget::refreshSceneLayout()
     rootObject()->setProperty("scaley", double(m_rect.height() * m_zoom) / s.height());
 }
 
-void GLWidget::switchPlay(bool play, double speed)
+void GLWidget::switchPlay(bool play, int offset, double speed)
 {
     if (!m_producer || !m_consumer) {
         return;
@@ -1611,11 +1626,13 @@ void GLWidget::switchPlay(bool play, double speed)
         resetZoneMode();
     }
     if (play) {
-        if (m_id == Kdenlive::ClipMonitor && m_consumer->position() == m_producer->get_out() && speed > 0) {
+        if ((m_id == Kdenlive::ClipMonitor || (m_id == Kdenlive::ProjectMonitor && KdenliveSettings::jumptostart())) && m_consumer->position() == m_producer->get_out() - offset && speed > 0) {
             m_producer->seek(0);
         }
+        qDebug() << "pos: " << m_consumer->position() << "out-offset: " << m_producer->get_out() - offset;
         double current_speed = m_producer->get_speed();
         m_producer->set_speed(speed);
+        m_proxy->setSpeed(speed);
         if (qFuzzyCompare(speed, 1.0) || speed < -6. || speed > 6.) {
             m_consumer->set("scrub_audio", 0);
         } else {
@@ -1632,6 +1649,7 @@ void GLWidget::switchPlay(bool play, double speed)
     } else {
         emit paused();
         m_producer->set_speed(0);
+        m_proxy->setSpeed(0);
         m_producer->seek(m_consumer->position() + 1);
         m_consumer->purge();
         m_consumer->start();
@@ -1646,6 +1664,7 @@ bool GLWidget::playZone(bool loop)
     }
     m_producer->seek(m_proxy->zoneIn());
     m_producer->set_speed(0);
+    m_proxy->setSpeed(0);
     m_consumer->purge();
     m_producer->set("out", m_proxy->zoneOut());
     m_producer->set_speed(1.0);
@@ -1683,6 +1702,7 @@ bool GLWidget::loopClip(QPoint inOut)
     m_loopIn = inOut.x();
     m_producer->seek(inOut.x());
     m_producer->set_speed(0);
+    m_proxy->setSpeed(0);
     m_consumer->purge();
     m_producer->set("out", inOut.y());
     m_producer->set_speed(1.0);
@@ -1754,6 +1774,7 @@ void GLWidget::stop()
             resetZoneMode();
         }
         m_producer->set_speed(0.0);
+        m_proxy->setSpeed(0);
     }
     if (m_consumer) {
         m_consumer->purge();

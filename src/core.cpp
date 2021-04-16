@@ -31,6 +31,7 @@ the Free Software Foundation, either version 3 of the License, or
 #include "timeline2/view/timelinewidget.h"
 #include "dialogs/subtitleedit.h"
 #include "dialogs/textbasededit.h"
+#include "widgets/customtooltip.h"
 #include <mlt++/MltRepository.h>
 
 #include <KMessageBox>
@@ -78,6 +79,7 @@ bool Core::build(bool testMode)
     }
     m_self.reset(new Core());
     m_self->initLocale();
+    qApp->installEventFilter(m_self.get());
 
     qRegisterMetaType<audioShortVector>("audioShortVector");
     qRegisterMetaType<QVector<double>>("QVector<double>");
@@ -141,12 +143,8 @@ void Core::initGUI(bool isAppImage, const QString &MltPath, const QUrl &Url, con
     connect(m_mixerWidget, &MixerManager::updateRecVolume, m_capture.get(), &MediaCapture::setAudioVolume);
     m_monitorManager = new MonitorManager(this);
     connect(m_monitorManager, &MonitorManager::cleanMixer, m_mixerWidget, &MixerManager::clearMixers);
-    connect(m_subtitleWidget, &SubtitleEdit::addSubtitle, [this]() {
-        if (m_guiConstructed && m_mainWindow->getCurrentTimeline()->controller()) {
-            m_mainWindow->getCurrentTimeline()->controller()->addSubtitle();
-        }
-    });
-    connect(m_subtitleWidget, &SubtitleEdit::cutSubtitle, [this](int id, int cursorPos) {
+    connect(m_subtitleWidget, &SubtitleEdit::addSubtitle, m_mainWindow, &MainWindow::slotAddSubtitle);
+    connect(m_subtitleWidget, &SubtitleEdit::cutSubtitle, this, [this](int id, int cursorPos) {
         if (m_guiConstructed && m_mainWindow->getCurrentTimeline()->controller()) {
             m_mainWindow->getCurrentTimeline()->controller()->cutSubtitle(id, cursorPos);
         }
@@ -385,9 +383,9 @@ bool Core::setCurrentProfile(const QString &profilePath)
         m_timecode.setFormat(getCurrentProfile()->fps());
         profileChanged();
         emit m_mainWindow->updateRenderWidgetProfile();
-        pCore->monitorManager()->resetProfiles();
-        emit pCore->monitorManager()->updatePreviewScaling();
-        if (m_guiConstructed && m_mainWindow->getCurrentTimeline()->controller()->getModel()) {
+        m_monitorManager->resetProfiles();
+        emit m_monitorManager->updatePreviewScaling();
+        if (m_guiConstructed && m_mainWindow->hasTimeline() && m_mainWindow->getCurrentTimeline()->controller()->getModel()) {
             m_mainWindow->getCurrentTimeline()->controller()->getModel()->updateProfile(getProjectProfile());
             checkProfileValidity();
             emit m_mainWindow->getCurrentTimeline()->controller()->frameFormatChanged();
@@ -615,8 +613,10 @@ void Core::refreshProjectItem(const ObjectId &id)
         }
         break;
     case ObjectType::BinClip:
-        m_monitorManager->activateMonitor(Kdenlive::ClipMonitor);
-        m_monitorManager->refreshClipMonitor();
+        if (m_monitorManager->clipMonitorVisible()) {
+            m_monitorManager->activateMonitor(Kdenlive::ClipMonitor);
+            m_monitorManager->refreshClipMonitor(true);
+        }
         if (m_monitorManager->projectMonitorVisible() && m_mainWindow->getCurrentTimeline()->controller()->refreshIfVisible(id.second)) {
             m_monitorManager->refreshTimer.start();
         }
@@ -1039,3 +1039,27 @@ void Core::updateMasterZones()
     }
 }
 
+bool Core::eventFilter(QObject* target, QEvent* e) {
+    (void) target;
+    
+    switch (e->type()) {
+    case QEvent::ToolTip: {
+        auto he = dynamic_cast<QHelpEvent*>(e);
+        auto wo = dynamic_cast<QWidget*>(target);
+        if (!he || !wo) {
+            return false;
+        }
+        auto&& toolTip = wo->toolTip();
+        if (toolTip.isEmpty()) {
+            CustomToolTip::hideToolTip();
+        } else {
+            CustomToolTip::showToolTip(wo->toolTip(), he->globalX() + 4, he->globalY() + 10);
+        }
+        
+        return true;
+    }
+    default: {
+        return false;
+    }
+    }
+}
