@@ -31,11 +31,7 @@
        </widget>
       </item>
       <item>
-       <widget class="KUrlRequester" name="archive_url">
-        <property name="mode">
-         <set>KFile::Directory</set>
-        </property>
-       </widget>
+       <widget class="KUrlRequester" name="archive_url" native="true"/>
       </item>
      </layout>
     </widget>
@@ -51,14 +47,12 @@
      </item>
      <item>
       <widget class="QComboBox" name="compression_type">
+       <property name="currentText">
+        <string>szip</string>
+       </property>
        <item>
         <property name="text">
-         <string>tar.gz</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>zip</string>
+         <string>szip</string>
         </property>
        </item>
       </widget>

@@ -3910,12 +3910,12 @@ void MainWindow::slotArchiveProject()
     pCore->projectManager()->prepareSave();
     QString sceneData = pCore->projectManager()->projectSceneList(doc->url().adjusted(QUrl::RemoveFilename | QUrl::StripTrailingSlash).toLocalFile());
     if (sceneData.isEmpty()) {
-        KMessageBox::error(this, i18n("Project file could not be saved for archiving."));
+        KMessageBox::error(this, i18n("此项目文件尚无法被打包."));
         return;
     }
     QPointer<ArchiveWidget> d(new ArchiveWidget(doc->url().fileName(), sceneData, getMainTimeline()->controller()->extractCompositionLumas(), this));
     if (d->exec() != 0) {
-        m_messageLabel->setMessage(i18n("Archiving project"), OperationCompletedMessage);
+        m_messageLabel->setMessage(i18n("打包项目文件"), OperationCompletedMessage);
     }
 }
 

@@ -957,24 +957,16 @@ bool ArchiveWidget::processProjectFile()
 void ArchiveWidget::createArchive()
 {
     m_archiveName = QString(archive_url->url().toLocalFile() + QDir::separator() + m_name);
-    if (compression_type->currentIndex() == 1) {
-        m_archiveName.append(QStringLiteral(".zip"));
-    } else {
-        m_archiveName.append(QStringLiteral(".tar.gz"));
-    }
+    m_archiveName.append(QStringLiteral(".szip"));
     if (QFile::exists(m_archiveName) &&
-        KMessageBox::questionYesNo(this, i18n("File %1 already exists.\nDo you want to overwrite it?", m_archiveName)) == KMessageBox::No) {
+        KMessageBox::questionYesNo(this, i18n("文件 %1 已经存在.\n您想要覆盖它吗?", m_archiveName)) == KMessageBox::No) {
         return;
     }
     QFileInfo dirInfo(archive_url->url().toLocalFile());
     QString user = dirInfo.owner();
     QString group = dirInfo.group();
     std::unique_ptr<KArchive> archive;
-    if (compression_type->currentIndex() == 1) {
-        archive = std::make_unique<KZip>(m_archiveName);
-    } else {
-        archive = std::make_unique<KTar>(m_archiveName, QStringLiteral("application/x-gzip"));
-    }
+    archive = std::make_unique<KZip>(m_archiveName);
     archive->open(QIODevice::WriteOnly);
 
     // Create folders
@@ -988,7 +980,7 @@ void ArchiveWidget::createArchive()
     QMapIterator<QString, QString> i(m_filesList);
     while (i.hasNext()) {
         i.next();
-        m_infoMessage->setText(i18n("Archiving %1", i.key()));
+        m_infoMessage->setText(i18n("正在打包 %1", i.key()));
         success = archive->addLocalFile(i.key(), i.value());
         emit archiveProgress(100 * ix / m_filesList.count());
         ix++;
