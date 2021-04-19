@@ -146,7 +146,7 @@ public:
     void showKeyBinding(const QString &text = QString());
     /** @brief Override for QWidget::setWindowModified(void) */
     void setWindowModified(bool isModified = true);
-
+    
 protected:
     /** @brief Closes the window.
      * @return false if the user presses "Cancel" on a confirmation dialog or
@@ -312,6 +312,8 @@ public slots:
     void slotAddSubtitle(const QString &text = QString());
     /** @brief Ensure subtitle track is displayed */
     void showSubtitleTrack();
+    /** @brief 设置项目资源库可见性：bool: show/hide */
+    void setProjectMediasetVisible(bool visible);
 
 private slots:
     /** @brief Shows the shortcut dialog. */

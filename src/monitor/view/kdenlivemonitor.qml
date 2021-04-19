@@ -243,13 +243,13 @@ Item {
     }
     
 //    
-//    MonitorRuler {
-//        id: clipMonitorRuler
-//        anchors {
-//            left: root.left
-//            right: root.right
-//            bottom: root.bottom
-//        }
-//        height: controller.rulerHeight
-//    }
+    MonitorRuler {
+        id: clipMonitorRuler
+        anchors {
+            left: root.left
+            right: root.right
+            bottom: root.bottom
+        }
+        height: controller.rulerHeight
+    }
 }

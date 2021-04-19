@@ -59,8 +59,8 @@ public:
         )";
         inline static const QString indicatorSheet = R"(
             QMenu::indicator {
-                padding-left: 3px; 
-                padding-right: 3px; 
+                padding-left: 5px; 
+                padding-right: 5px; 
                 width: 20px;
                 height: 20px;
             } 

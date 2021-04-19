@@ -7,7 +7,9 @@
 #include <QMenu>
 #include <KLocalizedString>
 
+#include "core.h"
 #include "macros.hpp"
+#include "mainwindow.h"
 
 CustomEditorToolBar::CustomEditorToolBar(QWidget* parent)
     : QWidget(parent)
@@ -77,6 +79,10 @@ CustomEditorToolBar::CustomEditorToolBar(QWidget* parent)
             border-radius: 5px;
         }
     )");
+    connect(
+        m_projMediasetBtn, &QPushButton::toggled,
+        pCore->window(), &MainWindow::setProjectMediasetVisible
+    );
     
     m_leadinBtn = new QPushButton(this);
     m_leadinBtn->setFixedSize(83, 30);

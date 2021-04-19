@@ -652,7 +652,7 @@ bool GLWidget::isReady() const
 
 void GLWidget::requestSeek(int position)
 {
-    m_consumer->set("scrub_audio", 1);
+    m_consumer->set("scrub_audio", KdenliveSettings::scrubAudio());
     m_producer->seek(position);
     if (!qFuzzyIsNull(m_producer->get_speed())) {
         m_consumer->purge();

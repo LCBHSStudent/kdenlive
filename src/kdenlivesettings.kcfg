@@ -260,6 +260,10 @@
     </group>
 
   <group name="timeline">
+    <entry name="scrubAudio" type="Bool">
+      <label>Preview audio while draging timeline cursor.</label>
+      <default>false</default>
+    </entry>
     <entry name="headerwidth" type="Int">
       <label>Default width for timeline track headers.</label>
       <default>0</default>
@@ -780,6 +784,10 @@
            <label>Currently displayed page in properties panel</label>
            <default>0</default>
     </entry>
+    <entry name="progressive" type="Bool">
+      <label>Mlt profile property - progressive</label>
+      <default>true</default>
+    </entry>
     <entry name="project_fps" type="Double">
       <label>Current project fps.</label>
       <default>25</default>
@@ -788,7 +796,10 @@
       <label>Default project format.</label>
       <default></default>
     </entry>
-
+    <entry name="clearRecentExit" type="Bool">
+      <label>Clear recent project while exiting program.</label>
+      <default>false</default>
+    </entry>
     <entry name="showdescriptioncolumn" type="Bool">
       <label>Show descriptions in project tree view.</label>
       <default>true</default>

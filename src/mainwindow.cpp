@@ -442,6 +442,8 @@ void MainWindow::init(const QString &mltPath)
     connect(onlineResources, &ResourceWidget::addLicenseInfo, this, &MainWindow::slotAddTextNote);
 
     m_assetPanel = new AssetPanel(this);
+    m_assetPanel->move(20, 100);
+    m_assetPanel->resize(314, 433);
     m_assetPanel->hide();
 //    m_effectStackDock = addDock(i18n("Effect/Composition Stack"), QStringLiteral("effect_stack"), m_assetPanel);
     
@@ -724,7 +726,7 @@ void MainWindow::init(const QString &mltPath)
 #if defined(Q_OS_WIN)
     connect(openGLMenu, &CustomMenu::triggered, [&](QAction *ac) {
         KdenliveSettings::setOpengl_backend(ac->data().toInt());
-        if (KMessageBox::questionYesNo(this, i18n("Kdenlive needs to be restarted to change this setting. Do you want to proceed?")) != KMessageBox::Yes) {
+        if (KMessageBox::questionYesNo(this, i18n("SmartIP-Editor 需要重启来应用设置更改, 确定要继续吗?")) != KMessageBox::Yes) {
             return;
         }
         slotRestart(false);
@@ -998,6 +1000,10 @@ void MainWindow::updateActionsToolTip()
 
 MainWindow::~MainWindow()
 {
+    if (KdenliveSettings::clearRecentExit()) {
+        auto recentActions = actionCollection()->action(KStandardAction::name(KStandardAction::StandardAction::OpenRecent))->menu()->actions();
+        emit recentActions.at(recentActions.count() - 1)->triggered();
+    }
     if (m_framelessHelper->isMax(this)) {
         m_mwSettings.setValue("isMax", true);
     } else {
@@ -1468,7 +1474,7 @@ void MainWindow::setupActions()
 
 #if defined(Q_OS_WIN)
     int glBackend = KdenliveSettings::opengl_backend();
-    QAction *openGLAuto = new QAction(i18n("Auto"), this);
+    QAction *openGLAuto = new QAction(i18n("自动"), this);
     openGLAuto->setData(0);
     openGLAuto->setCheckable(true);
     openGLAuto->setChecked(glBackend == 0);
@@ -1575,23 +1581,23 @@ void MainWindow::setupActions()
     m_scaleGroup->setExclusive(true);
     m_scaleGroup->setEnabled(!KdenliveSettings::external_display());
     QAction *scale_no = new QAction(i18n("Full Resolution (1:1)"), m_scaleGroup);
-    addAction(QStringLiteral("scale_no_preview"), scale_no, QKeySequence(), resolutionActionCategory);
+    addAction(QStringLiteral("scale_no_preview"), scale_no, QKeySequence(Qt::Key_F6), resolutionActionCategory);
     scale_no->setCheckable(true);
     scale_no->setData(1);
     QAction *scale_2 = new QAction(i18n("720p"), m_scaleGroup);
-    addAction(QStringLiteral("scale_2_preview"), scale_2, QKeySequence(), resolutionActionCategory);
+    addAction(QStringLiteral("scale_2_preview"), scale_2, QKeySequence(Qt::Key_F7), resolutionActionCategory);
     scale_2->setCheckable(true);
     scale_2->setData(2);
     QAction *scale_4 = new QAction(i18n("540p"), m_scaleGroup);
-    addAction(QStringLiteral("scale_4_preview"), scale_4, QKeySequence(), resolutionActionCategory);
+    addAction(QStringLiteral("scale_4_preview"), scale_4, QKeySequence(Qt::Key_F8), resolutionActionCategory);
     scale_4->setCheckable(true);
     scale_4->setData(4);
     QAction *scale_8 = new QAction(i18n("360p"), m_scaleGroup);
-    addAction(QStringLiteral("scale_8_preview"), scale_8, QKeySequence(), resolutionActionCategory);
+    addAction(QStringLiteral("scale_8_preview"), scale_8, QKeySequence(Qt::Key_F9), resolutionActionCategory);
     scale_8->setCheckable(true);
     scale_8->setData(8);
     QAction *scale_16 = new QAction(i18n("270p"), m_scaleGroup);
-    addAction(QStringLiteral("scale_16_preview"), scale_16, QKeySequence(), resolutionActionCategory);
+    addAction(QStringLiteral("scale_16_preview"), scale_16, QKeySequence(Qt::Key_F10), resolutionActionCategory);
     scale_16->setCheckable(true);
     scale_16->setData(16);
     connect(pCore->monitorManager(), &MonitorManager::scalingChanged, this, [scale_2, scale_4, scale_8, scale_16, scale_no]() {
@@ -4613,6 +4619,8 @@ void MainWindow::setupMenuBar() {
     menuBar->addMenu(m_settingMenu);
     menuBar->addMenu(m_helpMenu);
     
+    auto timelineActColl = kdenliveCategoryMap["timeline"]->collection();
+    
     // add contents
     // 文件菜单
     {
@@ -4781,14 +4789,15 @@ void MainWindow::setupMenuBar() {
         m_editMenu->addAction(deleteEffect);
         m_editMenu->addSeparator();
         
-        auto selectAll = kdenliveCategoryMap["timeline"]->collection()->action(QStringLiteral("select_all_tracks"));
+        auto selectAll = timelineActColl->action(QStringLiteral("select_all_tracks"));
         selectAll->setText(i18n("全选"));
         selectAll->setIcon(QIcon());
         m_editMenu->addAction(selectAll);
         
-        auto unselectAll = kdenliveCategoryMap["timeline"]->collection()->action(QStringLiteral("unselect_all_tracks"));
+        auto unselectAll = timelineActColl->action(QStringLiteral("unselect_all_tracks"));
         unselectAll->setIcon(QIcon());
         unselectAll->setText(i18n("取消全选"));
+        unselectAll->setShortcut(Qt::CTRL + Qt::Key_D);
         m_editMenu->addAction(unselectAll);
     }
     
@@ -4797,158 +4806,139 @@ void MainWindow::setupMenuBar() {
         auto insert = new QAction(tr("插入"), m_cutMenu);
         m_cutMenu->addAction(insert);
         
-        auto replace = new QAction(tr("替换"), m_cutMenu);
-        m_cutMenu->addAction(replace);
+        auto replaceClip = ACTION_COLL("replace_clip");
+        replaceClip->setText(i18n("替换"));
+        replaceClip->setIcon(QIcon());
+        m_cutMenu->addAction(replaceClip);
+        m_cutMenu->addSeparator();
+        
+        auto groupClip = timelineActColl->action(QStringLiteral("group_clip"));
+        groupClip->setText(i18n("编组"));
+        groupClip->setIcon(QIcon());
+        groupClip->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_G));
+        m_cutMenu->addAction(groupClip);
+        
+        auto ungroupClip = timelineActColl->action(QStringLiteral("ungroup_clip"));
+        ungroupClip->setText(i18n("取消编组"));
+        ungroupClip->setIcon(QIcon());
+        ungroupClip->setShortcut(QKeySequence(Qt::CTRL + Qt::SHIFT + Qt::Key_G));
+        m_cutMenu->addAction(ungroupClip);
         
         m_cutMenu->addSeparator();
         
-        auto makeGroup = new QAction(tr("编组"), m_cutMenu);
-        makeGroup->setShortcut(QKeySequence(Qt::CTRL+Qt::Key_G));
-        m_cutMenu->addAction(makeGroup);
+        auto addGuide = ACTION_COLL("add_guide");
+        addGuide->setText(i18n("添加标记"));
+        addGuide->setIcon(QIcon());
+        m_cutMenu->addAction(addGuide);
         
-        auto cancelGroup = new QAction(tr("取消编组"), m_cutMenu);
-        cancelGroup->setShortcut(QKeySequence(Qt::CTRL+Qt::SHIFT+Qt::Key_G));
-        m_cutMenu->addAction(cancelGroup);
+        auto jmp2nextGuide = ACTION_COLL("monitor_seek_guide_backward");
+        jmp2nextGuide->setIcon(QIcon());
+        jmp2nextGuide->setText(i18n("转到下一标记"));
+        m_cutMenu->addAction(jmp2nextGuide);
 
-        auto link = new QAction(tr("链接"), m_cutMenu);
-        m_cutMenu->addAction(link);
-        auto cancelLink = new QAction(tr("取消链接"), m_cutMenu);
-        m_cutMenu->addAction(cancelLink);
+        auto jmp2prevGuide = ACTION_COLL("monitor_seek_guide_forward");
+        jmp2prevGuide->setIcon(QIcon());
+        jmp2prevGuide->setText(i18n("转到上一标记"));
+        m_cutMenu->addAction(jmp2prevGuide);
         
+        auto deleteCurGuide = ACTION_COLL("delete_guide");
+        deleteCurGuide->setText(i18n("清除所选标记"));
+        deleteCurGuide->setIcon(QIcon());
+        m_cutMenu->addAction(deleteCurGuide);
+        
+        auto deleteAllGuides = ACTION_COLL("delete_all_guides");
+        deleteAllGuides->setText(i18n("清除全部标记"));
+        deleteAllGuides->setIcon(QIcon());
+        m_cutMenu->addAction(deleteAllGuides);
         m_cutMenu->addSeparator();
 
-        auto addMark=new QAction(tr("添加标记"),m_cutMenu);
-        auto toNextMark=new QAction(tr("转到下一标记"),m_cutMenu);
-        auto toPreMark=new QAction(tr("转到上一标记"),m_cutMenu);
-        auto clearSelectedMark=new QAction(tr("清除所选标记"),m_cutMenu);
-        auto clearAllMark=new QAction(tr("清除全部标记"),m_cutMenu);
-        m_cutMenu->addAction(addMark);
-        m_cutMenu->addAction(toNextMark);
-        m_cutMenu->addAction(toPreMark);
-        m_cutMenu->addAction(clearSelectedMark);
-        m_cutMenu->addAction(clearAllMark);
-
-
-        m_cutMenu->addSeparator();
-        auto mask = new CustomMenu(m_cutMenu);
-        mask->setTitle(tr("效果蒙版"));
-        m_cutMenu->addMenu(mask);
-        auto application=new QAction(tr("应用"),mask);
-        auto maskEdit=new QAction(tr("蒙版编辑"),mask);
-        auto delMask=new QAction(tr("删除蒙版"),mask);
-        mask->addAction(application);
-        mask->addAction(maskEdit);
-        mask->addAction(delMask);
-        mask->setStyleSheet(R"(
-            QMenu::item {
-                padding-top: 8px;
-                padding-right: 25px;
-                padding-bottom: 8px;
-            })"
-        );
-        
-        m_cutMenu->addSeparator();
-
-        // 设置时间线吸附菜单
-        auto enableTimelineSnap = new QAction(tr("启用时间线吸附"), m_cutMenu);
-        enableTimelineSnap->setCheckable(true);
+        auto enableTimelineSnap = ACTION_COLL("snap");
+        enableTimelineSnap->setText(i18n("启用时间线吸附"));
+        enableTimelineSnap->setIcon(QIcon());
         m_cutMenu->addAction(enableTimelineSnap);
-        
-        QActionGroup* checkBoxEdit=new QActionGroup(m_cutMenu);
-        checkBoxEdit->addAction(enableTimelineSnap);
-        checkBoxEdit->setExclusive(false);
     }
     
     // 设置菜单
     {
-        auto projectHeader=new QAction(tr("项目"),m_settingMenu);
+        auto projectHeader = new QAction(tr("项目"), m_settingMenu);
         QFont settingLabelFont;
         settingLabelFont.setFamily("Microsoft Yahei");
-        settingLabelFont.setPixelSize(16);
+        settingLabelFont.setPixelSize(14);
         projectHeader->setFont(settingLabelFont);
         projectHeader->setDisabled(true);
-
+        
         m_settingMenu->addAction(projectHeader);
-
-
-        auto projectSetting=new QAction(tr("项目设置"),m_settingMenu);
+        
+        auto projectSetting = new QAction(tr("项目设置"), m_settingMenu);
         projectSetting->setShortcut(Qt::Key_P);
         m_settingMenu->addAction(projectSetting);
         m_settingMenu->addSeparator();
 
-        auto player=new QAction(tr("播放器"),m_settingMenu);
+        auto player=new QAction(tr("播放器"), m_settingMenu);
         m_settingMenu->addAction(player);
         player->setFont(settingLabelFont);
         player->setDisabled(true);
 
-        QActionGroup *checkBoxes=new QActionGroup(m_settingMenu);
-        auto viewWhileFastPull=new QAction(tr("快速拖动时预览音频"),m_settingMenu);
-        auto realTimeProcess=new QAction(tr("实时处理(丢帧)"),m_settingMenu);
-        auto lineByLine=new QAction(tr("逐行"),m_settingMenu);
-        viewWhileFastPull->setCheckable(true);
-        realTimeProcess->setCheckable(true);
-        lineByLine->setCheckable(true);
-        m_settingMenu->addAction(viewWhileFastPull);
-        m_settingMenu->addAction(realTimeProcess);
-        m_settingMenu->addAction(lineByLine);
-
-        checkBoxes->addAction(viewWhileFastPull);
-        checkBoxes->addAction(realTimeProcess);
-        checkBoxes->addAction(lineByLine);
+        auto checkBoxes         = new QActionGroup(m_settingMenu);
+        auto scrubAudio         = new QAction(tr("快速拖动时预览音频"), m_settingMenu);
+        auto realTimeProcess    = ACTION_COLL("mlt_realtime");
+        auto progressive        = new QAction(tr("逐行"), m_settingMenu);
+        scrubAudio->setCheckable(true);
+        scrubAudio->setChecked(KdenliveSettings::scrubAudio());
+        realTimeProcess->setText(i18n("实时处理（丢帧）"));
+        progressive->setCheckable(true);
+        progressive->setChecked(KdenliveSettings::progressive());
         
-        connect(lineByLine, SIGNAL(triggered(bool)), this, SLOT(on_actionRealtime_triggered(bool)));
-        connect(realTimeProcess, SIGNAL(triggered(bool)), this, SLOT(on_actionProgressive_triggered(bool)));
-        connect(viewWhileFastPull, SIGNAL(triggered(bool)), this, SLOT(on_actionScrubAudio_triggered(bool)));
+        connect(scrubAudio, &QAction::toggled, [scrubAudio] {
+            KdenliveSettings::setScrubAudio(scrubAudio->isChecked());
+        });
+        
+        connect(progressive, &QAction::toggled, [progressive] {
+            std::unique_ptr<ProfileModel>& profile = pCore->getCurrentProfile();
+            profile->profile().set_progressive(progressive->isChecked());
+            
+            pCore->profileChanged();
+        });
+        emit progressive->toggled(progressive->isChecked());
+        
+        m_settingMenu->addAction(scrubAudio);
+        m_settingMenu->addAction(realTimeProcess);
+        m_settingMenu->addAction(progressive);
 
-        auto previewScaling=new CustomMenu;
-        previewScaling->setTitle(tr("预览缩放"));//QMenu("预览缩放",m_settingMenu);
-        auto _none=new QAction("无",previewScaling);
-        auto _360p=new QAction("360p",previewScaling);
-        auto _540p=new QAction("540p",previewScaling);
-        auto _720p=new QAction("720p",previewScaling);
-        _none->setCheckable(true);
-        _none->setChecked(true);
-        _360p->setCheckable(true);
-        _540p->setCheckable(true);
-        _720p->setCheckable(true);
-        _none->setShortcut(Qt::Key_F6);
-        _360p->setShortcut(Qt::Key_F7);
-        _540p->setShortcut(Qt::Key_F8);
-        _720p->setShortcut(Qt::Key_F9);
-        auto previewScalingActionBox= new QActionGroup(previewScaling);
-        previewScalingActionBox->addAction(_none);
-        previewScalingActionBox->addAction(_360p);
-        previewScalingActionBox->addAction(_540p);
-        previewScalingActionBox->addAction(_720p);
-        previewScalingActionBox->setExclusive(true);
-        previewScaling->addAction(_none);
-        previewScaling->addAction(_360p);
-        previewScaling->addAction(_540p);
-        previewScaling->addAction(_720p);
+        checkBoxes->addAction(scrubAudio);
+        checkBoxes->addAction(realTimeProcess);
+        checkBoxes->addAction(progressive);
+        
+        auto previewScaling = new CustomMenu(i18n("预览缩放"));
+        ACTION_COLL("scale_no_preview")->setText(i18n("无"));
+        
+        previewScaling->addActions(m_scaleGroup->actions());
 
-
-        const QString previewScalItemSheet="QMenu::item{width:130px; padding:8px 10px 8px 0px;}";
-        const QString dotSheet="QMenu::indicator { padding-left:14px; padding-right:10px; width: 6px;height:6px;} QMenu::indicator:unchecked { image:url(:/icons/menu/backgrounddot.png); } QMenu::indicator:checked { image:url(:/icons/menu/whitedot.png); }";
-        previewScaling->setStyleSheet(dotSheet+R"(
+        const QString dotSheet = "QMenu::indicator { padding-left:14px; padding-right:10px; width: 6px; height:6px;} QMenu::indicator:unchecked { image: none } QMenu::indicator:checked { image:url(:/classic/controllers/indicator-dot-white.png); }";
+        previewScaling->setStyleSheet(dotSheet + R"(
             QMenu::item {
-                padding-top: 8px;
+                padding-top: 7px;
                 padding-left: 0px;
-                padding-right: 25px;
-                padding-bottom: 8px;
-            })");//previewScalItemSheet);
+                padding-right: 29px;
+                padding-bottom: 7px;
+            })"
+        ); // previewScalItemSheet
+        MOVE_MENU_ABOUT2SHOW(previewScaling, __customMenuLeftMargin, 0);
 
-
-        auto proxy=new CustomMenu;
-        proxy->setTitle(tr("代理"));//QMenu("代理",m_settingMenu);
-        auto useProxy=new QAction(tr("使用代理"),proxy);
-        auto useHardwareEncoder=new QAction(tr("使用硬件编码器"),proxy);
-        useProxy->setCheckable(true);
+        auto proxy = new CustomMenu(i18n("代理"));
+        MOVE_MENU_ABOUT2SHOW(proxy, __customMenuLeftMargin, 0);
+        
+        auto useProxy = ACTION_COLL("proxy_clip");
+        auto useHardwareEncoder = new QAction(i18n("使用硬件编码器"), proxy);
         useHardwareEncoder->setCheckable(true);
         auto proxyActionGroup=new QActionGroup(proxy);
         proxyActionGroup->addAction(useProxy);
         proxyActionGroup->addAction(useHardwareEncoder);
         proxyActionGroup->setExclusive(false);
-        auto storage=new  CustomMenu;
+        
+        auto storage = new CustomMenu(this);
+        MOVE_MENU_ABOUT2SHOW(storage, __customMenuLeftMargin, 0);
+        
         storage->setTitle(tr("Storage"));//QMenu(tr("Storage"),proxy);
         auto _setting=new QAction(tr("设定..."),storage);
         auto _display=new QAction(tr("显示..."),storage);
@@ -4967,9 +4957,8 @@ void MainWindow::setupMenuBar() {
                 padding-left: 0px;
                 padding-right: 25px;
                 padding-bottom: 8px;
-            })" );
-
-
+            })"
+        );
 
         auto configHardwareEncoder=new QAction(tr("配置硬件编码器..."),proxy);
         proxy->addAction(useProxy);
@@ -4977,77 +4966,65 @@ void MainWindow::setupMenuBar() {
         proxy->addAction(useHardwareEncoder);
         proxy->addAction(configHardwareEncoder);
         useProxy->setShortcut(Qt::Key_F4);
-        const QString proxyItemSheet="QMenu::item{width:100px;}";
-        const QString proxymenuItemSheet="QMenu::item{padding:8px 27px;} QMenu::item:non-exclusive{padding:8px 10px 8px 0px;} QMenu::item:selected {background-color: #7781F4;}";
-        proxy->setStyleSheet(proxymenuItemSheet+ R"(
-            QMenu::item {
-                padding-top: 8px;
-                padding-right: 25px;
-                padding-bottom: 8px;
-            })" );//proxyItemSheet);
 
-
-        auto antiAliasing=new CustomMenu;
-        antiAliasing->setTitle(tr("反交错"));//QMenu("反交错",m_settingMenu);
-        auto singleScene=new QAction(tr("仅用单场(快速)"),antiAliasing);
-        auto linearCombination=new QAction(tr("线性混合（快速）"),antiAliasing);
-        singleScene->setCheckable(true);
-        singleScene->setChecked(true);
-        linearCombination->setCheckable(true);
-        auto antiAliasingActionBox=new QActionGroup(antiAliasing);
-        antiAliasingActionBox->addAction(singleScene);
-        antiAliasingActionBox->addAction(linearCombination);
-        antiAliasing->addAction(singleScene);
-        antiAliasing->addAction(linearCombination);
-        antiAliasing->setStyleSheet(dotSheet+ R"(
-            QMenu::item {
-                padding-top: 8px;
-                padding-left: 0px;
-                padding-right: 25px;
-                padding-bottom: 8px;
-            })" );//previewScalItemSheet);
-
-
-        auto insertValue=new CustomMenu;
-        insertValue->setTitle(tr("插值"));//QMenu(tr("插值"),m_settingMenu);
-        auto recentPixel=new QAction(tr("最近像素（快速）"),insertValue);
-        auto biLinear=new QAction(tr("双线性（良好）"),insertValue);
-        auto biCube=new QAction(tr("双立方（更佳）"),insertValue);
-        auto hyper_Lanczos=new QAction(tr("Hyper/Lanczos(最佳)"),insertValue);
-        hyper_Lanczos->setCheckable(true);
-        recentPixel->setCheckable(true);
-        recentPixel->setChecked(true);
-        biLinear->setCheckable(true);
-        biCube->setCheckable(true);
-        auto insertValueActionGroup=new QActionGroup(insertValue);
-        insertValueActionGroup->addAction(recentPixel);
-        insertValueActionGroup->addAction(biLinear);
-        insertValueActionGroup->addAction(biCube);
-        insertValueActionGroup->addAction(hyper_Lanczos);
-        insertValueActionGroup->setExclusive(true);
-        insertValue->addAction(recentPixel);
-        insertValue->addAction(biLinear);
-        insertValue->addAction(biCube);
-        insertValue->addAction(hyper_Lanczos);
-        insertValue->setStyleSheet(dotSheet+ R"(
-            QMenu::item {
-                padding-top: 8px;
-                padding-left: 0px;
-                padding-right: 25px;
-                padding-bottom: 8px;
-            })" );//"QMenu::item{padding:8px 10px 8px 0px;}");
-
-
-
-        auto sync=new QAction("Synchronization...",m_settingMenu);
         m_settingMenu->addMenu(previewScaling);
         m_settingMenu->addMenu(proxy);
-        m_settingMenu->addMenu(antiAliasing);
-        m_settingMenu->addMenu(insertValue);
+        
+        auto interlace = ACTION_COLL("mlt_interlace");
+        interlace->setText(i18n("反交错"));
+        auto interlaceMenu = interlace->menu();
+        MOVE_MENU_ABOUT2SHOW(interlaceMenu, __customMenuLeftMargin, 0);
+        interlaceMenu->setStyleSheet(CustomMenu::menuSheet + CustomMenu::menuItemSheet + dotSheet + R"(
+            QMenu::item {
+                padding-top: 7px;
+                padding-left: 0px;
+                padding-right: 29px;
+                padding-bottom: 7px;
+            })"
+        );
+        std::array<QString, 4> interlaceActText = {
+            i18n("仅用单场（快速）"),
+            i18n("线性混合（快速）"),
+            i18n("YADIF - 时间性（质量好）"),
+            i18n("YADIF - 时间性与空间性（质量最佳）")
+        };
+        
+        int iterator = 0;
+        foreach(auto action, interlaceMenu->actions()) {
+            action->setText(interlaceActText[iterator]);
+            iterator++;
+        }
+        
+        auto interpolation = ACTION_COLL("mlt_interpolation");
+        interpolation->setText(i18n("插值"));
+        auto interpolationMenu = interpolation->menu();
+        MOVE_MENU_ABOUT2SHOW(interpolationMenu, __customMenuLeftMargin, 0);
+        interpolationMenu->setStyleSheet(CustomMenu::menuSheet + CustomMenu::menuItemSheet + dotSheet + R"(
+            QMenu::item {
+                padding-top: 7px;
+                padding-left: 0px;
+                padding-right: 29px;
+                padding-bottom: 7px;
+            })"
+        );
+        std::array<QString, 4> interpolationActText = {
+            i18n("最近像素（快速）"),
+            i18n("双线性（良好）"),
+            i18n("双立方（更佳）"),
+            i18n("Hyper/Lanczos（最佳）")
+        };
+        iterator = 0;
+        foreach(auto action, interpolationMenu->actions()) {
+            action->setText(interpolationActText[iterator]);
+            iterator++;
+        }
+        
+        m_settingMenu->addAction(interlace);
+        m_settingMenu->addAction(interpolation);
+        
+        auto sync = new QAction("Synchronization...",m_settingMenu);
         m_settingMenu->addAction(sync);
         m_settingMenu->addSeparator();
-
-
 
         auto userInterface=new QAction(tr("用户界面"),m_settingMenu);
         m_settingMenu->addAction(userInterface);
@@ -5078,98 +5055,62 @@ void MainWindow::setupMenuBar() {
                 padding-left: 0px;
                 padding-right: 25px;
                 padding-bottom: 8px;
-            })" );//previewScalItemSheet);
+        })");
 
-
-#if !defined(Q_OS_MAC)
-    auto displayMethod  = new CustomMenu;
-    displayMethod->setTitle(tr("显示方式"));
-    auto displayMethodActionGroup = new QActionGroup(displayMethod);
-    
-    if (true) {    
-#if defined(Q_OS_WIN)
-        auto automation     = new QAction(tr("自动"), displayMethod);
-        auto directX        = new QAction("DirectX(ANGLE)", displayMethod);
-        
-        automation->setCheckable(true);
-        automation->setData(0);
-        directX->setCheckable(true);
-        directX->setData(Qt::AA_UseOpenGLES);
-        
-        displayMethodActionGroup->addAction(automation);
-        displayMethodActionGroup->addAction(directX);
-#endif
-        auto openGl         = new QAction("OpenGL", displayMethod);
-        auto _software      = new QAction(tr("软件(Mesa)"), displayMethod);
-        
-        openGl->setCheckable(true);
-        openGl->setData(Qt::AA_UseDesktopOpenGL);
-        _software->setCheckable(true);
-        _software->setData(Qt::AA_UseSoftwareOpenGL);
-        
-        displayMethodActionGroup->addAction(openGl);
-        displayMethodActionGroup->addAction(_software);
-        
-        displayMethodActionGroup->setExclusive(true);
-        displayMethod->addActions(displayMethodActionGroup->actions());
+        auto displayMethod = new CustomMenu(i18n("显示方式"));
         displayMethod->setStyleSheet(dotSheet + R"(
             QMenu::item {
-                padding-top: 8px;
+                padding-top: 7px;
                 padding-left: 0px;
-                padding-right: 25px;
-                padding-bottom: 8px;
-            })" );
-        connect(displayMethodActionGroup, SIGNAL(triggered(QAction *)), this,
-                SLOT(onDrawingMethodTriggered(QAction *)));
-
-    }
+                padding-right: 29px;
+                padding-bottom: 7px;
+            })"
+        );
+#if !defined(Q_OS_MAC)
+        
+#if defined(Q_OS_WIN)
+        displayMethod->addAction(ACTION_COLL("opengl_auto"));
+        displayMethod->addAction(ACTION_COLL("opengl_desktop"));
+        displayMethod->addAction(ACTION_COLL("opengl_es"));
+        displayMethod->addAction(ACTION_COLL("opengl_software"));
+#endif
     
 // DO NOTHING IN MACOS
 #endif
         
         
 
-        auto programDataDir = new CustomMenu;
-        programDataDir->setTitle(tr("程序数据目录"));//QMenu("程序数据目录",m_settingMenu);
-        auto __setting = new QAction(tr("设定..."),programDataDir);
-        auto __display = new QAction(tr("显示..."),programDataDir);
+        auto programDataDir = new CustomMenu(i18n("程序数据目录"));
+        programDataDir->setTitle(i18n("程序数据目录"));
+        auto __setting = new QAction(i18n("设定..."),programDataDir);
+        auto __display = new QAction(i18n("显示..."),programDataDir);
         programDataDir->addAction(__setting);
         programDataDir->addAction(__display);
-        programDataDir->setStyleSheet(proxymenuItemSheet+R"(
-            QMenu::item {
-                padding-top: 8px;
-                padding-right: 25px;
-                padding-bottom: 8px;
-            })" );
 
         m_settingMenu->addMenu(lang);
         m_settingMenu->addMenu(theme);
         m_settingMenu->addMenu(displayMethod);
         m_settingMenu->addMenu(programDataDir);
 
-        auto clearHistoryWhileExiting=new QAction(tr("退出时清除最近打开历史"),m_settingMenu);
+        auto clearHistoryWhileExiting = new QAction(tr("退出时清除最近打开历史"),m_settingMenu);
         clearHistoryWhileExiting->setCheckable(true);
+        clearHistoryWhileExiting->setChecked(KdenliveSettings::clearRecentExit());
+        connect(clearHistoryWhileExiting, &QAction::toggled, [clearHistoryWhileExiting] {
+            KdenliveSettings::setClearRecentExit(clearHistoryWhileExiting->isChecked());
+        });
+        
         m_settingMenu->addAction(clearHistoryWhileExiting);
+        
         checkBoxes->addAction(clearHistoryWhileExiting);
         checkBoxes->setExclusive(false);
 
 
-        connect(useProxy,SIGNAL(triggered(bool)),this,SLOT(on_actionUseProxy_triggered(bool)));
         connect(_setting,SIGNAL(triggered()),this,SLOT(on_actionProxyStorageSet_triggered()));
         connect(_display,SIGNAL(triggered()),this,SLOT(on_actionProxyStorageShow_triggered()));
         connect(useProjFolder,SIGNAL(triggered(bool)),this,SLOT(on_actionProxyUseProjectFolder_triggered(bool)));
         connect(useHardwareEncoder,SIGNAL(triggered(bool)),this,SLOT(on_actionProxyUseHardware_triggered(bool)));
         connect(configHardwareEncoder,SIGNAL(triggered()),this,SLOT(on_actionProxyConfigureHardware_triggered()));
 
-        connect(recentPixel,SIGNAL(triggered(bool)),this,SLOT(on_actionNearest_triggered(bool)));
-        connect(biLinear,SIGNAL(triggered(bool)),this,SLOT(on_actionBilinear_triggered(bool)));
-        connect(biCube,SIGNAL(triggered(bool)),this,SLOT(on_actionBicubic_triggered(bool)));
-        connect(hyper_Lanczos,SIGNAL(triggered(bool)),this,SLOT(on_actionHyper_triggered(bool)));
-
-        connect(_none,SIGNAL(triggered(bool)),this,SLOT(on_actionPreviewNone_triggered(bool)));
-        connect(_360p,SIGNAL(triggered(bool)),this,SLOT(on_actionPreview360_triggered(bool)));
-        connect(_540p,SIGNAL(triggered(bool)),this,SLOT(on_actionPreview540_triggered(bool)));
-        connect(_720p,SIGNAL(triggered(bool)),this,SLOT(on_actionPreview720_triggered(bool)));
 // departed
 //        connect(_system,SIGNAL(triggered(bool)),this,SLOT(on_actionSystemTheme_triggered(bool)));
 //        connect(fusionDark,SIGNAL(triggered(bool)),this,SLOT(on_actionFusionDark_triggered(bool)));
@@ -5265,6 +5206,14 @@ void MainWindow::setWindowModified(bool isModified) {
         m_editorToolBar->setDocumentString(title + " - " + i18n("已修改"));        
     } else {
         m_editorToolBar->setDocumentString(title);        
+    }
+}
+
+void MainWindow::setProjectMediasetVisible(bool visible) {
+    if (visible) {
+        m_assetPanel->show();
+    } else {
+        m_assetPanel->hide();
     }
 }
 
