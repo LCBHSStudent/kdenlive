@@ -46,6 +46,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "project/transcodeseek.h"
 #include "project/projectcommands.h"
 #include "project/projectmanager.h"
+#include "utils/framelesswindowhelper.h"
 #include "projectclip.h"
 #include "projectfolder.h"
 #include "projectitemmodel.h"
@@ -56,6 +57,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "ui_qtextclip_ui.h"
 #include "undohelper.hpp"
 #include "xml/xml.hpp"
+#include "macros.hpp"
 #include <dialogs/textbasededit.h>
 #include <memory>
 #include <profiles/profilemodel.hpp>
@@ -865,7 +867,7 @@ void ClipWidget::init(QDockWidget* m_DockClipWidget)
 }
 
 Bin::Bin(std::shared_ptr<ProjectItemModel> model, QWidget *parent)
-    : QWidget(parent)
+    : QFrame(parent)
     , isLoading(false)
     , m_itemModel(std::move(model))
     , m_itemView(nullptr)
@@ -892,13 +894,27 @@ Bin::Bin(std::shared_ptr<ProjectItemModel> model, QWidget *parent)
 {
     m_layout = new QVBoxLayout(this);
 
+    setStyleSheet(R"(
+        QFrame {
+            background-color: #3E3D4C;
+            border: 1px solid #7781F4;
+            border-radius: 16px;
+        }
+    )");    
+    
+    auto framelessHelper = new FramelessHelper(this);
+    framelessHelper->activateOn(this);                  // 激活当前窗体
+    framelessHelper->setWidgetMovable(false);           // 设置窗体可移动
+    framelessHelper->setWidgetResizable(true);          // 设置窗体可缩放
+    framelessHelper->setTitleHeight(0);
+    
     // Create toolbar for buttons
     m_toolbar = new QToolBar(this);
     int size = style()->pixelMetric(QStyle::PM_SmallIconSize);
     QSize iconSize(size, size);
     m_toolbar->setIconSize(iconSize);
     m_toolbar->setToolButtonStyle(Qt::ToolButtonIconOnly);
-    m_layout->addWidget(m_toolbar);
+    // m_layout->addWidget(m_toolbar);
 
     // Tags panel
     m_tagsWidget = new TagWidget(this);
@@ -1437,7 +1453,7 @@ void Bin::slotSaveHeaders()
 
 void Bin::updateSortingAction(int ix)
 {
-    for (QAction *ac : m_sortGroup->actions()) {
+    foreach (QAction *ac, m_sortGroup->actions()) {
         if (ac->data().toInt() == ix) {
             ac->setChecked(true);
         }

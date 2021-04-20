@@ -425,7 +425,16 @@ void MainWindow::init(const QString &mltPath)
     // Media browser widget
 //    QDockWidget* clipDockWidget = addDock(i18n("Media Browser"), QStringLiteral("bin_clip"), pCore->bin()->getWidget());
 //    pCore->bin()->dockWidgetInit(clipDockWidget);
-
+    
+    auto projectBin = pCore->bin();
+    
+    projectBin->move(20, 100);
+    projectBin->setParent(this);
+    projectBin->resize(314, 433);
+    projectBin->setWindowFlags(Qt::Tool | Qt::FramelessWindowHint);
+    projectBin->setAttribute(Qt::WA_TranslucentBackground);
+    // projectBin->setAttribute(Qt::WA_AlwaysStackOnTop, true);
+    
     // Online resources widget
     auto *onlineResources = new ResourceWidget(this);
     onlineResources->hide();
@@ -442,9 +451,6 @@ void MainWindow::init(const QString &mltPath)
     connect(onlineResources, &ResourceWidget::addLicenseInfo, this, &MainWindow::slotAddTextNote);
 
     m_assetPanel = new AssetPanel(this);
-    m_assetPanel->move(20, 100);
-    m_assetPanel->resize(314, 433);
-    m_assetPanel->hide();
 //    m_effectStackDock = addDock(i18n("Effect/Composition Stack"), QStringLiteral("effect_stack"), m_assetPanel);
     
     connect(m_assetPanel, &AssetPanel::doSplitEffect, m_projectMonitor, &Monitor::slotSwitchCompare);
@@ -903,7 +909,6 @@ void MainWindow::init(const QString &mltPath)
     m_audioSpectrum->hide();    
     m_transitionList2->hide();
     
-    pCore->bin()->hide();
     pCore->mixer()->hide();
     pCore->library()->hide();
     pCore->subtitleWidget()->hide();
@@ -5211,9 +5216,9 @@ void MainWindow::setWindowModified(bool isModified) {
 
 void MainWindow::setProjectMediasetVisible(bool visible) {
     if (visible) {
-        m_assetPanel->show();
+        pCore->bin()->show();
     } else {
-        m_assetPanel->hide();
+        pCore->bin()->hide();
     }
 }
 

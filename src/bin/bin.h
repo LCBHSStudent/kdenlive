@@ -200,7 +200,7 @@ public:
  * @class Bin
  * @brief The bin widget takes care of both item model and view upon project opening.
  */
-class Bin : public QWidget
+class Bin : public QFrame
 {
     Q_OBJECT
 
