@@ -902,6 +902,9 @@ Bin::Bin(std::shared_ptr<ProjectItemModel> model, QWidget *parent)
         }
     )");    
     
+    setWindowFlags(Qt::FramelessWindowHint);
+    setAttribute(Qt::WA_TranslucentBackground);
+    
     auto framelessHelper = new FramelessHelper(this);
     framelessHelper->activateOn(this);                  // 激活当前窗体
     framelessHelper->setWidgetMovable(false);           // 设置窗体可移动
@@ -914,7 +917,7 @@ Bin::Bin(std::shared_ptr<ProjectItemModel> model, QWidget *parent)
     QSize iconSize(size, size);
     m_toolbar->setIconSize(iconSize);
     m_toolbar->setToolButtonStyle(Qt::ToolButtonIconOnly);
-    // m_layout->addWidget(m_toolbar);
+    m_layout->addWidget(m_toolbar);
 
     // Tags panel
     m_tagsWidget = new TagWidget(this);
@@ -1298,6 +1301,12 @@ Bin::Bin(std::shared_ptr<ProjectItemModel> model, QWidget *parent)
     connect(this, &Bin::requesteInvalidRemoval, this, &Bin::slotQueryRemoval);
     connect(this, SIGNAL(displayBinMessage(QString,KMessageWidget::MessageType)), this, SLOT(doDisplayMessage(QString,KMessageWidget::MessageType)));
     wheelAccumulatedDelta = 0;
+    
+    auto se = new QGraphicsDropShadowEffect(this);
+    se->setColor(QColor(0, 0, 0, 51));
+    se->setBlurRadius(6);
+    se->setOffset(0, 6);
+    setGraphicsEffect(se);
 }
 
 Bin::~Bin()
