@@ -90,7 +90,9 @@ ProjectManager::ProjectManager(QObject *parent)
 
     m_autoSaveTimer.setSingleShot(true);
     connect(&m_autoSaveTimer, &QTimer::timeout, this, &ProjectManager::slotAutoSave);
-
+    
+    connect(this, &ProjectManager::sigSaveRecentFiles, this, &ProjectManager::saveRecentFiles);
+    
     // Ensure the default data folder exist
     QDir dir(QStandardPaths::writableLocation(QStandardPaths::AppDataLocation));
     dir.mkpath(QStringLiteral(".backup"));

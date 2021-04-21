@@ -999,8 +999,9 @@ void MainWindow::updateActionsToolTip()
 MainWindow::~MainWindow()
 {
     if (KdenliveSettings::clearRecentExit()) {
-        auto recentActions = actionCollection()->action(KStandardAction::name(KStandardAction::StandardAction::OpenRecent))->menu()->actions();
-        emit recentActions.at(recentActions.count() - 1)->triggered();
+        auto recentAction = pCore->projectManager()->recentFilesAction();
+        recentAction->clear();
+        emit pCore->projectManager()->sigSaveRecentFiles();
     }
     if (m_framelessHelper->isMax(this)) {
         m_mwSettings.setValue("isMax", true);
@@ -4985,7 +4986,7 @@ void MainWindow::setupMenuBar() {
         m_settingMenu->addMenu(displayMethod);
         m_settingMenu->addMenu(programDataDir);
 
-        auto clearHistoryWhileExiting = new QAction(tr("退出时清除最近打开历史"),m_settingMenu);
+        auto clearHistoryWhileExiting = new QAction(tr("退出时清除最近打开历史"), m_settingMenu);
         clearHistoryWhileExiting->setCheckable(true);
         clearHistoryWhileExiting->setChecked(KdenliveSettings::clearRecentExit());
         connect(clearHistoryWhileExiting, &QAction::toggled, [clearHistoryWhileExiting] {

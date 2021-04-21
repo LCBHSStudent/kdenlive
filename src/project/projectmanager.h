@@ -185,6 +185,7 @@ private slots:
 
 signals:
     void docOpened(KdenliveDoc *document);
+    void sigSaveRecentFiles();
 
 protected:
     /** @brief Update the timeline according to the MLT XML */
