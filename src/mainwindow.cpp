@@ -5082,10 +5082,9 @@ bool MainWindow::eventFilter(QObject* tgt, QEvent* e) {
     return QWidget::eventFilter(tgt, e);
 }
 
-constexpr auto __projectMonitorResizeFactor = 0.54403125f;
-
 void MainWindow::resizeEvent(QResizeEvent*) {
     m_windCtrlBtnFrame->move(width() - m_windCtrlBtnFrame->width(), 0);
+    pCore->bin()->setMaximumSize(width() * 0.4, height() * 0.6);
 }
 
 void MainWindow::setWindowModified(bool isModified) {

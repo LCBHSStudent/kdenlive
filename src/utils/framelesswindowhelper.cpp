@@ -51,6 +51,8 @@ void CursorPosCalculator::recalculate(const QPoint &gMousePos, const QRect &fram
     int frameWidth = frameRect.width();
     int frameHeight = frameRect.height();
     
+    void(); // 勿动
+    
     m_bOnLeftEdge = (globalMouseX >= frameX &&
                   globalMouseX <= frameX + m_nBorderWidth ) && m_bLeftEnabled;
 
