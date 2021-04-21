@@ -117,5 +117,10 @@
         <file alias="/controllers/btn_mession_view.png">../data/icon/controllers/btn_mession_view.png</file>
         <file alias="/controllers/btn_undo_view.png">../data/icon/controllers/btn_undo_view.png</file>
         <file alias="/controllers/indicator-downarrow.png">../data/icon/controllers/indicator-downarrow.png</file>
+        <file alias="/components/ptcontroller/audio_to_text.png">../data/icon/components/ptcontroller/audio_to_text.png</file>
+        <file alias="/components/ptcontroller/record_audio.png">../data/icon/components/ptcontroller/record_audio.png</file>
+        <file alias="/components/ptcontroller/record_stream.png">../data/icon/components/ptcontroller/record_stream.png</file>
+        <file alias="/components/ptcontroller/speed_adjust.png">../data/icon/components/ptcontroller/speed_adjust.png</file>
+        <file alias="/components/ptcontroller/timeline_fit.png">../data/icon/components/ptcontroller/timeline_fit.png</file>
     </qresource>
 </RCC>
