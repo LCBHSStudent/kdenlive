@@ -78,6 +78,7 @@
 #include "widgets/topnavigationbar.h"
 #include "widgets/customeditortoolbar.h"
 #include "widgets/projectmonitorframe.h"
+#include "widgets/timelinetoolbar.h"
 #include <config-kdenlive.h>
 #include "dialogs/textbasededit.h"
 #include "project/dialogs/temporarydata.h"
@@ -278,7 +279,7 @@ void MainWindow::init(const QString &mltPath)
     setDockOptions(dockOptions() | QMainWindow::AllowNestedDocks | QMainWindow::AllowTabbedDocks);
     setDockOptions(dockOptions() | QMainWindow::GroupedDragging);
     setTabPosition(Qt::AllDockWidgetAreas, QTabWidget::TabPosition(KdenliveSettings::tabposition()));
-    m_timelineToolBar = toolBar(QStringLiteral("timelineToolBar"));
+    m_timelineToolBar = new TimelineToolBar(this);
     
     
     m_timelineToolBarContainer = new TimelineContainer(this);
@@ -293,7 +294,8 @@ void MainWindow::init(const QString &mltPath)
     QSplitter* splitter = new QSplitter(this);
     splitter->setOrientation(Qt::Vertical);
     ctnLay->addWidget(splitter);
-    
+    splitter->setStyleSheet(R"(QSplitter::handle { background-color: #292833; })");
+    splitter->setHandleWidth(1);
     
     // setup centralWidget toolbar
     m_editorToolBar = new CustomEditorToolBar(m_timelineToolBarContainer);
@@ -311,9 +313,6 @@ void MainWindow::init(const QString &mltPath)
     
     KSharedConfigPtr config = KSharedConfig::openConfig();
     KConfigGroup mainConfig(config, QStringLiteral("MainWindow"));
-    KConfigGroup tbGroup(&mainConfig, QStringLiteral("Toolbar timelineToolBar"));
-    m_timelineToolBar->applySettings(tbGroup);
-    m_timelineToolBar->setFixedHeight(40);
 
     setupActions();
     auto *layoutManager = new LayoutManagement(this);
@@ -387,7 +386,8 @@ void MainWindow::init(const QString &mltPath)
     splitter->setStretchFactor(1, 0);
     splitter->setCollapsible(0, false);
     splitter->setCollapsible(1, false);
-
+    m_timelineTabs->resize(width(), m_mwSettings.value("timelineHeight").toInt());
+    
     // Screen grab widget
     QWidget *grabWidget = new QWidget(this);
     auto *grabLayout = new QVBoxLayout;
@@ -431,8 +431,6 @@ void MainWindow::init(const QString &mltPath)
     projectBin->move(20, 100);
     projectBin->setParent(this);
     projectBin->resize(314, 433);
-    projectBin->setWindowFlags(Qt::Tool | Qt::FramelessWindowHint);
-    projectBin->setAttribute(Qt::WA_TranslucentBackground);
     // projectBin->setAttribute(Qt::WA_AlwaysStackOnTop, true);
     
     // Online resources widget
@@ -458,7 +456,7 @@ void MainWindow::init(const QString &mltPath)
     connect(m_assetPanel, &AssetPanel::switchCurrentComposition, this, [&](int cid, const QString &compositionId) {
         getMainTimeline()->controller()->getModel()->switchComposition(cid, compositionId);
     });
-
+    
     connect(m_timelineTabs, &TimelineTabs::showMixModel, m_assetPanel, &AssetPanel::showMix);
     connect(m_timelineTabs, &TimelineTabs::showTransitionModel, m_assetPanel, &AssetPanel::showTransition);
     connect(m_timelineTabs, &TimelineTabs::showItemEffectStack, m_assetPanel, &AssetPanel::showEffectStack);
@@ -623,10 +621,8 @@ void MainWindow::init(const QString &mltPath)
         }
     }
 
-    m_timelineToolBar->setToolButtonStyle(Qt::ToolButtonFollowStyle);
     m_timelineToolBar->setProperty("otherToolbar", true);
-    timelinePreview->setToolButtonStyle(m_timelineToolBar->toolButtonStyle());
-    connect(m_timelineToolBar, &QToolBar::toolButtonStyleChanged, timelinePreview, &ProgressButton::setToolButtonStyle);
+    timelinePreview->setToolButtonStyle(Qt::ToolButtonFollowStyle);
 
     timelineRender->setToolButtonStyle(toolBar()->toolButtonStyle());
     /*ScriptingPart* sp = new ScriptingPart(this, QStringList());
@@ -779,11 +775,9 @@ void MainWindow::init(const QString &mltPath)
 
     slotConnectMonitors();
 
-    m_timelineToolBar->setToolButtonStyle(Qt::ToolButtonIconOnly);
     // TODO: let user select timeline toolbar toolbutton style
     // connect(toolBar(), &QToolBar::iconSizeChanged, m_timelineToolBar, &QToolBar::setToolButtonStyle);
     m_timelineToolBar->setContextMenuPolicy(Qt::CustomContextMenu);
-    connect(m_timelineToolBar, &QWidget::customContextMenuRequested, this, &MainWindow::showTimelineToolbarMenu);
 
     QAction *prevRender = actionCollection()->action(QStringLiteral("prerender_timeline_zone"));
     QAction *stopPrevRender = actionCollection()->action(QStringLiteral("stop_prerender_timeline"));
@@ -930,9 +924,7 @@ void MainWindow::init(const QString &mltPath)
         }
     });
     
-    m_projectMonitorFrame->update();
-    m_projectMonitorFrame->repaint();
-    m_projectMonitorFrame->resize(m_projectMonitor->width(), m_projectMonitor->height());
+    projectBin->raise();
 }
 
 void MainWindow::slotThemeChanged(const QString &name)
@@ -1016,7 +1008,8 @@ MainWindow::~MainWindow()
         auto&& geo = geometry();
         m_mwSettings.setValue("geo", geo);
     }
-    
+    m_mwSettings.setValue("timelineHeight", m_timelineTabs->height());
+
     pCore->prepareShutdown();
     delete m_timelineTabs;
     delete m_audioSpectrum;
@@ -2899,7 +2892,6 @@ void MainWindow::slotSelectTrack()
 
 void MainWindow::slotSelectAllTracks()
 {
-    LOG_DEBUG() << "coco";
     if (QApplication::focusWidget() != nullptr) {
         if (QApplication::focusWidget()->parentWidget() != nullptr && QApplication::focusWidget()->parentWidget() == pCore->bin()) {
             pCore->bin()->selectAll();
@@ -4104,8 +4096,6 @@ void MainWindow::configureToolbars()
     // in a QToolBarDockArea, we have to hack KXmlGuiWindow to avoid a crash when saving toolbar config.
     // This is why we hijack the configureToolbars() and temporarily move the toolbar to a standard location
     auto *ctnLay = static_cast<QVBoxLayout *>(m_timelineToolBarContainer->layout());
-    ctnLay->removeWidget(m_timelineToolBar);
-    addToolBar(Qt::BottomToolBarArea, m_timelineToolBar);
     auto *toolBarEditor = new KEditToolBar(guiFactory(), this);
     toolBarEditor->setAttribute(Qt::WA_DeleteOnClose);
     connect(toolBarEditor, SIGNAL(newToolBarConfig()), SLOT(saveNewToolbarConfig()));
@@ -4113,117 +4103,13 @@ void MainWindow::configureToolbars()
     toolBarEditor->show();
 }
 
-void MainWindow::rebuildTimlineToolBar()
-{
-    // Timeline toolbar settings changed, we can now re-add our toolbar to custom location
-    m_timelineToolBar = toolBar(QStringLiteral("timelineToolBar"));
-    removeToolBar(m_timelineToolBar);
-    m_timelineToolBar->setToolButtonStyle(Qt::ToolButtonIconOnly);
-    auto *ctnLay = static_cast<QVBoxLayout *>(m_timelineToolBarContainer->layout());
-    if (ctnLay) {
-        ctnLay->insertWidget(0, m_timelineToolBar);
-    }
-    m_timelineToolBar->setContextMenuPolicy(Qt::CustomContextMenu);
-    connect(m_timelineToolBar, &QWidget::customContextMenuRequested, this, &MainWindow::showTimelineToolbarMenu);
-    m_timelineToolBar->setVisible(true);
+void MainWindow::rebuildTimlineToolBar() {
 }
 
-void MainWindow::showTimelineToolbarMenu(const QPoint &pos)
-{
-    CustomMenu menu;
-    menu.addAction(actionCollection()->action(KStandardAction::name(KStandardAction::ConfigureToolbars)));
-    CustomMenu *contextSize = new CustomMenu(i18n("Icon Size"));
-    menu.addMenu(contextSize);
-    auto *sizeGroup = new QActionGroup(contextSize);
-    int currentSize = m_timelineToolBar->iconSize().width();
-    QAction *a = new QAction(i18nc("@item:inmenu Icon size", "Default"), contextSize);
-    a->setData(m_timelineToolBar->iconSizeDefault());
-    a->setCheckable(true);
-    if (m_timelineToolBar->iconSizeDefault() == currentSize) {
-        a->setChecked(true);
-    }
-    a->setActionGroup(sizeGroup);
-    contextSize->addAction(a);
-    KIconTheme *theme = KIconLoader::global()->theme();
-    QList<int> avSizes;
-    if (theme) {
-        avSizes = theme->querySizes(KIconLoader::Toolbar);
-    }
-
-    std::sort(avSizes.begin(), avSizes.end());
-
-    if (avSizes.count() < 10) {
-        // Fixed or threshold type icons
-        Q_FOREACH (int it, avSizes) {
-            QString text;
-            if (it < 19) {
-                text = i18n("Small (%1x%2)", it, it);
-            } else if (it < 25) {
-                text = i18n("Medium (%1x%2)", it, it);
-            } else if (it < 35) {
-                text = i18n("Large (%1x%2)", it, it);
-            } else {
-                text = i18n("Huge (%1x%2)", it, it);
-            }
-
-            // save the size in the contextIconSizes map
-            auto *sizeAction = new QAction(text, contextSize);
-            sizeAction->setData(it);
-            sizeAction->setCheckable(true);
-            sizeAction->setActionGroup(sizeGroup);
-            if (it == currentSize) {
-                sizeAction->setChecked(true);
-            }
-            contextSize->addAction(sizeAction);
-        }
-    } else {
-        // Scalable icons.
-        const int progression[] = {16, 22, 32, 48, 64, 96, 128, 192, 256};
-
-        for (int i : progression) {
-            Q_FOREACH (int it, avSizes) {
-                if (it >= i) {
-                    QString text;
-                    if (it < 19) {
-                        text = i18n("Small (%1x%2)", it, it);
-                    } else if (it < 25) {
-                        text = i18n("Medium (%1x%2)", it, it);
-                    } else if (it < 35) {
-                        text = i18n("Large (%1x%2)", it, it);
-                    } else {
-                        text = i18n("Huge (%1x%2)", it, it);
-                    }
-
-                    // save the size in the contextIconSizes map
-                    auto *sizeAction = new QAction(text, contextSize);
-                    sizeAction->setData(it);
-                    sizeAction->setCheckable(true);
-                    sizeAction->setActionGroup(sizeGroup);
-                    if (it == currentSize) {
-                        sizeAction->setChecked(true);
-                    }
-                    contextSize->addAction(sizeAction);
-                    break;
-                }
-            }
-        }
-    }
-    connect(contextSize, &CustomMenu::triggered, this, &MainWindow::setTimelineToolbarIconSize);
-    menu.exec(m_timelineToolBar->mapToGlobal(pos));
-    contextSize->deleteLater();
-}
-
-void MainWindow::setTimelineToolbarIconSize(QAction *a)
-{
+void MainWindow::setTimelineToolbarIconSize(QAction *a) {
     if (!a) {
         return;
     }
-    int size = a->data().toInt();
-    m_timelineToolBar->setIconDimensions(size);
-    KSharedConfigPtr config = KSharedConfig::openConfig();
-    KConfigGroup mainConfig(config, QStringLiteral("MainWindow"));
-    KConfigGroup tbGroup(&mainConfig, QStringLiteral("Toolbar timelineToolBar"));
-    m_timelineToolBar->saveSettings(tbGroup);
 }
 
 void MainWindow::slotManageCache()
@@ -4652,15 +4538,16 @@ void MainWindow::setupMenuBar() {
 
         auto leadIn = new CustomMenu(m_fileMenu);
         leadIn->setTitle("导入");
-        auto inFromPlayList = new QAction(tr("从播放列表导入"), leadIn);
-        auto inFromMylib    = new QAction(tr("从我的素材库导入"), leadIn);
-        auto inFromLocal    = new QAction(tr("从本地导入"), leadIn);
+        auto inFromPlayList     = new QAction(tr("从播放列表导入"), leadIn);
+        auto inFromMylib        = new QAction(tr("从我的素材库导入"), leadIn);
+        auto addLocalFile       = ACTION_COLL("add_clip");
         
-        connect(inFromLocal, SIGNAL(triggered()), this, SIGNAL(leadinRequested()));
+        addLocalFile->setText(i18n("从本地导入"));
+        addLocalFile->setIcon(QIcon());
         
         leadIn->addAction(inFromPlayList);
         leadIn->addAction(inFromMylib);
-        leadIn->addAction(inFromLocal);
+        leadIn->addAction(addLocalFile);
 
         MOVE_MENU_ABOUT2SHOW(leadIn, __customMenuLeftMargin, 0);
         m_fileMenu->addMenu(leadIn);

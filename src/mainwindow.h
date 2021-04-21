@@ -238,7 +238,7 @@ private:
     QAction *m_buttonSubtitleEditTool;
     QString m_theme;
     KIconLoader *m_iconLoader;
-    KToolBar *m_timelineToolBar;
+    QFrame *m_timelineToolBar;
     TimelineContainer *m_timelineToolBarContainer;
     QLabel *m_trimLabel;
     QActionGroup *m_scaleGroup;
@@ -493,7 +493,6 @@ private slots:
     void slotToggleAutoPreview(bool enable);
     /** @brief Rebuild/reload timeline toolbar. */
     void rebuildTimlineToolBar();
-    void showTimelineToolbarMenu(const QPoint &pos);
     /** @brief Open Cached Data management dialog. */
     void slotManageCache();
     void showMenuBar(bool show);
