@@ -430,7 +430,7 @@ void MainWindow::init(const QString &mltPath)
     
     projectBin->move(20, 100);
     projectBin->setParent(this);
-    projectBin->resize(314, 433);
+    projectBin->setMinimumSize(314, 433);
     // projectBin->setAttribute(Qt::WA_AlwaysStackOnTop, true);
     
     // Online resources widget
@@ -925,6 +925,7 @@ void MainWindow::init(const QString &mltPath)
     });
     
     projectBin->raise();
+    projectBin->hide();
 }
 
 void MainWindow::slotThemeChanged(const QString &name)

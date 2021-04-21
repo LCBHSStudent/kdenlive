@@ -905,11 +905,13 @@ Bin::Bin(std::shared_ptr<ProjectItemModel> model, QWidget *parent)
     setWindowFlags(Qt::FramelessWindowHint);
     setAttribute(Qt::WA_TranslucentBackground);
     
-    auto framelessHelper = new FramelessHelper(this);
-    framelessHelper->activateOn(this);                  // 激活当前窗体
-    framelessHelper->setWidgetMovable(false);           // 设置窗体可移动
-    framelessHelper->setWidgetResizable(true);          // 设置窗体可缩放
-    framelessHelper->setTitleHeight(0);
+    m_framelessHelper = new FramelessHelper(this);
+    m_framelessHelper->activateOn(this);
+    m_framelessHelper->setWidgetMovable(false);
+    m_framelessHelper->setWidgetResizable(true);
+    m_framelessHelper->setTitleHeight(this, 0);
+    m_framelessHelper->setBorderWidth(this, 10);
+    m_framelessHelper->setDirectionEnabled(this, false, false, true, true);
     
     // Create toolbar for buttons
     m_toolbar = new QToolBar(this);
@@ -917,7 +919,7 @@ Bin::Bin(std::shared_ptr<ProjectItemModel> model, QWidget *parent)
     QSize iconSize(size, size);
     m_toolbar->setIconSize(iconSize);
     m_toolbar->setToolButtonStyle(Qt::ToolButtonIconOnly);
-    m_layout->addWidget(m_toolbar);
+    // m_layout->addWidget(m_toolbar);
 
     // Tags panel
     m_tagsWidget = new TagWidget(this);
@@ -1341,6 +1343,7 @@ void Bin::abortOperations()
 
 bool Bin::eventFilter(QObject *obj, QEvent *event)
 {
+    m_framelessHelper->exportedEventFilter(this, event);
     if (event->type() == QEvent::MouseButtonPress) {
         if (m_itemView && m_listType == BinTreeView) {
         // Folder state is only valid in tree view mode
@@ -2283,6 +2286,10 @@ void Bin::slotInitView(QAction *action)
     m_itemView->setDragDropMode(QAbstractItemView::DragDrop);
     m_itemView->setAlternatingRowColors(true);
     m_itemView->setFocus();
+    
+    if ((m_itemView != nullptr) && m_listType == BinTreeView) {
+        qobject_cast<QTreeView*>(m_itemView)->header()->hide();
+    }
 }
 
 void Bin::slotSetIconSize(int size)

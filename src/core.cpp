@@ -220,7 +220,11 @@ void Core::initGUI(bool isAppImage, const QString &MltPath, const QUrl &Url, con
         // NOTE: we are restoring only one window, because Kdenlive only uses one MainWindow
         m_mainWindow->restore(1, false);
     }
+    
+    
+    // 防止初始项目打开
     QMetaObject::invokeMethod(pCore->projectManager(), "slotLoadOnOpen", Qt::QueuedConnection);
+    // emit closeSplash();
     m_mainWindow->show();
     QThreadPool::globalInstance()->setMaxThreadCount(qMin(4, QThreadPool::globalInstance()->maxThreadCount()));
 

@@ -68,6 +68,7 @@ class QToolButton;
 class QUndoCommand;
 class QVBoxLayout;
 class SmallJobLabel;
+class FramelessHelper;
 
 namespace Mlt {
 class Producer;
@@ -490,6 +491,7 @@ private:
     QAction *m_showDesc;
     QAction *m_showRating;
     QAction *m_sortDescend;
+    FramelessHelper* m_framelessHelper;
     /** @brief Default view type (icon, tree, ...) */
     BinViewType m_listType;
     /** @brief Default icon size for the views. */

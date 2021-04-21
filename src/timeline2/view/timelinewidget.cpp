@@ -209,8 +209,6 @@ void TimelineWidget::setModel(const std::shared_ptr<TimelineItemModel> &model, M
     m_proxy->checkDuration();
 }
 
-#include "utils/framelesswindowhelper.h"
-
 void TimelineWidget::mousePressEvent(QMouseEvent *event)
 {
     emit focusProjectMonitor();
@@ -219,9 +217,9 @@ void TimelineWidget::mousePressEvent(QMouseEvent *event)
     auto x = event->pos().x();
     auto y = event->pos().y();
     
-    if (x <= CursorPosCalculator::m_nBorderWidth ||
-        x >= width() - CursorPosCalculator::m_nBorderWidth ||
-        y >= height() - CursorPosCalculator::m_nBorderWidth
+    if (x <= 4 ||
+        x >= width() - 4 ||
+        y >= height() - 4
     ) {
         qApp->sendEvent(pCore->window(), event);
     } else {
