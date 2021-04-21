@@ -31,8 +31,13 @@ public:
     bool m_bOnTopRightEdge : true;
     bool m_bOnBottomRightEdge : true;
  
-    static int m_nBorderWidth;
-    static int m_nTitleHeight;
+    int m_nBorderWidth = 4;
+    int m_nTitleHeight = 42;
+    
+    bool m_bTopEnabled: true;
+    bool m_bLeftEnabled: true;
+    bool m_bBottomEnabled: true;
+    bool m_bRightEnabled: true;    
 };
  
  
@@ -50,9 +55,17 @@ public:
     void handleWidgetEvent(QEvent *event);
     // 更新橡皮筋状态
     void updateRubberBandStatus();
- 
+    // 设置窗口最大化
     void setMax(bool bMax);
+    // 判断窗口是否已最大化
     bool isMax();
+    // 设置边框宽度
+    void setBorderWidth(uint width);
+    // 设置头部空间高度
+    void setHeaderHeight(uint height);
+    // exported function
+    void setDirectionEnabled(bool top, bool left, bool bottom, bool right);
+    
 private:
     // 更新鼠标样式
     void updateCursorShape(const QPoint &gMousePos);
@@ -110,15 +123,16 @@ public:
     // 设置橡皮筋缩放
     void setRubberBandOnResize(bool resizable);
     // 设置边框的宽度
-    void setBorderWidth(uint width);
+    void setBorderWidth(QWidget* w, uint width);
     // 设置标题栏高度
-    void setTitleHeight(uint height);
+    void setTitleHeight(QWidget* w, uint height);
+    // 设置上下左右方向的缩放是否被启用
+    void setDirectionEnabled(QWidget* w, bool top, bool left, bool bottom, bool right);
+    
     bool widgetResizable();
     bool widgetMovable();
     bool rubberBandOnMove();
     bool rubberBandOnResisze();
-    uint borderWidth();
-    uint titleHeight();
  
     void setMax(QWidget *w,bool bMax);
     bool isMax(QWidget *w);

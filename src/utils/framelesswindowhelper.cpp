@@ -24,10 +24,6 @@ public:
     bool m_bRubberBandOnMove     : true;
 };
  
- 
-int CursorPosCalculator::m_nBorderWidth = 4;
-int CursorPosCalculator::m_nTitleHeight = 42;
- 
 /***** CursorPosCalculator *****/
 CursorPosCalculator::CursorPosCalculator() {
     reset();
@@ -48,26 +44,26 @@ void CursorPosCalculator::reset() {
 void CursorPosCalculator::recalculate(const QPoint &gMousePos, const QRect &frameRect) {
     int globalMouseX = gMousePos.x();
     int globalMouseY = gMousePos.y();
-
+    
     int frameX = frameRect.x();
     int frameY = frameRect.y();
-
+    
     int frameWidth = frameRect.width();
     int frameHeight = frameRect.height();
     
     m_bOnLeftEdge = (globalMouseX >= frameX &&
-                  globalMouseX <= frameX + m_nBorderWidth );
+                  globalMouseX <= frameX + m_nBorderWidth ) && m_bLeftEnabled;
 
 
     m_bOnRightEdge = (globalMouseX >= frameX + frameWidth - m_nBorderWidth &&
-                   globalMouseX <= frameX + frameWidth);
+                   globalMouseX <= frameX + frameWidth) && m_bRightEnabled;
 
     m_bOnTopEdge = (globalMouseY >= frameY &&
-                 globalMouseY <= frameY + m_nBorderWidth );
+                 globalMouseY <= frameY + m_nBorderWidth ) && m_bTopEnabled;
 
     m_bOnBottomEdge = (globalMouseY >= frameY + frameHeight - m_nBorderWidth &&
-                    globalMouseY <= frameY + frameHeight);
-
+                    globalMouseY <= frameY + frameHeight) && m_bBottomEnabled;
+    
     m_bOnTopLeftEdge = m_bOnTopEdge && m_bOnLeftEdge;
     m_bOnBottomLeftEdge = m_bOnBottomEdge && m_bOnLeftEdge;
     m_bOnTopRightEdge = m_bOnTopEdge && m_bOnRightEdge;
@@ -166,6 +162,28 @@ void WidgetData::setMax(bool bMax) {
     }
 }
  
+void WidgetData::setBorderWidth(uint width) {
+    m_moveMousePos.m_nBorderWidth = width;
+    m_pressedMousePos.m_nBorderWidth = width;   
+}
+
+void WidgetData::setHeaderHeight(uint height) {
+    m_moveMousePos.m_nTitleHeight = height;
+    m_pressedMousePos.m_nTitleHeight = height;
+}
+
+void WidgetData::setDirectionEnabled(bool top, bool left, bool bottom, bool right) {
+    m_moveMousePos.m_bTopEnabled = top;
+    m_moveMousePos.m_bLeftEnabled = left;
+    m_moveMousePos.m_bBottomEnabled = bottom;
+    m_moveMousePos.m_bRightEnabled = right;
+    
+    m_pressedMousePos.m_bTopEnabled = top;
+    m_pressedMousePos.m_bLeftEnabled = left;
+    m_pressedMousePos.m_bBottomEnabled = bottom;
+    m_pressedMousePos.m_bRightEnabled = right;
+}
+
 bool WidgetData::isMax() {
     return m_bMax;
 }
@@ -466,15 +484,15 @@ void FramelessHelper::setRubberBandOnResize(bool resizable) {
     }
 }
  
-void FramelessHelper::setBorderWidth(uint width) {
-    if (width > 0) {
-        CursorPosCalculator::m_nBorderWidth = width;
+void FramelessHelper::setBorderWidth(QWidget* w, uint width) {
+    if (d->m_widgetDataHash.find(w) != d->m_widgetDataHash.end() && width > 0) {
+        d->m_widgetDataHash[w]->setBorderWidth(width);
     }
 }
  
-void FramelessHelper::setTitleHeight(uint height) {
-    if (height > 0) {
-        CursorPosCalculator::m_nTitleHeight = height;
+void FramelessHelper::setTitleHeight(QWidget* w, uint height) {
+    if (d->m_widgetDataHash.find(w) != d->m_widgetDataHash.end() && height > 0) {
+        d->m_widgetDataHash[w]->setHeaderHeight(height);
     }
 }
  
@@ -494,14 +512,6 @@ bool FramelessHelper::rubberBandOnResisze() {
     return d->m_bRubberBandOnResize;
 }
  
-uint FramelessHelper::borderWidth() {
-    return CursorPosCalculator::m_nBorderWidth;
-}
- 
-uint FramelessHelper::titleHeight() {
-    return CursorPosCalculator::m_nTitleHeight;
-}
- 
 void FramelessHelper::setMax(QWidget *w,bool bMax) {
     WidgetData* data = d->m_widgetDataHash[w];
     if(data) {
@@ -519,4 +529,10 @@ bool FramelessHelper::isMax(QWidget *w) {
 
 void FramelessHelper::exportedEventFilter(QWidget* topLevelWidget, QEvent* e) {
     (void) eventFilter(topLevelWidget, e);
+}
+
+void FramelessHelper::setDirectionEnabled(QWidget *w, bool top, bool left, bool bottom, bool right) {
+    if (d->m_widgetDataHash.find(w) != d->m_widgetDataHash.end()) {
+        d->m_widgetDataHash[w]->setDirectionEnabled(top, left, bottom, right);
+    }
 }
