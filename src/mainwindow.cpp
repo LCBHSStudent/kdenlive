@@ -79,6 +79,7 @@
 #include "widgets/customeditortoolbar.h"
 #include "widgets/projectmonitorframe.h"
 #include "widgets/timelinetoolbar.h"
+#include "widgets/projectsettingswidget.h"
 #include <config-kdenlive.h>
 #include "dialogs/textbasededit.h"
 #include "project/dialogs/temporarydata.h"
@@ -4765,6 +4766,14 @@ void MainWindow::setupMenuBar() {
         
         auto projectSetting = new QAction(tr("项目设置"), m_settingMenu);
         projectSetting->setShortcut(Qt::Key_P);
+        connect(projectSetting, &QAction::triggered, [] {
+            auto mainWindow = pCore->window();
+            auto psw = new ProjectSettingsWidget(mainWindow);
+            psw->raise();
+            psw->move((mainWindow->width() - psw->width()) / 2,
+                  (mainWindow->height() - psw->height()) / 2);
+        });
+        
         m_settingMenu->addAction(projectSetting);
         m_settingMenu->addSeparator();
 
