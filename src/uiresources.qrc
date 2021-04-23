@@ -47,6 +47,8 @@
         <file alias="ZoomBar.qml">timeline2/view/qml/ZoomBar.qml</file>
         <file alias="RSToolBar.qml">widgets/RSToolBar.qml</file>
         <file alias="ProjectSettings.qml">widgets/ProjectSettings.qml</file>
+        <file>widgets/PopupButton.qml</file>
+        <file>widgets/TabHeader.qml</file>
     </qresource>
     <qresource prefix="/data">
         <file alias="blacklisted_effects.txt">../data/blacklisted_effects.txt</file>

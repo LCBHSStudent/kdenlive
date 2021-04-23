@@ -1344,9 +1344,7 @@ void Bin::abortOperations()
 
 bool Bin::eventFilter(QObject *obj, QEvent *event)
 {
-    if (m_framelessHelper->exportedEventFilter(this, event)) {
-        return true;
-    }
+    m_framelessHelper->exportedEventFilter(this, event);
     if (event->type() == QEvent::MouseButtonPress) {
         if (m_itemView && m_listType == BinTreeView) {
         // Folder state is only valid in tree view mode

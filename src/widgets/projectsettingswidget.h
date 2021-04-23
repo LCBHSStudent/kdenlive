@@ -9,6 +9,9 @@ class ProjectSettingsWidget: public QQuickWidget {
 public:
     explicit ProjectSettingsWidget(QWidget* parent);
 	
+public slots:
+    void move(QVariant x, QVariant y);
+    
 private:
     QSettings m_projSettings = {};
 };

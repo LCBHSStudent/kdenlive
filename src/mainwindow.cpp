@@ -4770,8 +4770,8 @@ void MainWindow::setupMenuBar() {
             auto mainWindow = pCore->window();
             auto psw = new ProjectSettingsWidget(mainWindow);
             psw->raise();
-            psw->move((mainWindow->width() - psw->width()) / 2,
-                  (mainWindow->height() - psw->height()) / 2);
+            psw->move((mainWindow->width()  - psw->width()) / 2 + mainWindow->x(),
+                  (mainWindow->height() - psw->height()) / 2 + mainWindow->y());
         });
         
         m_settingMenu->addAction(projectSetting);
