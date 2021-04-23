@@ -52,7 +52,8 @@ ProjectSettingsWidget::ProjectSettingsWidget(QWidget* parent)
             rootObj->setProperty("profileFps", profile->fps());
             
             connect(rootObj, SIGNAL(move(QVariant,QVariant)), this, SLOT(move(QVariant,QVariant)));
-            connect(rootObj, SIGNAL(close()), this, SLOT(close()));
+            connect(rootObj, SIGNAL(cancel()), this, SLOT(close()));
+            connect(rootObj, SIGNAL(confirm()), this, SLOT(confirmSettings()));
         } else {
             return;
         }
@@ -80,4 +81,21 @@ void ProjectSettingsWidget::move(QVariant x, QVariant y) {
         qBound(mainGeo.x(), x.toInt(), mainGeo.x() + mainGeo.width()),
         qBound(mainGeo.y(), y.toInt(), mainGeo.y() + mainGeo.height())
     );
+}
+
+void ProjectSettingsWidget::confirmSettings() {
+    auto rootObj = rootObject();
+    if (rootObj) {
+        std::unique_ptr<ProfileModel>& profile = pCore->getCurrentProfile();
+        
+        auto subtitleMarginHor  = rootObj->property("subtitleMarginHor").toInt();
+        auto subtitleMarginVer  = rootObj->property("subtitleMarginVer").toInt();
+        auto actionMarginHor    = rootObj->property("actionMarginHor").toInt();
+        auto actionMarginVer    = rootObj->property("actionMarginVer").toInt();
+        auto profileW           = rootObj->property("profileW").toInt();
+        auto profileH           = rootObj->property("profileH").toInt();
+        auto profileFps         = rootObj->property("profileFps").toReal();
+    }
+    
+    close();
 }

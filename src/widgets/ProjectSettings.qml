@@ -28,10 +28,13 @@ Item {
     onSubtitleMarginVerChanged: ssmVer.text = subtitleMarginVer
     onActionMarginHorChanged: asmHor.text = actionMarginHor
     onActionMarginVerChanged: asmVer.text = actionMarginVer
+    onProfileWChanged: resolutionW.text = profileW
+    onProfileHChanged: resolutionH.text = profileH
     
     
     signal move(var x, var y)
-    signal close()
+    signal cancel()
+    signal confirm()
     
     UIConfig { id: uiconfig }
     
@@ -61,10 +64,6 @@ Item {
             anchors {
                 bottom: contentBG.top
                 horizontalCenter: parent.horizontalCenter
-            }
-            
-            onCurrentIndexChanged: {
-                console.debug(tabBar.currentIndex)
             }
         }
         
@@ -143,6 +142,7 @@ Item {
                         text: i18n("字幕安全区域  ")
                     }
                     
+                    
                     StyledTextField {
                         id: ssmHor
                         
@@ -157,6 +157,7 @@ Item {
                             top: profileH
                             bottom: 0
                         }
+                        suffix: i18n("px 水平")
                     }
                     
                     StyledTextField {
@@ -164,6 +165,7 @@ Item {
                         
                         anchors {
                             left: ssmHor.right
+                            leftMargin: 80
                             verticalCenter: subtitleSafeMarginText.verticalCenter
                         }
                         width: 54
@@ -172,6 +174,7 @@ Item {
                             top: profileW
                             bottom: 0
                         }
+                        suffix: i18n("px 垂直")
                     }
                     
                     ThemeText {
@@ -199,6 +202,7 @@ Item {
                             top: profileH
                             bottom: 0
                         }
+                        suffix: i18n("px 水平")
                     }
                     
                     StyledTextField {
@@ -208,30 +212,345 @@ Item {
                         
                         anchors {
                             left: asmHor.right
+                            leftMargin: 80
                             verticalCenter: actionSafeMarginText.verticalCenter
                         }
                         validator: IntValidator {
                             top: profileW
                             bottom: 0
                         }
+                        suffix: i18n("px 垂直")
                     }
                     
                 }
                 
-                
+                /************************************PAGE VIDEO******************************/
                 Page {
                     id: videoPage
+                    
+                    ThemeText {
+                        id: aspectText
+                        color: uiconfig.lighterFontColor
+                        text: i18n("宽高比例")
+                        anchors {
+                            right: parent.right
+                            rightMargin: 318
+                            top: parent.top
+                            topMargin: 56
+                        }
+                    }
+                    
+                    StyledComboBoxRect {
+                        id: aspectCombo
+                        width: 210
+                        
+                        anchors {
+                            left: aspectText.right
+                            leftMargin: 20
+                            verticalCenter: aspectText.verticalCenter
+                        }
+                        
+                        model: [
+                            i18n("9 : 16 (竖屏)  抖音"),
+                            i18n("16 : 9 (宽屏)"),
+                            i18n("1 : 1  Instagram"),
+                            i18n("4 : 3 (标准)"),
+                            i18n("3 : 4 (电商)"),
+                            i18n("21: 9 (影院)"),
+                            i18n("21: 9 (影院)")
+                        ]
+                    }
+                    
+                    ThemeText {
+                        id: resolutionText
+                        color: uiconfig.lighterFontColor
+                        text: i18n("分辨率")
+                        anchors {
+                            right: parent.right
+                            rightMargin: 318
+                            top: parent.top
+                            topMargin: 128
+                        }
+                    }
+                    
+                    StyledTextField {
+                        id: resolutionW
+                        width: 73.5
+                        anchors {
+                            left: aspectCombo.left
+                            verticalCenter: resolutionText.verticalCenter
+                        }
+                        suffix: "X"
+                        suffixMargin: 10
+                        validator: IntValidator {
+                            bottom: 0
+                            top: 9999
+                        }
+                    }
+                    
+                    StyledTextField {
+                        id: resolutionH
+                        width: 73.5
+                        anchors {
+                            left: resolutionW.right
+                            leftMargin: 29
+                            verticalCenter: resolutionText.verticalCenter
+                        }
+                        validator: IntValidator {
+                            bottom: 0
+                            top: 9999
+                        }
+                    }
+                    
+                    ThemeText {
+                        id: scanText
+                        color: uiconfig.lighterFontColor
+                        text: i18n("扫描方式")
+                        anchors {
+                            right: parent.right
+                            rightMargin: 318
+                            top: parent.top
+                            topMargin: 188
+                        }
+                    }
+                    
+                    StyledComboBoxRect {
+                        id: scanCombo
+                        
+                        anchors {
+                            left: aspectCombo.left
+                            verticalCenter: scanText.verticalCenter
+                        }
+                        
+                        model: [
+                            i18n("逐行"),
+                            i18n("隔行")
+                        ]
+                    }
+                    
+                    
+                    ThemeText {
+                        id: interlaceText
+                        color: uiconfig.lighterFontColor
+                        text: i18n("反交错")
+                        anchors {
+                            right: parent.right
+                            rightMargin: 318
+                            top: parent.top
+                            topMargin: 248
+                        }
+                    }
+                    
+                    StyledComboBoxRect {
+                        id: interlaceCombo
+                        
+                        anchors {
+                            left: aspectCombo.left
+                            verticalCenter: interlaceText.verticalCenter
+                        }
+                        
+                        model: [
+                            i18n("仅用单场（快速）"),
+                            i18n("线性混合（快速）"),
+                            i18n("YADIF - 时间（质量好）"),
+                            i18n("YADIF - 时间与空间（质量最佳）")
+                        ]
+                    }
+                    
+                    ThemeText {
+                        id: interpolationText
+                        color: uiconfig.lighterFontColor
+                        text: i18n("插值")
+                        anchors {
+                            right: parent.right
+                            rightMargin: 318
+                            top: parent.top
+                            topMargin: 308
+                        }
+                    }
+                    
+                    StyledComboBoxRect {
+                        id: interpolationCombo
+                        
+                        anchors {
+                            left: aspectCombo.left
+                            verticalCenter: interpolationText.verticalCenter
+                        }
+                        
+                        model: [
+                            i18n("最近像素（快速）"),
+                            i18n("双线性（良好）"),
+                            i18n("双立方（更佳）"),
+                            i18n("Hyper/Lanczos（最佳）")
+                        ]
+                    }
                 }
                 
-                
+                /************************************PAGE AUDIO******************************/
                 Page {
                     id: audioPage
+                    
+                    ThemeText {
+                        id: channelText
+                        color: uiconfig.lighterFontColor
+                        text: i18n("声道")
+                        anchors {
+                            right: parent.right
+                            rightMargin: 318
+                            top: parent.top
+                            topMargin: 56
+                        }
+                    }
+                    
+                    StyledComboBoxRect {
+                        id: channelCombo
+                        
+                        anchors {
+                            left: channelText.right
+                            leftMargin: 20
+                            verticalCenter: channelText.verticalCenter
+                        }
+                        
+                        model: [
+                            i18n("立体声"),
+                            i18n("单声道"),
+                            i18n("6（5.1）")
+                        ]
+                    }
+                    
+                    ThemeText {
+                        id: sampleText
+                        color: uiconfig.lighterFontColor
+                        text: i18n("采样率")
+                        anchors {
+                            right: parent.right
+                            rightMargin: 318
+                            top: parent.top
+                            topMargin: 116
+                        }
+                    }
+                    
+                    StyledComboBoxRect {
+                        id: sampleCombo
+                        
+                        anchors {
+                            left: channelCombo.left
+                            verticalCenter: sampleText.verticalCenter
+                        }
+                        
+                        model: [
+                            48000
+                        ]
+                    }
+                    
+                    ThemeText {
+                        color: uiconfig.lighterFontColor
+                        anchors {
+                            left: sampleCombo.right
+                            leftMargin: 10
+                            verticalCenter: sampleCombo.verticalCenter
+                        }
+                        text: "Hz"
+                    }
+                    
+                    ThemeText {
+                        id: codecText
+                        color: uiconfig.lighterFontColor
+                        text: i18n("编码器")
+                        anchors {
+                            right: parent.right
+                            rightMargin: 318
+                            top: parent.top
+                            topMargin: 176
+                        }
+                    }
+                    
+                    StyledComboBoxRect {
+                        id: codecCombo
+                        
+                        anchors {
+                            left: channelCombo.left
+                            verticalCenter: codecText.verticalCenter
+                        }
+                        
+                        model: [
+                            "acc"
+                        ]
+                    }
+                    
+                    
+                    ThemeText {
+                        id: codecRateCtrlText
+                        color: uiconfig.lighterFontColor
+                        text: i18n("编码率控制")
+                        anchors {
+                            right: parent.right
+                            rightMargin: 318
+                            top: parent.top
+                            topMargin: 236
+                        }
+                    }
+                    
+                    StyledComboBoxRect {
+                        id: codecRateCtrlCombo
+                        
+                        anchors {
+                            left: channelCombo.left
+                            verticalCenter: codecRateCtrlText.verticalCenter
+                        }
+                        
+                        model: [
+                            i18n("平均码率（ABR）"),
+                        ]
+                    }
+                    
+                    ThemeText {
+                        id: bitRateText
+                        color: uiconfig.lighterFontColor
+                        text: i18n("码率")
+                        anchors {
+                            right: parent.right
+                            rightMargin: 318
+                            top: parent.top
+                            topMargin: 296
+                        }
+                    }
+                    
+                    StyledComboBoxRect {
+                        id: bitRateCombo
+                        
+                        anchors {
+                            left: channelCombo.left
+                            verticalCenter: bitRateText.verticalCenter
+                        }
+                        
+                        model: [
+                            "384k"
+                        ]
+                    }
+                    
+                    ThemeText {
+                        color: uiconfig.lighterFontColor
+                        anchors {
+                            left: bitRateCombo.right
+                            leftMargin: 10
+                            verticalCenter: bitRateCombo.verticalCenter
+                        }
+                        text: i18n("比特/秒")
+                    }
+                    
+                    StyledCheckable {
+                        indicatorBorder: true
+                        text: i18n("禁用音频")
+                        leftPadding: 0
+                        anchors {
+                            left: channelCombo.left
+                            top: parent.top
+                            topMargin: 352
+                        }
+                    }
                 }
-                
-                
             }
-
-            
         }
         
         Row {
@@ -255,7 +574,7 @@ Item {
                 anchors.bottom: parent.bottom
                 
                 onClicked: {
-                    close()
+                    cancel()
                 }
             }
         }

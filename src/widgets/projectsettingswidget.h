@@ -12,8 +12,12 @@ public:
 public slots:
     void move(QVariant x, QVariant y);
     
+private slots:
+    void confirmSettings();
+    
 private:
     QSettings m_projSettings = {};
+
 };
 
 #endif // PROJECTSETTINGSWIDGET_H

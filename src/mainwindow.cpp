@@ -4879,8 +4879,8 @@ void MainWindow::setupMenuBar() {
         std::array<QString, 4> interlaceActText = {
             i18n("仅用单场（快速）"),
             i18n("线性混合（快速）"),
-            i18n("YADIF - 时间性（质量好）"),
-            i18n("YADIF - 时间性与空间性（质量最佳）")
+            i18n("YADIF - 时间（质量好）"),
+            i18n("YADIF - 时间与空间（质量最佳）")
         };
         
         int iterator = 0;
