@@ -222,3 +222,6 @@ if (BUILD_QCH)
     )
 endif()
 
+if (CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
+	add_definitions("-DDEBUG_BUILD")
+endif()
