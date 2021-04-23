@@ -65,7 +65,7 @@
       "sources": [
         {
           "type": "archive",
-          "url": "https://download.videolan.org/pub/videolan/libdvdread/last/libdvdread-6.1.1.tar.bz2",
+          "url": "https://download.videolan.org/pub/videolan/libdvdread/6.1.1/libdvdread-6.1.1.tar.bz2",
           "sha256": "3e357309a17c5be3731385b9eabda6b7e3fa010f46022a06f104553bf8e21796"
         }
       ]
@@ -301,10 +301,6 @@
           "type": "archive",
           "url": "https://www.exiv2.org/builds/exiv2-0.27.3-Source.tar.gz",
           "sha256": "a79f5613812aa21755d578a297874fb59a85101e793edc64ec2c6bd994e3e778"
-        },
-        {
-          "type": "patch",
-          "path": "patches/exiv2-fcf-protection-only-on-x86.patch"
         }
       ]
     },
@@ -548,6 +544,26 @@
       ]
     },
     {
+      "name": "mfx-dispatch",
+      "skip-arches": [
+        "aarch64"
+      ],
+      "buildsystem": "simple",
+      "build-commands": [
+        "autoreconf -fiv",
+        "./configure --prefix=/app",
+        "make",
+        "make install"
+      ],
+      "sources": [
+        {
+          "type": "archive",
+          "url": "https://github.com/lu-zero/mfx_dispatch/archive/refs/tags/1.34.tar.gz",
+          "sha256": "904d8f3ed14f583e0202db558532b64a8b1f6460d4ab5f68ae1562a00fbb3c5d"
+        }
+      ]
+    },
+    {
       "name": "opencl-headers",
       "buildsystem": "simple",
       "build-commands": [
@@ -658,13 +674,13 @@
       "sources": [
         {
           "type": "archive",
-          "url": "https://github.com/opencv/opencv/archive/4.3.0.tar.gz",
-          "sha256": "68bc40cbf47fdb8ee73dfaf0d9c6494cd095cf6294d99de445ab64cf853d278a"
+          "url": "https://github.com/opencv/opencv/archive/4.5.2.tar.gz",
+          "sha256": "ae258ed50aa039279c3d36afdea5c6ecf762515836b27871a8957c610d0424f8"
         },
         {
           "type": "archive",
-          "url": "https://github.com/opencv/opencv_contrib/archive/4.3.0.tar.gz",
-          "sha256": "acb8e89c9e7d1174e63e40532125b60d248b00e517255a98a419d415228c6a55"
+          "url": "https://github.com/opencv/opencv_contrib/archive/4.5.2.tar.gz",
+          "sha256": "9f52fd3114ac464cb4c9a2a6a485c729a223afb57b9c24848484e55cef0b5c2a"
         }
       ]
     },
