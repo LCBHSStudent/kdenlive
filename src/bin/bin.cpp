@@ -919,8 +919,9 @@ Bin::Bin(std::shared_ptr<ProjectItemModel> model, QWidget *parent)
     QSize iconSize(size, size);
     m_toolbar->setIconSize(iconSize);
     m_toolbar->setToolButtonStyle(Qt::ToolButtonIconOnly);
-    // m_layout->addWidget(m_toolbar);
-
+#ifndef DEBUG_BUILD
+    m_layout->addWidget(m_toolbar);
+#endif
     // Tags panel
     m_tagsWidget = new TagWidget(this);
     connect(m_tagsWidget, &TagWidget::switchTag, this, &Bin::switchTag);
@@ -1343,7 +1344,9 @@ void Bin::abortOperations()
 
 bool Bin::eventFilter(QObject *obj, QEvent *event)
 {
-    m_framelessHelper->exportedEventFilter(this, event);
+    if (m_framelessHelper->exportedEventFilter(this, event)) {
+        return true;
+    }
     if (event->type() == QEvent::MouseButtonPress) {
         if (m_itemView && m_listType == BinTreeView) {
         // Folder state is only valid in tree view mode

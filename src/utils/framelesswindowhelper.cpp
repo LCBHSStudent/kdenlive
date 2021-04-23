@@ -363,7 +363,7 @@ void WidgetData::handleMouseMoveEvent(QMouseEvent *event) {
         if (m_bLeftButtonTitlePressed) {
             setMax(false);
             m_pWidget->move(event->globalX() - m_rect.width() / 2,
-                            event->globalY() + m_pressedMousePos.m_nBorderWidth);
+                            event->globalY() - m_pressedMousePos.m_nBorderWidth + 1);
             QRect frameRect = m_pWidget->geometry();
             m_pressedMousePos.recalculate(event->globalPos(), frameRect);
             
@@ -534,8 +534,8 @@ bool FramelessHelper::isMax(QWidget *w) {
     return false;
 }
 
-void FramelessHelper::exportedEventFilter(QWidget* topLevelWidget, QEvent* e) {
-    (void) eventFilter(topLevelWidget, e);
+bool FramelessHelper::exportedEventFilter(QWidget* topLevelWidget, QEvent* e) {
+    return eventFilter(topLevelWidget, e);
 }
 
 void FramelessHelper::setDirectionEnabled(QWidget *w, bool top, bool left, bool bottom, bool right) {
