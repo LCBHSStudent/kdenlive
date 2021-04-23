@@ -4578,7 +4578,7 @@ void MainWindow::setupMenuBar() {
             
         auto packProjectFiles = ACTION_COLL("archive_project");
         packProjectFiles->setShortcut(QKeySequence(Qt::Key_M));
-        packProjectFiles->setText(i18n("打包项目文件"));
+        packProjectFiles->setText(i18n("打包项目文件        "));
         packProjectFiles->setIcon(QIcon());
         m_fileMenu->addAction(packProjectFiles);
 
@@ -4853,15 +4853,6 @@ void MainWindow::setupMenuBar() {
         storage->addAction(_setting);
         storage->addAction(_display);
         storage->addAction(useProjFolder);
-        const QString storageItemSheet="QMenu::item{ width:100px;}";
-        storage->setStyleSheet(storageItemSheet+ R"(
-            QMenu::item {
-                padding-top: 8px;
-                padding-left: 0px;
-                padding-right: 25px;
-                padding-bottom: 8px;
-            })"
-        );
 
         auto configHardwareEncoder=new QAction(tr("配置硬件编码器..."),proxy);
         proxy->addAction(useProxy);
@@ -4933,10 +4924,13 @@ void MainWindow::setupMenuBar() {
         m_settingMenu->addAction(userInterface);
         userInterface->setFont(settingLabelFont);
         userInterface->setDisabled(true);
-        auto lang=new QMenu("语言",m_settingMenu);
-        auto theme=new CustomMenu;
+        auto lang = new QMenu("语言",m_settingMenu);
+        auto theme = new CustomMenu;
         theme->setTitle(tr("主题"));//QMenu("主题",m_settingMenu);
 
+        lang->setEnabled(false);
+        theme->setEnabled(false);
+        
         auto _system=new QAction(tr("系统"),theme);
         auto fusionDark=new QAction("Fusion Dark",theme);
         auto fusionLight=new QAction("Fusion Light",theme);
@@ -4969,6 +4963,7 @@ void MainWindow::setupMenuBar() {
                 padding-bottom: 7px;
             })"
         );
+        MOVE_MENU_ABOUT2SHOW(displayMethod, __customMenuLeftMargin, 0);
 #if !defined(Q_OS_MAC)
         
 #if defined(Q_OS_WIN)
@@ -4989,6 +4984,7 @@ void MainWindow::setupMenuBar() {
         auto __display = new QAction(i18n("显示..."),programDataDir);
         programDataDir->addAction(__setting);
         programDataDir->addAction(__display);
+        MOVE_MENU_ABOUT2SHOW(programDataDir, __customMenuLeftMargin, 0);
 
         m_settingMenu->addMenu(lang);
         m_settingMenu->addMenu(theme);
