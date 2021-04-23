@@ -102,7 +102,12 @@ reading a Read-protected property. In that case, we try to write lock it first (
     #define LOG_DEBUG() if (false) (qDebug)
 #endif
 
+#ifdef DEBUG_BUILD
 constexpr int __customMenuLeftMargin = 3;
+#else
+constexpr int __customMenuLeftMargin = 2;
+#endif
+
 #define MOVE_MENU_ABOUT2SHOW(__PMENU__, __POSX__, __POSY__)                                                                                                     \
     connect(__PMENU__, &QMenu::aboutToShow, [__PMENU__] {                                                                                                        \
         QTimer::singleShot(0, __PMENU__, [__PMENU__] {                                                                                                          \
