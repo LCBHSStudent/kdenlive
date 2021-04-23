@@ -362,7 +362,12 @@ void WidgetData::handleMouseMoveEvent(QMouseEvent *event) {
     if (m_bMax) {
         if (m_bLeftButtonTitlePressed) {
             setMax(false);
-            moveWidget(event->globalPos());
+            m_pWidget->move(event->globalX() - m_rect.width() / 2,
+                            event->globalY() + m_pressedMousePos.m_nBorderWidth);
+            QRect frameRect = m_pWidget->geometry();
+            m_pressedMousePos.recalculate(event->globalPos(), frameRect);
+            
+            m_ptDragPos = event->globalPos() - frameRect.topLeft();
         }
         return;
     }
