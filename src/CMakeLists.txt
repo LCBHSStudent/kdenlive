@@ -88,6 +88,8 @@ set_property(SOURCE definitions.h PROPERTY SKIP_AUTOMOC ON)
 
 add_library(kdenliveLib STATIC ${kdenlive_SRCS} ${kdenlive_UIS} ${kdenlive_MOC} lib/localeHandling.cpp lib/localeHandling.h)
 
+target_link_libraries(kdenliveLib Qt::WinExtras)
+
 qt5_add_resources(kdenlive_extra_SRCS icons.qrc uiresources.qrc icon.qrc)
 ## Icon for Windows and OSX
 file(GLOB ICONS_SRCS "${CMAKE_CURRENT_SOURCE_DIR}/../data/icons/*-apps-kdenlive.png")

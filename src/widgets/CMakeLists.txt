@@ -15,5 +15,6 @@ set(kdenlive_SRCS
   widgets/rstoolbar.cpp
   widgets/timelinetoolbar.cpp
   widgets/projectsettingswidget.cpp
+  widgets/menubareventpasser.cpp
   PARENT_SCOPE
 )

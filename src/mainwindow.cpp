@@ -69,7 +69,7 @@
 //#include "utils/resourcewidget_old.h" //TODO
 #include "utils/thememanager.h"
 #include "utils/otioconvertions.h"
-#include "utils/framelesswindowhelper.h"
+#include "utils/framelesshelper/framelesshelper.h"
 #include "lib/localeHandling.h"
 #include "profiles/profilerepository.hpp"
 #include "widgets/progressbutton.h"
@@ -80,6 +80,7 @@
 #include "widgets/projectmonitorframe.h"
 #include "widgets/timelinetoolbar.h"
 #include "widgets/projectsettingswidget.h"
+#include "widgets/menubareventpasser.h"
 #include <config-kdenlive.h>
 #include "dialogs/textbasededit.h"
 #include "project/dialogs/temporarydata.h"
@@ -131,6 +132,11 @@
 #include <QVBoxLayout>
 
 #include "macros.hpp"
+
+constexpr auto __menuBarHeight = 42;
+constexpr auto __windowCtrlBtnWidth = 54;
+constexpr auto __ltLabelWidth = 118;
+constexpr auto __menuTabWidth = 48;
 
 static const char version[] = KDENLIVE_VERSION;
 namespace Mlt {
@@ -875,7 +881,6 @@ void MainWindow::init(const QString &mltPath)
     // m_messageLabel->setMessage(QStringLiteral("This is a beta version. Always backup your data"), MltError);
     
     setWindowFlags(
-        windowFlags() |
         Qt::FramelessWindowHint |
         Qt::WindowCloseButtonHint |
         Qt::WindowMinimizeButtonHint |
@@ -884,16 +889,21 @@ void MainWindow::init(const QString &mltPath)
         Qt::WindowTitleHint
     );
     
-    setupMenuBar();
-    
     // 设置无边框窗口辅助类
     m_framelessHelper = new FramelessHelper(this);
-    m_framelessHelper->activateOn(this);                  // 激活当前窗体
-    m_framelessHelper->setWidgetMovable(true);            // 设置窗体可移动
-    m_framelessHelper->setWidgetResizable(true);          // 设置窗体可缩放
+    m_framelessHelper->setDraggableMargins(4, 4, 4, 4);
+    m_framelessHelper->setMaximizedMargins(0, 0, 0, 0);
+    m_framelessHelper->setTitleBarHeight(42);
+    
+    setupMenuBar();
     
     // 设置顶端导航栏
-    new TopNavigationBar(menuBar());
+    m_framelessHelper->addExcludeItem(new TopNavigationBar(menuBar()));
+    
+    auto passer = new MenuBarEventPasser(menuBar());
+    passer->setFixedSize(48 * menuBar()->actions().count(), menuBar()->height());
+    passer->move(__ltLabelWidth, 0);
+    m_framelessHelper->addExcludeItem(passer);
     
     // 处理由于删去dockWidget导致的widget残留显示
 
@@ -913,7 +923,7 @@ void MainWindow::init(const QString &mltPath)
     QTimer::singleShot(1, this, [this] {
         auto isMax = m_mwSettings.value("isMax", false).toBool();
         if (isMax) {
-            m_framelessHelper->setMax(this, true);
+            m_framelessHelper->triggerMaximizeButtonAction();
         } else {
             auto&& scrRect = screen()->geometry();
             
@@ -921,6 +931,14 @@ void MainWindow::init(const QString &mltPath)
                 "geo",
                 QRect((scrRect.width() - 1280) / 2, (scrRect.height() - 720) / 2, 1280, 720)
             ).toRect();
+            
+            if (rect.x() < -rect.width() * 0.8 || rect.x() > screen()->geometry().width() * 0.9) {
+                rect.setX(0);
+            }
+            if (rect.y() < -rect.height() * 0.8 || rect.y() > screen()->geometry().height() * 0.9) {
+                rect.setX(0);
+            }
+            
             this->setGeometry(rect);
         }
     });
@@ -1004,7 +1022,7 @@ MainWindow::~MainWindow()
         recentAction->clear();
         emit pCore->projectManager()->sigSaveRecentFiles();
     }
-    if (m_framelessHelper->isMax(this)) {
+    if (m_framelessHelper->isMaximized()) {
         m_mwSettings.setValue("isMax", true);
     } else {
         m_mwSettings.setValue("isMax", false);
@@ -4392,11 +4410,6 @@ void MainWindow::slotSpeechRecognition()
 #define ACTION_COLL(__name__) \
     actionCollection()->action(QStringLiteral(__name__))
 
-constexpr auto __menuBarHeight = 42;
-constexpr auto __windowCtrlBtnWidth = 54;
-constexpr auto __ltLabelWidth = 118;
-constexpr auto __menuTabWidth = 48;
-
 void MainWindow::setupMenuBar() {
     menuBar()->deleteLater();
     auto menuBar = new QMenuBar(this);
@@ -4437,15 +4450,14 @@ void MainWindow::setupMenuBar() {
             btn->setStyleSheet(btnQSS);
             
             frameLayout->addWidget(btn, Qt::AlignLeft | Qt::AlignTop);
+            m_framelessHelper->addExcludeItem(btn);
             
             if (i == 0) {
-                connect(btn, &BtnType::clicked, this, &MainWindow::showMinimized);
+                connect(btn, &BtnType::clicked, m_framelessHelper, &FramelessHelper::triggerMinimizeButtonAction);
             } else if (i == 1) {
-                connect(btn, &BtnType::clicked, [this] {
-                    m_framelessHelper->setMax(this, !m_framelessHelper->isMax(this));
-                });
+                connect(btn, &BtnType::clicked, m_framelessHelper, &FramelessHelper::triggerMaximizeButtonAction);
             } else if (i == 2) {
-                connect(btn, &BtnType::clicked, this, &MainWindow::close);
+                connect(btn, &BtnType::clicked, m_framelessHelper, &FramelessHelper::triggerCloseButtonAction);
             }
         }
         
@@ -4477,7 +4489,6 @@ void MainWindow::setupMenuBar() {
         }
     )").arg(__ltLabelWidth)); // .arg(__menuBarHeight));
     setMenuBar(menuBar);
-    menuBar->installEventFilter(this);
     
     // create left top icon-text label
     {
@@ -4980,8 +4991,8 @@ void MainWindow::setupMenuBar() {
 
         auto programDataDir = new CustomMenu(i18n("程序数据目录"));
         programDataDir->setTitle(i18n("程序数据目录"));
-        auto __setting = new QAction(i18n("设定..."),programDataDir);
-        auto __display = new QAction(i18n("显示..."),programDataDir);
+        auto __setting = new QAction(i18n("设定..."), programDataDir);
+        auto __display = new QAction(i18n("显示..."), programDataDir);
         programDataDir->addAction(__setting);
         programDataDir->addAction(__display);
         MOVE_MENU_ABOUT2SHOW(programDataDir, __customMenuLeftMargin, 0);
@@ -5003,20 +5014,7 @@ void MainWindow::setupMenuBar() {
         checkBoxes->addAction(clearHistoryWhileExiting);
         checkBoxes->setExclusive(false);
 
-
-        connect(_setting,SIGNAL(triggered()),this,SLOT(on_actionProxyStorageSet_triggered()));
-        connect(_display,SIGNAL(triggered()),this,SLOT(on_actionProxyStorageShow_triggered()));
-        connect(useProjFolder,SIGNAL(triggered(bool)),this,SLOT(on_actionProxyUseProjectFolder_triggered(bool)));
-        connect(useHardwareEncoder,SIGNAL(triggered(bool)),this,SLOT(on_actionProxyUseHardware_triggered(bool)));
-        connect(configHardwareEncoder,SIGNAL(triggered()),this,SLOT(on_actionProxyConfigureHardware_triggered()));
-
-// departed
-//        connect(_system,SIGNAL(triggered(bool)),this,SLOT(on_actionSystemTheme_triggered(bool)));
-//        connect(fusionDark,SIGNAL(triggered(bool)),this,SLOT(on_actionFusionDark_triggered(bool)));
-//        connect(fusionLight,SIGNAL(triggered(bool)),this,SLOT(on_actionFusionLight_triggered(bool)));
     }
-
-
     
     // 帮助菜单
     {
@@ -5031,60 +5029,57 @@ void MainWindow::setupMenuBar() {
         m_helpMenu->addSeparator();
         auto about = new QAction(tr("关于"), m_helpMenu);
         m_helpMenu->addAction(about);
-
-        connect(softwareUpdate,SIGNAL(triggered()),this,SLOT(on_actionUpgrade_triggered()));
-        connect(snoobGuide,SIGNAL(triggered()),this,SLOT(on_actionTutorials_triggered()));
-        connect(userBBS,SIGNAL(triggered()),this,SLOT(on_actionForum_triggered()));
-        connect(about,SIGNAL(triggered()),this,SLOT(on_actionAbout_Shotcut_triggered()));
-
     }
     
 }
 
-bool MainWindow::eventFilter(QObject* tgt, QEvent* e) {    
-    switch(e->type()) {
-    // this fixed draging window may trigger menu item
-    case QEvent::MouseMove: {
-        if (tgt != menuBar()) {
-            return false;
-        }
-        auto mbpe = dynamic_cast<QMouseEvent*>(e);
-        if (mbpe->buttons() & Qt::LeftButton) {
-            m_framelessHelper->exportedEventFilter(this, e);
-            return true;
-        } else {
-            return false;
-        }
-    };
+bool MainWindow::eventFilter(QObject* tgt, QEvent* e) {
+//    static bool leftPressed = false;
+//    static QPoint pressedPos = {};
+    
+//    switch(e->type()) {
+//    case QEvent::MouseMove: {
+//        if (tgt == menuBar() && leftPressed) {
+//            auto me = static_cast<QMouseEvent*>(e);
+//            if (m_framelessHelper->isMaximized()) {
+//                m_framelessHelper->triggerMaximizeButtonAction();
+//                pressedPos = me->pos();
+//            } else {
+//                move(pos() + me->pos() - pressedPos);
+//            }
+            
+//            return true;
+//        }
+//    } return false;
         
-    case QEvent::HoverMove:
-    case QEvent::Leave:
-    case QEvent::MouseButtonRelease:{
-        if (tgt == menuBar()) {
-            m_framelessHelper->exportedEventFilter(this, e);
-        }
-    }; return false;
+//    case QEvent::MouseButtonDblClick: {
+//        m_framelessHelper->triggerMaximizeButtonAction();
+//    }; return true;
         
-    case QEvent::MouseButtonDblClick:
-    case QEvent::MouseButtonPress: {
-        if (tgt == menuBar()) {
-            auto mbpe = dynamic_cast<QMouseEvent*>(e);
-            if (mbpe->pos().x() > __ltLabelWidth + __menuTabWidth * 5 || mbpe->pos().x() <= __ltLabelWidth) {
-                m_framelessHelper->exportedEventFilter(this, e);
-            }
-        }
-    }; return false;
+//    case QEvent::MouseButtonPress: {
+//        if (tgt == menuBar()) {
+//            auto me = static_cast<QMouseEvent*>(e);
+//            if (me->pos().x() > __ltLabelWidth + __menuTabWidth * 5 || me->pos().x() <= __ltLabelWidth) {
+//                leftPressed = true;
+//                pressedPos = me->pos();
+//            }
+//        }
+//    }; return false;
         
-    // prevent displaying menubar contextmenu
-    case QEvent::ContextMenu: {
-        if (tgt == menuBar()) {
-            return true;
-        }
-    }; return false;
+//    case QEvent::MouseButtonRelease: {
+//        if (tgt == menuBar()) {
+//            if (leftPressed) {
+//                if (y() < 0) {
+//                    m_framelessHelper->triggerMaximizeButtonAction();
+//                }
+//                leftPressed = false;
+//            }
+//        }
+//    }; return false;
         
-    default:
-        return false;
-    }
+//    default:
+//        return false;
+//    }
     return QWidget::eventFilter(tgt, e);
 }
 

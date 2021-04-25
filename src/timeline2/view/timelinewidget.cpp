@@ -209,22 +209,10 @@ void TimelineWidget::setModel(const std::shared_ptr<TimelineItemModel> &model, M
     m_proxy->checkDuration();
 }
 
-void TimelineWidget::mousePressEvent(QMouseEvent *event)
-{
+void TimelineWidget::mousePressEvent(QMouseEvent* event) {
     emit focusProjectMonitor();
     m_clickPos = event->globalPos();
-    
-    auto x = event->pos().x();
-    auto y = event->pos().y();
-    
-    if (x <= 4 ||
-        x >= width() - 4 ||
-        y >= height() - 4
-    ) {
-        qApp->sendEvent(pCore->window(), event);
-    } else {
-        QQuickWidget::mousePressEvent(event);
-    }
+    QQuickWidget::mousePressEvent(event);
 }
 
 void TimelineWidget::showClipMenu(int cid)

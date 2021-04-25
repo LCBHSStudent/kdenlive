@@ -54,6 +54,7 @@ find_package(KF5 REQUIRED COMPONENTS Archive Bookmarks CoreAddons Config ConfigW
 # Qt
 set(QT_MIN_VERSION 5.11.0)
 find_package(Qt5 REQUIRED COMPONENTS Core DBus Widgets Svg Quick QuickControls2 Concurrent QuickWidgets Multimedia NetworkAuth)
+
 add_definitions(-DQT_NO_CAST_TO_ASCII -DQT_NO_URL_CAST_FROM_STRING)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${Qt5Widgets_EXECUTABLE_COMPILE_FLAGS}")
 
@@ -70,6 +71,12 @@ check_include_files(malloc.h HAVE_MALLOC_H)
 check_include_files(pthread.h HAVE_PTHREAD_H)
 if(WIN32)
     find_package(DrMinGW)
+	
+	find_package(Qt5 REQUIRED COMPONENTS WinExtras)
+	include_directories(${Qt5WinExtras_INCLUDE_DIRS})
+	add_definitions(${Qt5WinExtras_DEFINITIONS})
+	add_compile_definitions(${Qt5WinExtras_COMPILE_DEFINITIONS})
+	
     set(MLT_PREFIX "..")
 else()
     set(MLT_PREFIX ${MLT_ROOT_DIR})

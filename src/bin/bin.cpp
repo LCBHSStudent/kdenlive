@@ -46,7 +46,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "project/transcodeseek.h"
 #include "project/projectcommands.h"
 #include "project/projectmanager.h"
-#include "utils/framelesswindowhelper.h"
 #include "projectclip.h"
 #include "projectfolder.h"
 #include "projectitemmodel.h"
@@ -905,14 +904,6 @@ Bin::Bin(std::shared_ptr<ProjectItemModel> model, QWidget *parent)
     setWindowFlags(Qt::FramelessWindowHint);
     setAttribute(Qt::WA_TranslucentBackground);
     
-    m_framelessHelper = new FramelessHelper(this);
-    m_framelessHelper->activateOn(this);
-    m_framelessHelper->setWidgetMovable(false);
-    m_framelessHelper->setWidgetResizable(true);
-    m_framelessHelper->setTitleHeight(this, 0);
-    m_framelessHelper->setBorderWidth(this, 10);
-    m_framelessHelper->setDirectionEnabled(this, false, false, true, true);
-    
     // Create toolbar for buttons
     m_toolbar = new QToolBar(this);
     int size = style()->pixelMetric(QStyle::PM_SmallIconSize);
@@ -1344,7 +1335,6 @@ void Bin::abortOperations()
 
 bool Bin::eventFilter(QObject *obj, QEvent *event)
 {
-    m_framelessHelper->exportedEventFilter(this, event);
     if (event->type() == QEvent::MouseButtonPress) {
         if (m_itemView && m_listType == BinTreeView) {
         // Folder state is only valid in tree view mode
