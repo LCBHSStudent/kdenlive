@@ -43,6 +43,8 @@ TimelineTabs::TimelineTabs(QWidget *parent)
     : QTabWidget(parent)
     , m_mainTimeline(new TimelineWidget(this))
 {
+    setStyleSheet("QTabWidget { padding: 0px; margin: 0px; }");
+    
     setTabBarAutoHide(true);
     setTabsClosable(true);
     addTab(m_mainTimeline, i18n("Main timeline"));

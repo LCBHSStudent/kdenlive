@@ -57,7 +57,7 @@ Item {
             tabModel: [
                 i18n("常    规"),
                 i18n("视    频"),
-                i18n("音    频")   
+                i18n("音    频")
             ]
             
             width: contentBG.width

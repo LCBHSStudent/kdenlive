@@ -23,6 +23,13 @@ CustomEditorToolBar::CustomEditorToolBar(QWidget* parent)
     m_messionViewBtn->setFixedSize(28, 28);
     m_undoViewBtn->setFixedSize(28, 28);
     
+    connect(
+        m_undoViewBtn, &QPushButton::toggled, [](bool toggled) {
+            pCore->window()->m_undoView->setVisible(toggled);
+            pCore->window()->m_undoView->raise();
+        }
+    );
+    
     const char* btnQSS = R"(
         QPushButton {
             background-color: #FF2D2C39;
@@ -122,6 +129,13 @@ CustomEditorToolBar::CustomEditorToolBar(QWidget* parent)
 void CustomEditorToolBar::resizeEvent(QResizeEvent*) {
     m_messionViewBtn->move(width() - 43, 6);
     m_undoViewBtn->move(width() - 82, 6);
+    
+    auto inWindowPos = m_undoViewBtn->mapTo(pCore->window(), m_undoViewBtn->pos());
+    auto undoView = pCore->window()->m_undoView;
+    undoView->move(
+        inWindowPos.x() - undoView->width(),
+        inWindowPos.y() + m_undoViewBtn->height()
+    );
     
     MOVE_DOCSTR_LABEL;
 }

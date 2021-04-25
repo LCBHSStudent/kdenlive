@@ -54,7 +54,7 @@ public:
             QMenu{
                 font-family: "Microsoft YaHei"; 
                 font-size: 12px; 
-                background: #3E3D4C;
+                background-color: #3E3D4C;
             }
         )";
         inline static const QString indicatorSheet = R"(

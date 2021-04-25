@@ -605,6 +605,7 @@ MyTreeView::MyTreeView(QWidget *parent)
 void MyTreeView::mousePressEvent(QMouseEvent *event)
 {
     QTreeView::mousePressEvent(event);
+    
     if (event->button() == Qt::LeftButton) {
         m_startPos = event->pos();
         QModelIndex ix = indexAt(m_startPos);
@@ -2037,7 +2038,7 @@ void Bin::selectProxyModel(const QModelIndex &id)
                 ClipType::ProducerType type = clip->clipType();
                 m_openAction->setEnabled(type == ClipType::Image || type == ClipType::Audio || type == ClipType::Text || type == ClipType::TextTemplate);
                 showClipProperties(clip, false);
-                m_deleteAction->setText(i18n("Delete Clip"));
+                m_deleteAction->setText(i18n("删除"));
                 m_proxyAction->setText(i18n("Proxy Clip"));
             } else if (currentItem->itemType() == AbstractProjectItem::FolderItem) {
                 // A folder was selected, disable editing clip
@@ -2047,7 +2048,7 @@ void Bin::selectProxyModel(const QModelIndex &id)
                 m_replaceAction->setEnabled(false);
                 m_locateAction->setEnabled(false);
                 m_duplicateAction->setEnabled(false);
-                m_deleteAction->setText(i18n("Delete Folder"));
+                m_deleteAction->setText(i18n("删除文件夹"));
                 m_proxyAction->setText(i18n("Proxy Folder"));
             } else if (currentItem->itemType() == AbstractProjectItem::SubClipItem) {
                 m_tagsWidget->setTagData(currentItem->tags());
@@ -2057,7 +2058,7 @@ void Bin::selectProxyModel(const QModelIndex &id)
                 m_replaceAction->setEnabled(false);
                 m_locateAction->setEnabled(false);
                 m_duplicateAction->setEnabled(false);
-                m_deleteAction->setText(i18n("Delete Clip"));
+                m_deleteAction->setText(i18n("删除"));
                 m_proxyAction->setText(i18n("Proxy Clip"));
             }
             m_deleteAction->setEnabled(true);
@@ -2312,7 +2313,7 @@ void Bin::rebuildMenu()
 }
 
 void Bin::contextMenuEvent(QContextMenuEvent *event)
-{
+{    
     bool enableClipActions = false;
     ClipType::ProducerType type = ClipType::Unknown;
     bool isFolder = false;
@@ -2788,56 +2789,57 @@ void Bin::setupGeneratorMenu()
 
     addMenu = qobject_cast<QMenu *>(pCore->window()->factory()->container(QStringLiteral("extract_audio"), pCore->window()));
     if (addMenu) {
-        m_menu->addMenu(addMenu);
-        addMenu->setEnabled(!addMenu->isEmpty());
+        // m_menu->addMenu(addMenu);
+        // addMenu->setEnabled(!addMenu->isEmpty());
         m_extractAudioAction = addMenu;
     }
 
     addMenu = qobject_cast<QMenu *>(pCore->window()->factory()->container(QStringLiteral("transcoders"), pCore->window()));
     if (addMenu) {
-        m_menu->addMenu(addMenu);
-        addMenu->setEnabled(!addMenu->isEmpty());
+        // m_menu->addMenu(addMenu);
+        // addMenu->setEnabled(!addMenu->isEmpty());
         m_transcodeAction = addMenu;
     }
 
     addMenu = qobject_cast<QMenu *>(pCore->window()->factory()->container(QStringLiteral("clip_actions"), pCore->window()));
     if (addMenu) {
-        m_menu->addMenu(addMenu);
-        addMenu->setEnabled(!addMenu->isEmpty());
+        // m_menu->addMenu(addMenu);
+        // addMenu->setEnabled(!addMenu->isEmpty());
         m_clipsActionsMenu = addMenu;
     }
 
     addMenu = qobject_cast<QMenu *>(pCore->window()->factory()->container(QStringLiteral("clip_in_timeline"), pCore->window()));
     if (addMenu) {
-        m_inTimelineAction = m_menu->addMenu(addMenu);
+        // m_menu->addMenu(addMenu);
+        m_inTimelineAction = addMenu->menuAction();
     }
 
-    if (m_locateAction) {
-        m_menu->addAction(m_locateAction);
-    }
-    if (m_reloadAction) {
-        m_menu->addAction(m_reloadAction);
-    }
-    if (m_replaceAction) {
-        m_menu->addAction(m_replaceAction);
-    }
-    if (m_duplicateAction) {
-        m_menu->addAction(m_duplicateAction);
-    }
-    if (m_proxyAction) {
-        m_menu->addAction(m_proxyAction);
-    }
+//    if (m_locateAction) {
+//        m_menu->addAction(m_locateAction);
+//    }
+//    if (m_reloadAction) {
+//        m_menu->addAction(m_reloadAction);
+//    }
+//    if (m_replaceAction) {
+//        m_menu->addAction(m_replaceAction);
+//    }
+//    if (m_duplicateAction) {
+//        m_menu->addAction(m_duplicateAction);
+//    }
+//    if (m_proxyAction) {
+//        m_menu->addAction(m_proxyAction);
+//    }
 
-    addMenu = qobject_cast<QMenu *>(pCore->window()->factory()->container(QStringLiteral("clip_timeline"), pCore->window()));
-    if (addMenu) {
-        m_menu->addMenu(addMenu);
-        addMenu->setEnabled(false);
-    }
-    m_menu->addAction(m_editAction);
-    m_menu->addAction(m_openAction);
-    m_menu->addAction(m_renameAction);
-    m_menu->addAction(m_deleteAction);
-    m_menu->insertSeparator(m_deleteAction);
+//    addMenu = qobject_cast<QMenu *>(pCore->window()->factory()->container(QStringLiteral("clip_timeline"), pCore->window()));
+//    if (addMenu) {
+//        m_menu->addMenu(addMenu);
+//        addMenu->setEnabled(false);
+//    }
+//    m_menu->addAction(m_editAction);
+//    m_menu->addAction(m_openAction);
+//    m_menu->addAction(m_renameAction);
+//    m_menu->addAction(m_deleteAction);
+//    m_menu->insertSeparator(m_deleteAction);
 }
 
 void Bin::setupMenu()
@@ -2904,7 +2906,7 @@ void Bin::setupMenu()
     m_renameAction->setEnabled(false);
 
     m_deleteAction =
-        addAction(QStringLiteral("delete_clip"), i18n("Delete Clip"), QIcon::fromTheme(QStringLiteral("edit-delete")));
+        addAction(QStringLiteral("delete_clip"), i18n("删除"), QIcon());
     m_deleteAction->setData("delete_clip");
     m_deleteAction->setEnabled(false);
     connect(m_deleteAction, &QAction::triggered, this, &Bin::slotDeleteClip);
@@ -2927,7 +2929,74 @@ void Bin::setupMenu()
     m_addButton->setDefaultAction(addClip);
     m_addButton->setPopupMode(QToolButton::MenuButtonPopup);
     m_toolbar->insertWidget(m_upAction, m_addButton);
+    
+    // ----------------------- CUSTOMIZED EDITOR MENU ----------------------- //
+    
     m_menu = new QMenu(this);
+    m_menu->clear();
+    m_menu->setStyleSheet(R"(
+        QMenu::item {
+            padding-top: 7px;
+            padding-left: 30px;
+            padding-right: 30px;
+            padding-bottom: 8px;
+        }
+        QMenu::item:selected {
+            background-color: #997781F4;
+        }
+        QMenu::separator { 
+            height: 1px; 
+            background: #2D2C39; 
+            margin-left: 5px; 
+            margin-right: 5px; 
+        } 
+        QMenu{
+            font-family: "Microsoft YaHei"; 
+            font-size: 12px; 
+            background-color: #3E3D4C;
+            padding: 0px;
+        }
+    )");
+    QAction* action = nullptr;
+    action = new QAction(i18n("预览"));
+    connect(action, &QAction::triggered, this, [this] {
+        m_propertiesPanel->setParent(nullptr);
+        m_propertiesPanel->show();
+    });
+    m_menu->addAction(action);
+    
+    action = new QAction(i18n("插入"));
+    connect(action, &QAction::triggered, this, [this] {
+        m_propertiesPanel->setParent(nullptr);
+        m_propertiesPanel->show();
+    });
+    m_menu->addAction(action);
+    
+    action = new QAction(i18n("音频转文字"));
+    connect(action, &QAction::triggered, this, [this] {
+        m_propertiesPanel->setParent(nullptr);
+        m_propertiesPanel->show();
+    });
+    m_menu->addAction(action);
+    
+    action = new QAction(i18n("重命名"));
+    connect(action, &QAction::triggered, this, [this] {
+        m_propertiesPanel->setParent(nullptr);
+        m_propertiesPanel->show();
+    });
+    m_menu->addAction(action);
+    
+    m_menu->addAction(m_deleteAction);
+    
+    action = new QAction(i18n("属性"));
+    connect(action, &QAction::triggered, this, [this] {
+        m_propertiesPanel->setParent(nullptr);
+        m_propertiesPanel->show();
+    });
+    
+    
+    m_menu->addAction(action);
+    
 //    m_propertiesDock = pCore->window()->addDock(i18n("Clip Properties"), QStringLiteral("clip_properties"), m_propertiesPanel);
 //    m_propertiesDock->close();
     m_propertiesPanel->hide();
@@ -4529,3 +4598,6 @@ void Bin::requestTranscoding(const QString &url, const QString &id)
     m_transcodingDialog->addUrl(url, id);
     m_transcodingDialog->show();
 }
+
+#include "symbols.h"
+IMPLEMENT_RESIZEHELPER_RB(Bin, QFrame)

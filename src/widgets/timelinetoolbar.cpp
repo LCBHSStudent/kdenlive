@@ -30,6 +30,7 @@ TimelineToolButton::TimelineToolButton(
     setToolTip(toolTip);
     setStyleSheet(defaultStyleSheet);
     
+    setCheckable(true);
     setFixedSize(30, 30);
     setIconSize(size());
     setIcon(QIcon(":/classic/components/ptcontroller/" + iconName + ".png"));

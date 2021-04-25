@@ -190,6 +190,7 @@ static bool eventDebugCallback(void** data) {
 MainWindow::MainWindow(QWidget *parent)
     : KXmlGuiWindow(parent)
 {
+    hide();
 }
 
 void MainWindow::init(const QString &mltPath)
@@ -379,11 +380,12 @@ void MainWindow::init(const QString &mltPath)
     
     auto tabsPlusToolbar = new QWidget(this);
     auto __plusLayout = new QVBoxLayout(tabsPlusToolbar);
+    __plusLayout->setContentsMargins(0, 0, 0, 0);
+    __plusLayout->setSpacing(0);
     
     __plusLayout->addWidget(m_timelineToolBar);
     __plusLayout->addWidget(m_timelineTabs);
-    __plusLayout->setContentsMargins(0, 0, 0, 0);
-    __plusLayout->setSpacing(0);
+    
     tabsPlusToolbar->setLayout(__plusLayout);
     
     splitter->addWidget(tabsPlusToolbar);
@@ -505,9 +507,8 @@ void MainWindow::init(const QString &mltPath)
 
     m_transitionList2 = new TransitionListWidget(this);
 
-    m_undoView = new QUndoView();
-    m_undoView->setCleanIcon(QIcon::fromTheme(QStringLiteral("edit-clear")));
-    m_undoView->setEmptyLabel(i18n("Clean"));
+    m_undoView = new QUndoView(this);
+    m_undoView->setEmptyLabel(i18n("新建/打开"));
     m_undoView->setGroup(m_commandStack);
 
     // Color and icon theme stuff
@@ -909,7 +910,6 @@ void MainWindow::init(const QString &mltPath)
 
     grabWidget->hide();
     
-    m_undoView->hide();
     m_effectList2->hide();
     m_audioSpectrum->hide();    
     m_transitionList2->hide();
@@ -919,6 +919,7 @@ void MainWindow::init(const QString &mltPath)
     pCore->subtitleWidget()->hide();
     pCore->textEditWidget()->hide();
     
+    show();
     // 由于隐藏标题栏导致的窗口移动
     QTimer::singleShot(1, this, [this] {
         auto isMax = m_mwSettings.value("isMax", false).toBool();
@@ -4450,7 +4451,6 @@ void MainWindow::setupMenuBar() {
             btn->setStyleSheet(btnQSS);
             
             frameLayout->addWidget(btn, Qt::AlignLeft | Qt::AlignTop);
-            m_framelessHelper->addExcludeItem(btn);
             
             if (i == 0) {
                 connect(btn, &BtnType::clicked, m_framelessHelper, &FramelessHelper::triggerMinimizeButtonAction);
@@ -4459,7 +4459,9 @@ void MainWindow::setupMenuBar() {
             } else if (i == 2) {
                 connect(btn, &BtnType::clicked, m_framelessHelper, &FramelessHelper::triggerCloseButtonAction);
             }
+            m_framelessHelper->addExcludeItem(btn);
         }
+        m_framelessHelper->addExcludeItem(m_windCtrlBtnFrame);
         
         m_windCtrlBtnFrame->setLayout(frameLayout);
     }

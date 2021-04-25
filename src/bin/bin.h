@@ -471,6 +471,8 @@ protected:
     void contextMenuEvent(QContextMenuEvent *event) override;
     bool eventFilter(QObject *obj, QEvent *event) override;
     QSize sizeHint() const override;
+    void mousePressEvent(QMouseEvent*) override;
+    void mouseMoveEvent(QMouseEvent*) override;
 
 private:
     std::shared_ptr<ProjectItemModel> m_itemModel;
