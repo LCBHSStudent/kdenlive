@@ -16,5 +16,6 @@ set(kdenlive_SRCS
   widgets/timelinetoolbar.cpp
   widgets/projectsettingswidget.cpp
   widgets/menubareventpasser.cpp
+  widgets/clipmonitorframe.cpp
   PARENT_SCOPE
 )

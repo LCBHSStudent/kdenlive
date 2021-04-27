@@ -473,6 +473,7 @@ protected:
     QSize sizeHint() const override;
     void mousePressEvent(QMouseEvent*) override;
     void mouseMoveEvent(QMouseEvent*) override;
+    void resizeEvent(QResizeEvent*) override;
 
 private:
     std::shared_ptr<ProjectItemModel> m_itemModel;

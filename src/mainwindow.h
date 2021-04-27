@@ -61,6 +61,7 @@ class TimelineContainer;
 class Transition;
 class CustomMenu;
 class FramelessHelper;
+class ClipMonitorFrame;
 class ProjectMonitorFrame;
 class CustomEditorToolBar;
 
@@ -146,6 +147,10 @@ public:
     void showKeyBinding(const QString &text = QString());
     /** @brief Override for QWidget::setWindowModified(void) */
     void setWindowModified(bool isModified = true);
+    /** @brief get project monitor frame */
+    ProjectMonitorFrame* projectMonitorFrame() const { return m_projectMonitorFrame; }    
+    /** @brief get clip monitor frame */
+    ClipMonitorFrame* clipMonitorFrame() const { return m_clipMonitorFrame; }
     
 protected:
     /** @brief Closes the window.
@@ -185,6 +190,7 @@ private:
 
     Monitor *m_projectMonitor{nullptr};
     
+    ClipMonitorFrame* m_clipMonitorFrame = nullptr;
     ProjectMonitorFrame* m_projectMonitorFrame = nullptr;
     CustomEditorToolBar* m_editorToolBar = nullptr;
 

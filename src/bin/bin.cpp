@@ -90,21 +90,25 @@ class BinItemDelegate : public QStyledItemDelegate
 public:
     explicit BinItemDelegate(QObject *parent = nullptr)
         : QStyledItemDelegate(parent)
-
     {
         connect(this, &QStyledItemDelegate::closeEditor, [&]() { m_editorOpen = false; });
     }
-    void setEditorData(QWidget *w, const QModelIndex &i) const override
-    {
+    
+    void setEditorData(QWidget* w, const QModelIndex& i) const override {
         if (!m_editorOpen) {
             QStyledItemDelegate::setEditorData(w, i);
             m_editorOpen = true;
         }
     }
-    bool editorEvent(QEvent *event, QAbstractItemModel *model, const QStyleOptionViewItem &option, const QModelIndex &index) override
-    {
+    
+    bool editorEvent(
+        QEvent*                     event,
+        QAbstractItemModel*         model,
+        const QStyleOptionViewItem& option, 
+        const QModelIndex&          index
+    ) override {
         if (event->type() == QEvent::MouseButtonPress) {
-            auto *me = static_cast<QMouseEvent *>(event);
+            auto me = static_cast<QMouseEvent*>(event);
             if (index.column() == 0) {
                 if (m_audioDragRect.contains(me->pos())) {
                     dragType = PlaylistState::AudioOnly;
@@ -136,8 +140,12 @@ public:
         event->ignore();
         return false;
     }
-    void updateEditorGeometry(QWidget *editor, const QStyleOptionViewItem &option, const QModelIndex &index) const override
-    {
+    
+    void updateEditorGeometry(
+        QWidget*                    editor,
+        const QStyleOptionViewItem& option,
+        const QModelIndex&          index
+    ) const override {
         if (index.column() != 0) {
             QStyledItemDelegate::updateEditorGeometry(editor, option, index);
             return;
@@ -162,15 +170,19 @@ public:
         editor->setGeometry(r2);
     }
 
-    QSize sizeHint(const QStyleOptionViewItem &option, const QModelIndex &index) const override
-    {
+    QSize sizeHint(
+        const QStyleOptionViewItem& option,
+        const QModelIndex&          index
+    ) const override {
         QSize hint = QStyledItemDelegate::sizeHint(option, index);
         QString text = index.data(AbstractProjectItem::DataName).toString();
         QRectF r = option.rect;
         QFont ft = option.font;
-        ft.setBold(true);
+        ft.setBold(false);
+        
         QFontMetricsF fm(ft);
         QStyle *style = option.widget ? option.widget->style() : QApplication::style();
+        
         const int textMargin = style->pixelMetric(QStyle::PM_FocusFrameHMargin) + 1;
         int width = int(fm.boundingRect(r, Qt::AlignLeft | Qt::AlignTop, text).width() + option.decorationSize.width()) + 2 * textMargin;
         hint.setWidth(width);
@@ -193,8 +205,11 @@ public:
         return {qMax(textW, iconSize.width()) + 4, option.fontMetrics.lineSpacing() * 2 + 4};
     }
 
-    void paint(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &index) const override
-    {
+    void paint(
+        QPainter*                   painter,
+        const QStyleOptionViewItem& option,
+        const QModelIndex&          index
+    ) const override {
         if (index.column() == 0 && !index.data().isNull()) {
             QRect r1 = option.rect;
             painter->save();
@@ -207,6 +222,7 @@ public:
             // QRect r = QStyle::alignedRect(opt.direction, Qt::AlignVCenter | Qt::AlignLeft, opt.decorationSize, r1);
 
             style->drawPrimitive(QStyle::PE_PanelItemViewItem, &opt, painter, opt.widget);
+            
             if ((option.state & static_cast<int>(QStyle::State_Selected)) != 0) {
                 painter->setPen(option.palette.highlightedText().color());
             } else {
@@ -214,8 +230,8 @@ public:
             }
             QRect r = r1;
             QFont font = painter->font();
-            font.setBold(true);
             painter->setFont(font);
+            
             if (type == AbstractProjectItem::ClipItem || type == AbstractProjectItem::SubClipItem) {
                 int decoWidth = 0;
                 FileStatus::ClipStatus clipStatus = FileStatus::ClipStatus(index.data(AbstractProjectItem::ClipStatus).toInt());
@@ -371,10 +387,11 @@ public:
         }
     }
 
-    int getFrame(QModelIndex index, int mouseX)
-    {
+    int getFrame(QModelIndex index, int mouseX) {
         int type = index.data(AbstractProjectItem::ItemTypeRole).toInt();
-        if ((type != AbstractProjectItem::ClipItem && type != AbstractProjectItem::SubClipItem) || mouseX < m_thumbRect.x() || mouseX > m_thumbRect.right()) {
+        if ((type != AbstractProjectItem::ClipItem && type != AbstractProjectItem::SubClipItem) ||
+            mouseX < m_thumbRect.x() || mouseX > m_thumbRect.right()
+        ) {
             return 0;
         }
         return 100 * (mouseX - m_thumbRect.x()) / m_thumbRect.width();
@@ -600,10 +617,37 @@ MyTreeView::MyTreeView(QWidget *parent)
 {
     setEditing(false);
     setAcceptDrops(true);
+    setContentsMargins(0, 4, 0, 0);
+    
+    setStyleSheet(R"(
+        QTreeView {
+            spacing: 4px;
+            background-color: #2D2C39;
+            alternate-background-color: #2D2C39;
+        }
+
+        QTreeView::item {
+            height: 64px;
+            padding-left: 6px;
+            padding-right: 8px;    
+            border-radius: 6px;
+        }
+
+        QTreeView::item:hover {
+            background: #292833;
+            border: 2px solid #7781F4;
+        }
+
+        QTreeView::item:selected {
+            background: #292833;
+            border: 2px solid #7781F4;
+        }
+    )");
 }
 
-void MyTreeView::mousePressEvent(QMouseEvent *event)
-{
+void MyTreeView::mousePressEvent(QMouseEvent *event) {
+    LOG_DEBUG() << geometry() << mapToGlobal(pos());
+    
     QTreeView::mousePressEvent(event);
     
     if (event->button() == Qt::LeftButton) {
@@ -895,15 +939,14 @@ Bin::Bin(std::shared_ptr<ProjectItemModel> model, QWidget *parent)
     m_layout = new QVBoxLayout(this);
 
     setStyleSheet(R"(
-        QFrame {
+        Bin {
             background-color: #3E3D4C;
             border: 1px solid #7781F4;
             border-radius: 16px;
         }
-    )");    
+    )");
     
     setWindowFlags(Qt::FramelessWindowHint);
-    setAttribute(Qt::WA_TranslucentBackground);
     
     // Create toolbar for buttons
     m_toolbar = new QToolBar(this);
@@ -911,9 +954,9 @@ Bin::Bin(std::shared_ptr<ProjectItemModel> model, QWidget *parent)
     QSize iconSize(size, size);
     m_toolbar->setIconSize(iconSize);
     m_toolbar->setToolButtonStyle(Qt::ToolButtonIconOnly);
-#ifndef DEBUG_BUILD
+
     m_layout->addWidget(m_toolbar);
-#endif
+
     // Tags panel
     m_tagsWidget = new TagWidget(this);
     connect(m_tagsWidget, &TagWidget::switchTag, this, &Bin::switchTag);
@@ -923,7 +966,7 @@ Bin::Bin(std::shared_ptr<ProjectItemModel> model, QWidget *parent)
     m_tagsWidget->setVisible(false);
 
     m_layout->setSpacing(0);
-    m_layout->setContentsMargins(0, 0, 0, 0);
+    m_layout->setContentsMargins(10, 0, 10, 10);
     // Search line
     m_searchLine = new QLineEdit(this);
     m_searchLine->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Preferred);
@@ -1302,6 +1345,8 @@ Bin::Bin(std::shared_ptr<ProjectItemModel> model, QWidget *parent)
     se->setBlurRadius(6);
     se->setOffset(0, 6);
     setGraphicsEffect(se);
+    
+    setLayout(m_layout);
 }
 
 Bin::~Bin()
@@ -2959,24 +3004,24 @@ void Bin::setupMenu()
     )");
     QAction* action = nullptr;
     action = new QAction(i18n("预览"));
-    connect(action, &QAction::triggered, this, [this] {
-        m_propertiesPanel->setParent(nullptr);
-        m_propertiesPanel->show();
+    connect(action, &QAction::triggered, this, [] {
+        auto clipMonitor = reinterpret_cast<QWidget*>(pCore->window()->clipMonitorFrame());
+        clipMonitor->show();
+        pCore->monitorManager()->refreshClipMonitor(true);
     });
     m_menu->addAction(action);
     
     action = new QAction(i18n("插入"));
-    connect(action, &QAction::triggered, this, [this] {
-        m_propertiesPanel->setParent(nullptr);
-        m_propertiesPanel->show();
+    connect(action, &QAction::triggered, this, [] {
+
     });
     m_menu->addAction(action);
     
     action = new QAction(i18n("音频转文字"));
-    connect(action, &QAction::triggered, this, [this] {
-        m_propertiesPanel->setParent(nullptr);
-        m_propertiesPanel->show();
+    connect(action, &QAction::triggered, this, [] {
+        
     });
+    action->setEnabled(false);
     m_menu->addAction(action);
     
     action = new QAction(i18n("重命名"));
@@ -4601,3 +4646,7 @@ void Bin::requestTranscoding(const QString &url, const QString &id)
 
 #include "symbols.h"
 IMPLEMENT_RESIZEHELPER_RB(Bin, QFrame)
+
+void Bin::resizeEvent(QResizeEvent* e) {
+    QFrame::resizeEvent(e);
+}

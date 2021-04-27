@@ -81,6 +81,7 @@
 #include "widgets/timelinetoolbar.h"
 #include "widgets/projectsettingswidget.h"
 #include "widgets/menubareventpasser.h"
+#include "widgets/clipmonitorframe.h"
 #include <config-kdenlive.h>
 #include "dialogs/textbasededit.h"
 #include "project/dialogs/temporarydata.h"
@@ -337,7 +338,6 @@ void MainWindow::init(const QString &mltPath)
             getCurrentTimeline()->controller()->setTargetTracks(hasVideo, audioStreams);
         }
     );
-    m_clipMonitor->hide();
 
     // TODO deprecated, replace with Bin methods if necessary
     /*connect(m_projectList, SIGNAL(loadingIsOver()), this, SLOT(slotElapsedTime()));
@@ -347,7 +347,8 @@ void MainWindow::init(const QString &mltPath)
     connect(m_clipMonitor, SIGNAL(zoneUpdated(QPoint)), m_projectList, SLOT(slotUpdateClipCut(QPoint)));*/
 
     connect(m_clipMonitor, &Monitor::passKeyPress, this, &MainWindow::triggerKey);
-
+    m_clipMonitorFrame = new ClipMonitorFrame(m_clipMonitor, this);    
+    
     m_projectMonitor = new Monitor(Kdenlive::ProjectMonitor, pCore->monitorManager(), this);
     connect(m_projectMonitor, &Monitor::passKeyPress, this, &MainWindow::triggerKey);
     connect(m_projectMonitor, &Monitor::addMarker, this, &MainWindow::slotAddMarkerGuideQuickly);
