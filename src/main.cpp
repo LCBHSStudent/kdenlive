@@ -99,10 +99,10 @@ int main(int argc, char *argv[])
     configWin->sync();
 #endif
     QApplication app(argc, argv);
-    app.setApplicationName(QStringLiteral("kdenlive"));
-    app.setOrganizationDomain(QStringLiteral("kde.org"));
-    app.setWindowIcon(QIcon(QStringLiteral(":/pics/kdenlive.png")));
-    KLocalizedString::setApplicationDomain("kdenlive");
+    app.setApplicationName(QStringLiteral("SmartIP-Editor"));
+    app.setOrganizationDomain(QStringLiteral("maixun.org"));
+    app.setWindowIcon(QIcon(QStringLiteral(":/classic/smartip_icon_490.png")));
+    KLocalizedString::setApplicationDomain("SmartIP-Editor");
 
     QPixmap pixmap(":/pics/splash-background.png");
     qApp->processEvents(QEventLoop::AllEvents);
@@ -119,7 +119,7 @@ int main(int argc, char *argv[])
 #endif
 #if defined(Q_OS_WIN) || defined (Q_OS_MACOS)
     const QStringList themes {"/icons/breeze/breeze-icons.rcc", "/icons/breeze-dark/breeze-icons-dark.rcc"};
-    for(const QString theme : themes ) {
+    for(const QString& theme : themes ) {
         const QString themePath = QStandardPaths::locate(QStandardPaths::AppDataLocation, theme);
         if (!themePath.isEmpty()) {
             const QString iconSubdir = theme.left(theme.lastIndexOf('/'));

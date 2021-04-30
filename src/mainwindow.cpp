@@ -438,7 +438,7 @@ void MainWindow::init(const QString &mltPath)
     
     auto projectBin = pCore->bin();
     
-    projectBin->move(20, 100);
+    projectBin->move(20, 87);
     projectBin->setParent(this);
     projectBin->setMinimumSize(314, 433);
     // projectBin->setAttribute(Qt::WA_AlwaysStackOnTop, true);
@@ -4494,22 +4494,15 @@ void MainWindow::setupMenuBar() {
     
     // create left top icon-text label
     {
-        auto ltLabel = new QWidget(menuBar);
-        ltLabel->setFixedSize(__ltLabelWidth, __menuBarHeight);
-        
         auto iconLabel = new QLabel(menuBar);
         iconLabel->setPixmap(QPixmap(":/classic/smartip_icon_14.png"));
         
         auto textLabel = new QLabel(menuBar);
-        textLabel->setText(i18n("NAME"));
-        textLabel->setStyleSheet(R"(QLabel { color: #E6FFFFFF; font-size: 14px; font-family: "Microsoft YaHei"; })");
+        textLabel->setText(i18n("SmartIP"));
+        textLabel->setStyleSheet(R"(QLabel { color: #E6FFFFFF; font-size: 14px; font-family: "Microsoft YaHei"; font-weight: 400; })");
         
-        auto ltLabelLayout = new QHBoxLayout(ltLabel);
-        ltLabelLayout->addWidget(iconLabel, Qt::AlignVCenter);
-        ltLabelLayout->addWidget(textLabel, Qt::AlignVCenter);
-        ltLabelLayout->setContentsMargins(24, 0, 31, 0);
-        ltLabel->setLayout(ltLabelLayout);
-        ltLabel->move(0, 0);
+        iconLabel->move(24, 15);
+        textLabel->move(44, 12);
     }
     
     
