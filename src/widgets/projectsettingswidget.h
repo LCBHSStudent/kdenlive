@@ -16,7 +16,7 @@ private slots:
     void confirmSettings();
     
 private:
-    QSettings m_projSettings = {};
+    QSettings m_projSettings;
 
 };
 

@@ -83,7 +83,8 @@ CustomEditorToolBar::CustomEditorToolBar(QWidget* parent)
 
         QPushButton:checked {
             background-color: #3E3D4C;
-            border-radius: 5px;
+            border-radius: 0px;
+            border: 0px;
         }
     )");
     connect(

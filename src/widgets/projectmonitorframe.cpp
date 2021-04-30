@@ -47,10 +47,10 @@ void ProjectMonitorFrame::resizeEvent(QResizeEvent*) {
 }
 
 void ProjectMonitorFrame::paintEvent(QPaintEvent*) {
-    static QLinearGradient shadowGrad(0, 0, 0, 6);
+    static QLinearGradient shadowGrad(0, 0, 0, 5);
     static std::once_flag initGrad;
     std::call_once(initGrad, []{
-        shadowGrad.setColorAt(0, QColor(0, 0, 0, 130));
+        shadowGrad.setColorAt(0, QColor(0, 0, 0, 85));
         shadowGrad.setColorAt(1, Qt::transparent);   
     });
     
