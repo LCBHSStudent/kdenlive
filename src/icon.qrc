@@ -59,8 +59,6 @@
         <file alias="/components/transition/vertical_waterfall.png">../data/icon/components/transition/vertical_waterfall.png</file>
         <file alias="/components/transition/vertically_close.png">../data/icon/components/transition/vertically_close.png</file>
         <file alias="/components/transition/vertically_erase.png">../data/icon/components/transition/vertically_erase.png</file>
-        <file alias="/components/headerbar_mode_edit.png">../data/icon/components/headerbar_mode_edit.png</file>
-        <file alias="/components/headerbar_mode_medialib.png">../data/icon/components/headerbar_mode_medialib.png</file>
         <file alias="/components/icon_bilibili.png">../data/icon/components/icon_bilibili.png</file>
         <file alias="/components/icon_fire.png">../data/icon/components/icon_fire.png</file>
         <file alias="/components/media_type_audio.png">../data/icon/components/media_type_audio.png</file>
