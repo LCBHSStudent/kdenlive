@@ -621,33 +621,76 @@ MyTreeView::MyTreeView(QWidget *parent)
     
     setStyleSheet(R"(
         QTreeView {
-            spacing: 4px;
             background-color: #2D2C39;
             alternate-background-color: #2D2C39;
+            border: 0px;
         }
 
         QTreeView::item {
             height: 64px;
-            padding-left: 6px;
-            padding-right: 8px;    
-            border-radius: 6px;
+            margin-bottom: 3px;
+            padding-left: 1px;
+            padding-right: 5px;
+            border-radius: 0px;
         }
 
         QTreeView::item:hover {
-            background: #292833;
-            border: 2px solid #7781F4;
+            background: #402D8CF0;
+            border: 0px;
         }
 
         QTreeView::item:selected {
-            background: #292833;
-            border: 2px solid #7781F4;
+            background: #402D8CF0;
+            border: 0px;
+        }
+
+        QTreeView {
+            show-decoration-selected: 1;
+        }
+    )");
+    
+    setRootIsDecorated(false);
+//    QTreeView::branch:has-children:!has-siblings:closed,
+//    QTreeView::branch:closed:has-children:has-siblings  {
+//        width: 0px;
+//        image: none;
+//        border-image: none;
+//    }
+
+//    QTreeView::branch:open:has-children:!has-siblings,
+//    QTreeView::branch:open:has-children:has-siblings  {
+//        width: 0px;
+//        image: none;
+//        border-image: none;
+//    }
+    
+    verticalScrollBar()->setStyleSheet(R"(
+        QScrollBar:vertical {
+            width: 4px;
+            background-color: #5E5D6E;
+            padding-top: 1px;
+            padding-bottom: 1px;
+            border: 0px;
+        }
+        QScrollBar:handle:vertical {
+            border: 0px;
+            background: #B9BAC9;
+        }
+        QScrollBar::add-line:vertical {
+            border: 0px;
+            background: transparent;
+        }
+        QScrollBar::sub-line:vertical {
+            border: 0px;
+            background: transparent;
+        }
+        QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
+            background: none;
         }
     )");
 }
 
-void MyTreeView::mousePressEvent(QMouseEvent *event) {
-    LOG_DEBUG() << geometry() << mapToGlobal(pos());
-    
+void MyTreeView::mousePressEvent(QMouseEvent *event) {    
     QTreeView::mousePressEvent(event);
     
     if (event->button() == Qt::LeftButton) {
@@ -941,8 +984,7 @@ Bin::Bin(std::shared_ptr<ProjectItemModel> model, QWidget *parent)
     setStyleSheet(R"(
         Bin {
             background-color: #3E3D4C;
-            border: 1px solid #7781F4;
-            border-radius: 16px;
+            border: 0px;
         }
     )");
     
@@ -965,8 +1007,8 @@ Bin::Bin(std::shared_ptr<ProjectItemModel> model, QWidget *parent)
     m_layout->addWidget(m_tagsWidget);
     m_tagsWidget->setVisible(false);
 
-    m_layout->setSpacing(0);
-    m_layout->setContentsMargins(10, 0, 10, 10);
+    m_layout->setSpacing(9);
+    m_layout->setContentsMargins(10, 14, 10, 18);
     // Search line
     m_searchLine = new QLineEdit(this);
     m_searchLine->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Preferred);
@@ -1162,6 +1204,7 @@ Bin::Bin(std::shared_ptr<ProjectItemModel> model, QWidget *parent)
     m_tagAction = new QAction(QIcon::fromTheme(QStringLiteral("tag")), i18n("Tags Panel"), this);
     m_tagAction->setCheckable(true);
     m_toolbar->addAction(m_tagAction);
+    
     connect(m_tagAction, &QAction::triggered, this, [&] (bool triggered) {
        if (triggered) {
            m_tagsWidget->setVisible(true);
@@ -1271,9 +1314,6 @@ Bin::Bin(std::shared_ptr<ProjectItemModel> model, QWidget *parent)
         m_proxyModel->slotSetFilters(tagFilters, rateFilters, typeFilters, usedFilter);
     });
 
-    m_tagAction->setCheckable(true);
-    m_toolbar->addAction(m_tagAction);
-
     auto *button = new QToolButton;
     button->setIcon(QIcon::fromTheme(QStringLiteral("kdenlive-menu")));
     button->setToolTip(i18n("Options"));
@@ -1343,8 +1383,254 @@ Bin::Bin(std::shared_ptr<ProjectItemModel> model, QWidget *parent)
     auto se = new QGraphicsDropShadowEffect(this);
     se->setColor(QColor(0, 0, 0, 51));
     se->setBlurRadius(6);
-    se->setOffset(0, 6);
+    se->setOffset(3, 6);
     setGraphicsEffect(se);
+    
+    m_toolbar->clear();
+    auto autoPlayNext = new QCheckBox(m_toolbar);
+    autoPlayNext->setText(i18n("自动播放"));
+    autoPlayNext->setStyleSheet(R"(
+        QCheckBox {
+            font-size: 12px;
+            font-family: "Microsoft YaHei";
+            spacing: 5px;
+            color: #FFFFFF;
+        }
+        QCheckBox::indicator {
+            width: 20px;
+            height: 20px;
+        }
+        QCheckBox::indicator:enabled:unchecked {
+            image: url(:/classic/controllers/checkbox_border_unchecked.png);
+        }
+        QCheckBox::indicator:enabled:checked {
+            image: url(:/classic/controllers/checkbox_border_checked.png);
+        }
+    )");
+    m_toolbar->addWidget(autoPlayNext);
+    
+    auto spacerWidget = new QWidget(m_toolbar);
+    spacerWidget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
+    m_toolbar->addWidget(spacerWidget);
+    
+    const char* btnQSS = R"(
+        QPushButton {
+            background-color: transparent;
+            border-width: 0px;
+            border-color: transparent;
+            border-radius: 0px;
+        }
+        QPushButton::hover {
+            background-color: #AA33323F;
+        }
+        QPushButton::checked {
+            background-color: #33323F;
+        }
+        QPushButton::menu-indicator {
+            image:none;
+        }
+    )";
+    auto sortProxyBtn = new QPushButton(m_toolbar);
+    auto filterProxyBtn = new QPushButton(m_toolbar);
+    auto displaySearchBarBtn = new QPushButton(m_toolbar);
+    
+    auto sortProxyBtnMenu = new QMenu(this);
+    auto filterProxyBtnMenu = new QMenu(this);
+    
+    const char* topLevelMenuQSS = R"(
+        QMenu {
+            padding: 0px;
+            font-family: 'Microsoft YaHei';
+            font-size: 12px;
+            color: #FFFFFF;
+            background-color: #3E3D4C;
+        }
+
+        QMenu::item {
+            padding-left: 12px;
+            padding-top: 7px;
+            padding-bottom: 7px;
+            padding-right: 33px;
+        }
+
+        QMenu::item:selected {
+            background-color: #33323F;
+        }
+
+        QMenu::right-arrow {
+            image: url(:/classic/controllers/indicator-rightarrow.png); 
+            padding: 11px;
+        }
+    )";
+    const char* checkGroupMenuQSS = R"(
+        QMenu {
+            padding: 0px;
+            font-family: 'Microsoft YaHei';
+            font-size: 12px;
+            color: #FFFFFF;
+            background-color: #3E3D4C;
+        }
+        QMenu::item:selected {
+            background-color: #33323F;
+        }
+        QMenu::item {
+            padding-top: 7px;
+            padding-left: 0px;
+            padding-right: 22px;
+            padding-bottom: 7px;
+        }
+        QMenu::indicator { 
+            padding-left: 11px;
+            padding-right: 9px; 
+            width:  4px;
+            height: 4px;
+        } 
+        QMenu::indicator:unchecked {
+            image: none;
+        } 
+        QMenu::indicator:checked { 
+            image:url(:/classic/controllers/indicator-dot-white.png);
+        }
+    )";   
+    
+    sortProxyBtnMenu->setStyleSheet(checkGroupMenuQSS);
+    MOVE_MENU_ABOUT2SHOW(sortProxyBtnMenu, __customMenuLeftMargin, 3);
+    {
+        auto sortTypeGroup = new QActionGroup(this);
+        
+        auto action = new QAction(i18n("名称"), this);
+        action->setData(0);
+        action->setCheckable(true);
+        sortProxyBtnMenu->addAction(action);
+        sortTypeGroup->addAction(action);
+        
+        action = new QAction(i18n("名称"), this);
+        action->setData(0);
+        action->setCheckable(true);
+        sortProxyBtnMenu->addAction(action);
+        sortTypeGroup->addAction(action);   
+    
+        sortTypeGroup->actions().at(0)->setChecked(true);
+    }
+    
+    filterProxyBtnMenu->setStyleSheet(topLevelMenuQSS);
+    MOVE_MENU_ABOUT2SHOW(filterProxyBtnMenu, __customMenuLeftMargin, 17);
+    
+    auto assetStatus = new QMenu(i18n("购买情况"));
+    {
+        MOVE_MENU_ABOUT2SHOW(assetStatus, __customMenuLeftMargin, 0);
+        assetStatus->setStyleSheet(checkGroupMenuQSS);
+        
+        auto typeFilterGroup = new QActionGroup(this);
+        typeFilterGroup->setExclusive(true);
+    
+        auto action = new QAction(i18n("全部"), this);
+        action->setData(0);
+        action->setCheckable(true);
+        assetStatus->addAction(action);
+        typeFilterGroup->addAction(action);
+        
+        action = new QAction(i18n("已购"), this);
+        action->setData(1);
+        action->setCheckable(true);
+        assetStatus->addAction(action);
+        typeFilterGroup->addAction(action);
+
+        action = new QAction(i18n("未购"), this);
+        action->setData(2);
+        action->setCheckable(true);
+        assetStatus->addAction(action);
+        typeFilterGroup->addAction(action);
+        
+        // 默认勾选 <全部> 选项
+        typeFilterGroup->actions().at(0)->setChecked(true);
+    }
+    
+    auto resourceType = new QMenu(i18n("类别"));
+    {
+        MOVE_MENU_ABOUT2SHOW(resourceType, __customMenuLeftMargin, 0);
+        resourceType->setStyleSheet(checkGroupMenuQSS);
+        
+        auto typeFilterGroup = new QActionGroup(this);
+        typeFilterGroup->setExclusive(true);
+    
+        auto action = new QAction(i18n("全部"), this);
+        action->setData(0);
+        action->setCheckable(true);
+        resourceType->addAction(action);
+        typeFilterGroup->addAction(action);
+        
+        action = new QAction(i18n("视频"), this);
+        action->setData(1);
+        action->setCheckable(true);
+        resourceType->addAction(action);
+        typeFilterGroup->addAction(action);
+
+        action = new QAction(i18n("图片"), this);
+        action->setData(2);
+        action->setCheckable(true);
+        resourceType->addAction(action);
+        typeFilterGroup->addAction(action);
+        
+        action = new QAction(i18n("音频"), this);
+        action->setData(3);
+        action->setCheckable(true);
+        resourceType->addAction(action);
+        typeFilterGroup->addAction(action);
+        
+        // 默认勾选 <全部> 选项
+        typeFilterGroup->actions().at(0)->setChecked(true);
+    }
+    
+    filterProxyBtnMenu->addMenu(assetStatus);
+    filterProxyBtnMenu->addMenu(resourceType);
+    
+    struct __btnInfo {
+        bool            checkable;
+        int             size;
+        const char*     pIcon;
+        QMenu*          pMenu;
+        QPushButton*    pBtn;
+    };
+    
+    std::array<__btnInfo, 3> btns = {
+        __btnInfo {
+            .checkable  = false,
+            .size       = 18,
+            .pIcon       = "ico_magnifier_18",
+            .pMenu      = nullptr,
+            .pBtn       = displaySearchBarBtn
+        },
+        __btnInfo {
+            .checkable  = true,
+            .size       = 24,
+            .pIcon       = "btn_filter_24",
+            .pMenu      = filterProxyBtnMenu,
+            .pBtn       = filterProxyBtn
+        },
+        __btnInfo {
+            .checkable  = true,
+            .size       = 24,
+            .pIcon       = "btn_sort_24",
+            .pMenu      = sortProxyBtnMenu,
+            .pBtn       = sortProxyBtn
+        }
+    };
+    
+    for (auto& btn: btns) {
+        btn.pBtn->setCheckable(btn.checkable);
+        btn.pBtn->setIcon(QIcon(":/classic/controllers/" + QString(btn.pIcon) + ".png"));
+        btn.pBtn->setFixedSize(btn.size, btn.size);
+        if (btn.pMenu != nullptr) {
+            btn.pBtn->setMenu(btn.pMenu);
+        }
+        btn.pBtn->setStyleSheet(btnQSS);
+        btn.pBtn->setIconSize(btn.pBtn->size());
+        
+        m_toolbar->addWidget(btn.pBtn);
+    }
+    
+    
     
     setLayout(m_layout);
 }
@@ -2962,10 +3248,12 @@ void Bin::setupMenu()
     m_upAction = KStandardAction::up(this, SLOT(slotBack()), pCore->window()->actionCollection());
 
     // Setup actions
-    QAction *first = m_toolbar->actions().at(0);
-    m_toolbar->insertAction(first, m_deleteAction);
-    m_toolbar->insertAction(m_deleteAction, createFolder);
-    m_toolbar->insertAction(createFolder, m_upAction);
+//    QAction *first = m_toolbar->actions().at(0);
+    
+    
+//    m_toolbar->insertAction(first, m_deleteAction);
+//    m_toolbar->insertAction(m_deleteAction, createFolder);
+//    m_toolbar->insertAction(createFolder, m_upAction);
 
     auto *m = new QMenu(this);
     m->addActions(addClipMenu->actions());
@@ -2973,7 +3261,8 @@ void Bin::setupMenu()
     m_addButton->setMenu(m);
     m_addButton->setDefaultAction(addClip);
     m_addButton->setPopupMode(QToolButton::MenuButtonPopup);
-    m_toolbar->insertWidget(m_upAction, m_addButton);
+//    m_toolbar->insertWidget(m_upAction, m_addButton);
+    m_addButton->hide();
     
     // ----------------------- CUSTOMIZED EDITOR MENU ----------------------- //
     
