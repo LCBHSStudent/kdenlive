@@ -108,7 +108,7 @@ int main(int argc, char *argv[])
     qApp->processEvents(QEventLoop::AllEvents);
     Splash splash(pixmap);
     qApp->processEvents(QEventLoop::AllEvents);
-    splash.showMessage(i18n("Version %1", QString(KDENLIVE_VERSION)), Qt::AlignRight | Qt::AlignBottom, Qt::white);
+    splash.showMessage(i18n("Version %1", QString(SMARTIP_EDITOR_VERSION)), Qt::AlignRight | Qt::AlignBottom, Qt::white);
     splash.show();
     qApp->processEvents(QEventLoop::AllEvents);
 
@@ -168,7 +168,8 @@ int main(int argc, char *argv[])
     qApp->processEvents(QEventLoop::AllEvents);
 
     // Create KAboutData
-    KAboutData aboutData(QByteArray("kdenlive"), i18n("Kdenlive"), KDENLIVE_VERSION, i18n("An open source video editor."), KAboutLicense::GPL,
+    // arg2是window title中附加的小尾巴
+    KAboutData aboutData(QByteArray("kdenlive"), i18n("SmartIP Editor"), SMARTIP_EDITOR_VERSION, i18n("An open source video editor."), KAboutLicense::GPL,
                          i18n("Copyright © 2007–2021 Kdenlive authors"), i18n("Please report bugs to https://bugs.kde.org"),
                          QStringLiteral("https://kdenlive.org"));
     // main developers (alphabetical)

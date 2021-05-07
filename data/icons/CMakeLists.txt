@@ -64,13 +64,13 @@ ecm_install_icons(ICONS
   32-mimetypes-application-x-kdenlivetitle.png
   48-actions-kdenlive-select-all.png
   64-actions-kdenlive-select-all.png
-  16-apps-kdenlive.png
-  22-apps-kdenlive.png
-  32-apps-kdenlive.png
-  48-apps-kdenlive.png
-  64-apps-kdenlive.png
-  128-apps-kdenlive.png
-  256-apps-kdenlive.png
+  16-apps-smartip.png
+  22-apps-smartip.png
+  32-apps-smartip.png
+  48-apps-smartip.png
+  64-apps-smartip.png
+  128-apps-smartip.png
+  256-apps-smartip.png
   sc-apps-kdenlive.svgz
   64-mimetypes-application-x-kdenlivetitle.png
   sc-actions-kdenlive-align-bottom.svgz

@@ -92,16 +92,16 @@ target_link_libraries(kdenliveLib Qt::WinExtras)
 
 qt5_add_resources(kdenlive_extra_SRCS icons.qrc uiresources.qrc icon.qrc)
 ## Icon for Windows and OSX
-file(GLOB ICONS_SRCS "${CMAKE_CURRENT_SOURCE_DIR}/../data/icons/*-apps-kdenlive.png")
-ecm_add_app_icon(kdenlive ICONS ${ICONS_SRCS}) # icon name = variable name
-add_executable(kdenlive main.cpp ${kdenlive_extra_SRCS} ${kdenlive})
-target_include_directories(kdenlive
+file(GLOB ICONS_SRCS "${CMAKE_CURRENT_SOURCE_DIR}/../data/icons/*-apps-smartip.png")
+ecm_add_app_icon(SmartIP-Editor ICONS ${ICONS_SRCS}) # icon name = variable name
+add_executable(SmartIP-Editor main.cpp ${kdenlive_extra_SRCS} ${SmartIP-Editor})
+target_include_directories(SmartIP-Editor
     PRIVATE ${CMAKE_BINARY_DIR}
     )
-target_include_directories(kdenlive
+target_include_directories(SmartIP-Editor
 	SYSTEM PRIVATE ${MLT_INCLUDE_DIR} ${MLTPP_INCLUDE_DIR})
-target_link_libraries(kdenlive kdenliveLib)
-install(TARGETS kdenlive DESTINATION ${BIN_INSTALL_DIR})
+target_link_libraries(SmartIP-Editor kdenliveLib)
+install(TARGETS SmartIP-Editor DESTINATION ${BIN_INSTALL_DIR})
 
 install(FILES kdenliveui.rc DESTINATION ${KXMLGUI_INSTALL_DIR}/kdenlive)
 
@@ -167,12 +167,12 @@ if(CRASH_AUTO_TEST)
 endif()
 
 if(DRMINGW_FOUND)
-    target_compile_definitions(kdenlive PRIVATE -DUSE_DRMINGW)
-    target_include_directories(kdenlive SYSTEM PRIVATE ${DRMINGW_INCLUDE_DIR})
-    target_link_libraries(kdenlive ${DRMINGW_LIBRARY})
+    target_compile_definitions(SmartIP-Editor PRIVATE -DUSE_DRMINGW)
+    target_include_directories(SmartIP-Editor SYSTEM PRIVATE ${DRMINGW_INCLUDE_DIR})
+    target_link_libraries(SmartIP-Editor ${DRMINGW_LIBRARY})
 elseif(KF5Crash_FOUND)
-    target_compile_definitions(kdenlive PRIVATE -DKF5_USE_CRASH)
-    target_link_libraries(kdenlive KF5::Crash)
+    target_compile_definitions(SmartIP-Editor PRIVATE -DKF5_USE_CRASH)
+    target_link_libraries(SmartIP-Editor KF5::Crash)
 endif()
 
 if(KF5_FILEMETADATA)
@@ -212,8 +212,8 @@ target_link_libraries(kdenliveLib DbgHelp)
 if (BUILD_QCH)
     ecm_add_qch(
         Kdenlive_QCH
-        NAME kdenlive
-        VERSION ${KDENLIVE_VERSION}
+        NAME SmartIP-Editor
+        VERSION ${SMARTIP_EDITOR_VERSION}
         ORG_DOMAIN org.kde
         SOURCE_DIRS
             .

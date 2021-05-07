@@ -139,7 +139,7 @@ constexpr auto __windowCtrlBtnWidth = 54;
 constexpr auto __ltLabelWidth = 118;
 constexpr auto __menuTabWidth = 48;
 
-static const char version[] = KDENLIVE_VERSION;
+static const char version[] = SMARTIP_EDITOR_VERSION;
 namespace Mlt {
 class Producer;
 }
@@ -4461,6 +4461,19 @@ void MainWindow::setupMenuBar() {
             btn->setFixedSize(__windowCtrlBtnWidth, __menuBarHeight - 1);
             btn->setIcon(QIcon(":/classic/controllers/window_"+ ctrlBtnIcons[i] +".png"));
             btn->setStyleSheet(btnQSS);
+            if (i == ctrlBtnGroup.size() - 1) {
+                btn->setStyleSheet(R"(
+                    QPushButton {
+                        background-color: #FF2D2C39;
+                        border-width: 0px;
+                        border-color: transparent;
+                        border-radius: 0px;
+                    }
+                    QPushButton::hover {
+                        background-color: #FF0000;
+                    })"
+                );
+            }
             
             frameLayout->addWidget(btn, Qt::AlignLeft | Qt::AlignTop);
             

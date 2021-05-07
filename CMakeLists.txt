@@ -4,13 +4,13 @@ cmake_minimum_required(VERSION 3.0)
 # stable release. An additional number can be used for bugfix-only releases.
 
 # KDE Application Version, managed by release script
-set (RELEASE_SERVICE_VERSION_MAJOR "21")
-set (RELEASE_SERVICE_VERSION_MINOR "07")
-set (RELEASE_SERVICE_VERSION_MICRO "70")
+set (RELEASE_SERVICE_VERSION_MAJOR "0")
+set (RELEASE_SERVICE_VERSION_MINOR "0")
+set (RELEASE_SERVICE_VERSION_MICRO "1")
 
-set(KDENLIVE_VERSION "${RELEASE_SERVICE_VERSION_MAJOR}.${RELEASE_SERVICE_VERSION_MINOR}.${RELEASE_SERVICE_VERSION_MICRO}")
+set(SMARTIP_EDITOR_VERSION "${RELEASE_SERVICE_VERSION_MAJOR}.${RELEASE_SERVICE_VERSION_MINOR}.${RELEASE_SERVICE_VERSION_MICRO}")
 
-project(Kdenlive VERSION ${KDENLIVE_VERSION})
+project(SmartIP-Editor VERSION ${SMARTIP_EDITOR_VERSION})
 
 if(POLICY CMP0063)
   cmake_policy(SET CMP0063 NEW)
@@ -102,7 +102,7 @@ if(KF5DocTools_FOUND)
 endif()
 
 # Get current version.
-set(KDENLIVE_VERSION_STRING "${KDENLIVE_VERSION}")
+set(SMARTIP_EDITOR_VERSION_STRING "${SMARTIP_EDITOR_VERSION}")
 if(NOT RELEASE_BUILD AND EXISTS ${CMAKE_SOURCE_DIR}/.git)
   # Probably a Git workspace; determine the revision.
   find_package(Git QUIET)
@@ -111,7 +111,7 @@ if(NOT RELEASE_BUILD AND EXISTS ${CMAKE_SOURCE_DIR}/.git)
 	  ARGS "log -n 1 --pretty=format:\"%h\""
       OUTPUT_VARIABLE KDENLIVE_GIT_REVISION)
     message(STATUS "Kdenlive Git revision: ${KDENLIVE_GIT_REVISION}")
-    set(KDENLIVE_VERSION_STRING "${KDENLIVE_VERSION} (rev. ${KDENLIVE_GIT_REVISION})")
+    set(SMARTIP_EDITOR_VERSION_STRING "${SMARTIP_EDITOR_VERSION} (rev. ${KDENLIVE_GIT_REVISION})")
   else()
     message(STATUS "Kdenlive Git revision could not be determined")
   endif()

@@ -79,12 +79,12 @@ CustomEditorToolBar::CustomEditorToolBar(QWidget* parent)
             background-color: transparent;
             font-size: 12px;
             font-family: "Microsoft YaHei";
+            border-radius: 0px;
+            border: 0px;
         }
 
         QPushButton:checked {
             background-color: #3E3D4C;
-            border-radius: 0px;
-            border: 0px;
         }
     )");
     connect(

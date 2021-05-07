@@ -62,7 +62,7 @@ const int mltVersionMajor = MLT_MIN_MAJOR_VERSION;
 const int mltVersionMinor = MLT_MIN_MINOR_VERSION;
 const int mltVersionRevision = MLT_MIN_PATCH_VERSION;
 
-static const char kdenlive_version[] = KDENLIVE_VERSION;
+static const char smartip_editor_version[] = SMARTIP_EDITOR_VERSION;
 
 static QStringList acodecsList;
 static QStringList vcodecsList;
@@ -88,14 +88,14 @@ Wizard::Wizard(bool autoClose, bool appImageCheck, QWidget *parent)
     , m_systemCheckIsOk(false)
     , m_brokenModule(false)
 {
-    setWindowTitle(i18n("Welcome to Kdenlive"));
+    setWindowTitle(i18n("欢迎使用 SmartIP-Editor"));
     int logoHeight = int(fontMetrics().height() * 2.5);
     setWizardStyle(QWizard::ModernStyle);
     setOption(QWizard::NoBackButtonOnLastPage, true);
     // setOption(QWizard::ExtendedWatermarkPixmap, false);
     m_page = new MyWizardPage(this);
-    m_page->setTitle(i18n("Welcome to Kdenlive %1", QString(kdenlive_version)));
-    m_page->setSubTitle(i18n("Using MLT %1", mlt_version_get_string()));
+    m_page->setTitle(i18n("欢迎使用 SmartIP-Editor v%1", QString(smartip_editor_version)));
+    m_page->setSubTitle(i18n("配置 MLT 版本 %1", mlt_version_get_string()));
     setPixmap(QWizard::LogoPixmap, QIcon::fromTheme(QStringLiteral(":/pics/kdenlive.png")).pixmap(logoHeight, logoHeight));
     m_startLayout = new QVBoxLayout;
     m_errorWidget = new KMessageWidget(this);

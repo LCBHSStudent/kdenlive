@@ -1285,7 +1285,7 @@ void KdenliveDoc::slotProxyCurrentItem(bool doProxy, QList<std::shared_ptr<Proje
 QMap<QString, QString> KdenliveDoc::documentProperties()
 {
     m_documentProperties.insert(QStringLiteral("version"), QString::number(DOCUMENTVERSION));
-    m_documentProperties.insert(QStringLiteral("kdenliveversion"), QStringLiteral(KDENLIVE_VERSION));
+    m_documentProperties.insert(QStringLiteral("kdenliveversion"), QStringLiteral(SMARTIP_EDITOR_VERSION));
     if (!m_projectFolder.isEmpty()) {
         m_documentProperties.insert(QStringLiteral("storagefolder"),
                                     m_projectFolder + QLatin1Char('/') + m_documentProperties.value(QStringLiteral("documentid")));
