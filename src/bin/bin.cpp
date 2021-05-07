@@ -245,7 +245,7 @@ public:
                     QPixmap pix = opt.icon.pixmap(opt.icon.actualSize(QSize(82, 46)));
                     if (!pix.isNull()) {
                         // Draw icon
-                        decoWidth += 82 + textMargin + 15;
+                        decoWidth += 82 + textMargin + 15 + r1.x();
                         r.setWidth(r.height() * pix.width() / pix.height());
                         
                         painter->drawPixmap(r, pix, QRect(0, 0, pix.width(), pix.height()));
@@ -371,17 +371,22 @@ public:
                     }
                 }
             } else {
-                // Folder
+                // 绘制文件夹
                 int decoWidth = 0;
                 if (opt.decorationSize.height() > 0) {
-                    r.setWidth(int(r.height() * pCore->getCurrentDar()));
-                    QPixmap pix = opt.icon.pixmap(opt.icon.actualSize(r.size()));
-                    // Draw icon
-                    decoWidth += r.width() + style->pixelMetric(QStyle::PM_FocusFrameHMargin) + 1;
-                    r.setWidth(r.height() * pix.width() / pix.height());
-                    painter->drawPixmap(r, pix, QRect(0, 0, pix.width(), pix.height()));
+                    int height = opt.rect.height() * 0.9;
+                    int dx = 15;
+                    int dy = opt.rect.height() * 0.05;
+                    
+                    opt.icon.paint(
+                        painter, 
+                        QRect(
+                            dx, dy, height, height
+                        )
+                    );
+                    decoWidth += height + dx + 5;
+                    r1.adjust(decoWidth, dy, 0, 0);
                 }
-                r1.adjust(decoWidth, 0, 0, 0);
                 QRectF bounding;
                 painter->drawText(r1, Qt::AlignLeft | Qt::AlignTop, index.data(AbstractProjectItem::DataName).toString(), &bounding);
             }
