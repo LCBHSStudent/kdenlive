@@ -1495,14 +1495,14 @@ void KdenliveDoc::switchProfile(std::unique_ptr<ProfileParam> &profile, const QS
         connect(ac, &QAction::triggered, this, [this, profilePath]() { this->slotSwitchProfile(profilePath, true); });
         QAction *ac2 = new QAction(QIcon::fromTheme(QStringLiteral("dialog-cancel")), i18n("Cancel"), this);
         list << ac << ac2;
-        pCore->displayBinMessage(i18n("Switch to clip profile %1?", profile->descriptiveString()), KMessageWidget::Information, list, false, BinMessage::BinCategory::ProfileMessage);
+        pCore->displayBinMessage(i18n("切换到剪辑预设模式 %1?", profile->descriptiveString()), KMessageWidget::Information, list, false, BinMessage::BinCategory::ProfileMessage);
     } else {
         // No known profile, ask user if he wants to use clip profile anyway
         if (qFuzzyCompare(double(profile->m_frame_rate_num) / profile->m_frame_rate_den, fps)) {
-            adjustMessage = i18n("\nProfile fps adjusted from original %1", QString::number(fps, 'f', 4));
+            adjustMessage = i18n("\n预设帧率调整至 %1", QString::number(fps, 'f', 4));
         }
         if (KMessageBox::warningContinueCancel(QApplication::activeWindow(),
-                                               i18n("No profile found for your clip.\nCreate and switch to new profile (%1x%2, %3fps)?%4", profile->m_width,
+                                               i18n("您添加的剪辑数据没有对应的预设模式\n创建并切换到新的预设模式吗? (%1x%2, %3fps)%4", profile->m_width,
                                                     profile->m_height, QString::number(double(profile->m_frame_rate_num) / profile->m_frame_rate_den, 'f', 2),
                                                     adjustMessage)) == KMessageBox::Continue) {
             profile->m_description = QStringLiteral("%1x%2 %3fps")

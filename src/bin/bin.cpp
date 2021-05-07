@@ -204,7 +204,7 @@ public:
         QSize iconSize = icon.actualSize(option.decorationSize);
         return {qMax(textW, iconSize.width()) + 4, option.fontMetrics.lineSpacing() * 2 + 4};
     }
-
+    
     void paint(
         QPainter*                   painter,
         const QStyleOptionViewItem& option,
@@ -216,9 +216,10 @@ public:
             painter->setClipRect(r1);
             QStyleOptionViewItem opt(option);
             initStyleOption(&opt, index);
+            
             int type = index.data(AbstractProjectItem::ItemTypeRole).toInt();
             QStyle *style = opt.widget ? opt.widget->style() : QApplication::style();
-            const int textMargin = style->pixelMetric(QStyle::PM_FocusFrameHMargin) + 1;
+            const int textMargin = 5;
             // QRect r = QStyle::alignedRect(opt.direction, Qt::AlignVCenter | Qt::AlignLeft, opt.decorationSize, r1);
 
             style->drawPrimitive(QStyle::PE_PanelItemViewItem, &opt, painter, opt.widget);
@@ -237,24 +238,25 @@ public:
                 FileStatus::ClipStatus clipStatus = FileStatus::ClipStatus(index.data(AbstractProjectItem::ClipStatus).toInt());
                 if (opt.decorationSize.height() > 0) {
                     r.setWidth(int(r.height() * pCore->getCurrentDar()));
-                    QPixmap pix = opt.icon.pixmap(opt.icon.actualSize(r.size()));
+                    
+                    QPixmap pix = opt.icon.pixmap(opt.icon.actualSize(QSize(82, 46)));
                     if (!pix.isNull()) {
                         // Draw icon
-                        decoWidth += r.width() + textMargin;
+                        decoWidth += 82 + textMargin + 15;
                         r.setWidth(r.height() * pix.width() / pix.height());
-                        painter->drawPixmap(r, pix, QRect(0, 0, pix.width(), pix.height()));
+                        painter->drawPixmap(15, 10, pix);
                     }
-                    m_thumbRect = r;
+                    m_thumbRect = QRect(15, 10, 82, 46);
                 }
                 // Draw frame in case of missing source
                 int cType = index.data(AbstractProjectItem::ClipType).toInt();
                 if (clipStatus == FileStatus::StatusMissing || clipStatus == FileStatus::StatusProxyOnly) {
                     painter->save();
-                    painter->setPen(QPen(clipStatus == FileStatus::StatusProxyOnly ? Qt::yellow : Qt::red, 3));
+                    painter->setPen(QPen(clipStatus == FileStatus::StatusProxyOnly ? Qt::yellow : Qt::red, 1));
                     painter->drawRect(m_thumbRect.adjusted(0, 0, -1, -1));
                     painter->restore();
-                } else if (cType == ClipType::Image || cType == ClipType::SlideShow) {
-                    // Draw 'photo' frame to identify image clips
+                } /*else if (cType == ClipType::Image || cType == ClipType::SlideShow) {
+                    // 绘制相片框
                     painter->save();
                     int penWidth = m_thumbRect.height() / 14;
                     penWidth += penWidth % 2;
@@ -264,17 +266,24 @@ public:
                     painter->setPen(QPen(Qt::black, 1));
                     painter->drawRoundedRect(m_thumbRect.adjusted(0, 0, -1, -1), 4, 4);
                     painter->restore();
-                }
-                int mid = int((r1.height() / 2));
-                r1.adjust(decoWidth, 0, 0, -mid);
-                QRect r2 = option.rect;
-                r2.adjust(decoWidth, mid, 0, 0);
+                }*/
+                
+                // 绘制文字
                 QRectF bounding;
-                painter->drawText(r1, Qt::AlignLeft | Qt::AlignTop, index.data(AbstractProjectItem::DataName).toString(), &bounding);
-                font.setBold(false);
-                painter->setFont(font);
+                
+                painter->drawText(
+                    QRect(decoWidth, 9, r1.width() - decoWidth, 34), Qt::AlignLeft | Qt::AlignTop,
+                    opt.fontMetrics.elidedText(
+                        index.data(AbstractProjectItem::DataName).toString(),
+                        Qt::ElideRight, r1.width() - decoWidth - 6
+                    ), &bounding
+                );
+                
                 QString subText = index.data(AbstractProjectItem::DataDuration).toString();
                 QString tags = index.data(AbstractProjectItem::DataTag).toString();
+                
+                LOG_DEBUG() << subText << tags << index.data(AbstractProjectItem::DataName);
+                
                 if (!tags.isEmpty()) {
                     QStringList t = tags.split(QLatin1Char(';'));
                     QRectF tagRect = m_thumbRect.adjusted(2, 2, 0, 2);
@@ -287,16 +296,20 @@ public:
                     }
                 }
                 if (!subText.isEmpty()) {
-                    r2.adjust(0, int(bounding.bottom() - r2.top()), 0, 0);
                     QColor subTextColor = painter->pen().color();
-                    subTextColor.setAlphaF(.5);
+                    subTextColor.setAlphaF(0.9);
                     painter->setPen(subTextColor);
                     // Draw usage counter
                     int usage = index.data(AbstractProjectItem::UsageCount).toInt();
                     if (usage > 0) {
                         subText.append(QString::asprintf(" [%d]", usage));
                     }
-                    painter->drawText(r2, Qt::AlignLeft | Qt::AlignTop, subText, &bounding);
+                    painter->drawText(
+                        QRect(decoWidth, 41, r1.width() - decoWidth, 16),
+                        Qt::AlignLeft | Qt::AlignTop, 
+                        subText,
+                        &bounding
+                    );
                     // Add audio/video icons for selective drag
                     bool hasAudioAndVideo = index.data(AbstractProjectItem::ClipHasAudioAndVideo).toBool();
                     if (hasAudioAndVideo && (cType == ClipType::AV || cType == ClipType::Playlist) && (opt.state & QStyle::State_MouseOver)) {
@@ -350,7 +363,7 @@ public:
                     bool jobsucceeded = index.data(AbstractProjectItem::JobSuccess).toBool();
                     if (!jobsucceeded) {
                         QIcon warning = QIcon::fromTheme(QStringLiteral("process-stop"));
-                        warning.paint(painter, r2);
+                        warning.paint(painter, QRect(decoWidth, 41, r.width() - decoWidth, 16));
                     }
                 }
             } else {
@@ -1504,8 +1517,8 @@ Bin::Bin(std::shared_ptr<ProjectItemModel> model, QWidget *parent)
         sortProxyBtnMenu->addAction(action);
         sortTypeGroup->addAction(action);
         
-        action = new QAction(i18n("名称"), this);
-        action->setData(0);
+        action = new QAction(i18n("时长"), this);
+        action->setData(1);
         action->setCheckable(true);
         sortProxyBtnMenu->addAction(action);
         sortTypeGroup->addAction(action);   
@@ -1860,10 +1873,10 @@ void Bin::slotDeleteClip()
         usedFolder = usedFolder || item->childCount() > 0;
         items.push_back(item);
     }
-    if (included && (KMessageBox::warningContinueCancel(this, i18n("This will delete all selected clips from the timeline")) != KMessageBox::Continue)) {
+    if (included && (KMessageBox::warningContinueCancel(this, i18n("此操作将删除时间线上所有使用此素材的剪辑")) != KMessageBox::Continue)) {
         return;
     }
-    if (usedFolder && (KMessageBox::warningContinueCancel(this, i18n("This will delete all folder content")) != KMessageBox::Continue)) {
+    if (usedFolder && (KMessageBox::warningContinueCancel(this, i18n("此操作将删除文件夹内的所有内容及相关剪辑")) != KMessageBox::Continue)) {
         return;
     }
     Fun undo = []() { return true; };
@@ -1967,12 +1980,12 @@ void Bin::slotReplaceClip()
                     if (replacementProd->is_valid()) {
                         int replacementDuration = replacementProd->get_length();
                         if (replacementDuration < currentDuration) {
-                            if (KMessageBox::warningContinueCancel(this, i18n("You are replacing a clip with a shorter one, this might cause issues in timeline.\nReplacement is %1 frames shorter.", (currentDuration - replacementDuration))) != KMessageBox::Continue) {
+                            if (KMessageBox::warningContinueCancel(this, i18n("您正在使用更短的剪辑素材进行替换, 这也许会导致项目故障\n替换的素材 %1 短于原素材", (currentDuration - replacementDuration))) != KMessageBox::Continue) {
                                 continue;
                             }
                         }
                     } else {
-                        KMessageBox::sorry(this, i18n("The selected file %1 is invalid.", fileName));
+                        KMessageBox::sorry(this, i18n("选择的文件 %1 不可用", fileName));
                         continue;
                     }
                 }
@@ -2005,7 +2018,7 @@ void Bin::slotLocateClip()
                 qCDebug(KDENLIVE_LOG) << "  / / " + url.toString();
             } else {
                 if (!exists) {
-                    pCore->displayMessage(i18n("Could not locate %1", url.toString()), MessageType::ErrorMessage, 300);
+                    pCore->displayMessage(i18n("无法定位文件 %1", url.toString()), MessageType::ErrorMessage, 300);
                 }
                 return;
             }
@@ -3270,13 +3283,13 @@ void Bin::setupMenu()
     m_menu->clear();
     m_menu->setStyleSheet(R"(
         QMenu::item {
-            padding-top: 7px;
-            padding-left: 30px;
-            padding-right: 30px;
-            padding-bottom: 8px;
+            padding-top: 9px;
+            padding-left: 31px;
+            padding-right: 40px;
+            padding-bottom: 9px;
         }
         QMenu::item:selected {
-            background-color: #997781F4;
+            background-color: #992D8CF0;
         }
         QMenu::separator { 
             height: 1px; 
@@ -3285,7 +3298,7 @@ void Bin::setupMenu()
             margin-right: 5px; 
         } 
         QMenu{
-            font-family: "Microsoft YaHei"; 
+            font-family: 'Microsoft YaHei'; 
             font-size: 12px; 
             background-color: #3E3D4C;
             padding: 0px;

@@ -221,9 +221,9 @@ const QString ClipCreator::createClipsFromList(const QList<QUrl> &list, bool che
     QScopedPointer<QProgressDialog> progressDialog;
     if (topLevel) {
         progressDialog.reset(new QProgressDialog(pCore->window()));
-        progressDialog->setWindowTitle(i18n("Loading clips"));
+        progressDialog->setWindowTitle(i18n("加载项目资源"));
         progressDialog->setCancelButton(nullptr);
-        progressDialog->setLabelText(i18n("Importing bin clips..."));
+        progressDialog->setLabelText(i18n("正在加载项目资源库..."));
         progressDialog->setMaximum(0);
         progressDialog->show();
         progressDialog->repaint();

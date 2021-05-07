@@ -1004,7 +1004,7 @@ void ProjectItemModel::loadBinPlaylist(Mlt::Tractor *documentTractor, Mlt::Tract
         if (playlist.is_valid() && playlist.type() == playlist_type) {
             if (progressDialog == nullptr && playlist.count() > 0) {
                 // Display message on splash screen
-                emit pCore->loadingMessageUpdated(i18n("Loading project clips..."));
+                emit pCore->loadingMessageUpdated(i18n("正在加载项目资源库..."));
             }
             // Load folders
             Mlt::Properties folderProperties;

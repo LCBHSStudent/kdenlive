@@ -69,7 +69,8 @@
 //#include "utils/resourcewidget_old.h" //TODO
 #include "utils/thememanager.h"
 #include "utils/otioconvertions.h"
-#include "utils/framelesshelper/framelesshelper.h"
+#include "utils/framelesshelper/FramelessHelper.h"
+#include "utils/thumbnailcache.hpp"
 #include "lib/localeHandling.h"
 #include "profiles/profilerepository.hpp"
 #include "widgets/progressbutton.h"
@@ -5006,9 +5007,16 @@ void MainWindow::setupMenuBar() {
     
 // DO NOTHING IN MACOS
 #endif
+        m_settingMenu->addMenu(lang);
+        m_settingMenu->addMenu(theme);
+        m_settingMenu->addMenu(displayMethod);
+        m_settingMenu->addSeparator();
         
+        auto programData = new QAction(i18n("程序数据"), m_settingMenu);
+        programData->setFont(settingLabelFont);
+        programData->setDisabled(true);
+        m_settingMenu->addAction(programData);
         
-
         auto programDataDir = new CustomMenu(i18n("程序数据目录"));
         programDataDir->setTitle(i18n("程序数据目录"));
         auto __setting = new QAction(i18n("设定..."), programDataDir);
@@ -5016,11 +5024,13 @@ void MainWindow::setupMenuBar() {
         programDataDir->addAction(__setting);
         programDataDir->addAction(__display);
         MOVE_MENU_ABOUT2SHOW(programDataDir, __customMenuLeftMargin, 0);
-
-        m_settingMenu->addMenu(lang);
-        m_settingMenu->addMenu(theme);
-        m_settingMenu->addMenu(displayMethod);
         m_settingMenu->addMenu(programDataDir);
+        
+        auto clearThumbnailCache = new QAction(i18n("清除缩略图缓存"));
+        connect(clearThumbnailCache, &QAction::triggered, this, [] {
+            ThumbnailCache::get()->clearCache();
+        }, Qt::QueuedConnection);
+        m_settingMenu->addAction(clearThumbnailCache);
 
         auto clearHistoryWhileExiting = new QAction(tr("退出时清除最近打开历史"), m_settingMenu);
         clearHistoryWhileExiting->setCheckable(true);
@@ -5111,9 +5121,14 @@ void MainWindow::resizeEvent(QResizeEvent*) {
 void MainWindow::setWindowModified(bool isModified) {
     QWidget::setWindowModified(isModified);
     
-    auto&&  title = windowTitle();
-    auto    index = title.lastIndexOf('[');
-    title = title.mid(0, index);
+    auto title = "项目 " + windowTitle();
+    auto index = title.lastIndexOf(".sip");
+    if (index == -1) {
+        index = title.lastIndexOf('[');
+        title = title.mid(3, index - 3);
+    } else {
+        title = title.mid(0, index);        
+    }
     
     if (isModified) {
         m_editorToolBar->setDocumentString(title + " - " + i18n("已修改"));        
