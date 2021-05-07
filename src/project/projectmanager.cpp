@@ -246,9 +246,9 @@ bool ProjectManager::closeCurrentDocument(bool saveChanges, bool quit)
     if ((m_project != nullptr) && m_project->isModified() && saveChanges) {
         QString message;
         if (m_project->url().fileName().isEmpty()) {
-            message = i18n("Save changes to document?");
+            message = i18n("保存当前编辑到新项目？");
         } else {
-            message = i18n("The project <b>\"%1\"</b> has been changed.\nDo you want to save your changes?", m_project->url().fileName());
+            message = i18n("当前项目尚未保存，是否保存更改？", m_project->url().fileName());
         }
 
         switch (KMessageBox::warningYesNoCancel(pCore->window(), message)) {

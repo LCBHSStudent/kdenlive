@@ -229,7 +229,10 @@ public:
             } else {
                 painter->setPen(option.palette.text().color());
             }
+            
             QRect r = r1;
+            r.adjust(15, 10, -8, -11);
+            
             QFont font = painter->font();
             painter->setFont(font);
             
@@ -244,9 +247,10 @@ public:
                         // Draw icon
                         decoWidth += 82 + textMargin + 15;
                         r.setWidth(r.height() * pix.width() / pix.height());
-                        painter->drawPixmap(15, 10, pix);
+                        
+                        painter->drawPixmap(r, pix, QRect(0, 0, pix.width(), pix.height()));
                     }
-                    m_thumbRect = QRect(15, 10, 82, 46);
+                    m_thumbRect = r;
                 }
                 // Draw frame in case of missing source
                 int cType = index.data(AbstractProjectItem::ClipType).toInt();
@@ -272,7 +276,7 @@ public:
                 QRectF bounding;
                 
                 painter->drawText(
-                    QRect(decoWidth, 9, r1.width() - decoWidth, 34), Qt::AlignLeft | Qt::AlignTop,
+                    QRect(decoWidth, 9 + r1.y(), r1.width() - decoWidth, 34), Qt::AlignLeft | Qt::AlignTop,
                     opt.fontMetrics.elidedText(
                         index.data(AbstractProjectItem::DataName).toString(),
                         Qt::ElideRight, r1.width() - decoWidth - 6
@@ -281,8 +285,6 @@ public:
                 
                 QString subText = index.data(AbstractProjectItem::DataDuration).toString();
                 QString tags = index.data(AbstractProjectItem::DataTag).toString();
-                
-                LOG_DEBUG() << subText << tags << index.data(AbstractProjectItem::DataName);
                 
                 if (!tags.isEmpty()) {
                     QStringList t = tags.split(QLatin1Char(';'));
@@ -305,7 +307,7 @@ public:
                         subText.append(QString::asprintf(" [%d]", usage));
                     }
                     painter->drawText(
-                        QRect(decoWidth, 41, r1.width() - decoWidth, 16),
+                        QRect(decoWidth, 41 + r1.y(), r1.width() - decoWidth, 16),
                         Qt::AlignLeft | Qt::AlignTop, 
                         subText,
                         &bounding
@@ -313,8 +315,10 @@ public:
                     // Add audio/video icons for selective drag
                     bool hasAudioAndVideo = index.data(AbstractProjectItem::ClipHasAudioAndVideo).toBool();
                     if (hasAudioAndVideo && (cType == ClipType::AV || cType == ClipType::Playlist) && (opt.state & QStyle::State_MouseOver)) {
-                        bounding.moveLeft(bounding.right() + (2 * textMargin));
-                        bounding.adjust(0, textMargin, 0, -textMargin);
+                        auto margin = style->pixelMetric(QStyle::PM_FocusFrameHMargin) + 1;
+                        
+                        bounding.moveLeft(bounding.right() + (2 * margin));
+                        bounding.adjust(0, margin, 0, -margin);
                         QIcon aDrag = QIcon::fromTheme(QStringLiteral("audio-volume-medium"));
                         m_audioDragRect = bounding.toRect();
                         m_audioDragRect.setWidth(m_audioDragRect.height());
@@ -341,11 +345,11 @@ public:
                     auto status = index.data(AbstractProjectItem::JobStatus).value<JobManagerStatus>();
                     if (status == JobManagerStatus::Pending || status == JobManagerStatus::Running) {
                         // Draw job progress bar
-                        int progressWidth = option.fontMetrics.averageCharWidth() * 8;
+                        int progressWidth = m_thumbRect.width();
                         int progressHeight = option.fontMetrics.ascent() / 4;
-                        QRect progress(r1.x() + 1, opt.rect.bottom() - progressHeight - 2, progressWidth, progressHeight);
+                        QRect progress(m_thumbRect.left(), m_thumbRect.bottom(), progressWidth, progressHeight);
                         painter->setPen(Qt::NoPen);
-                        painter->setBrush(Qt::darkGray);
+                        painter->setBrush(QColor(45, 140, 240));
                         if (status == JobManagerStatus::Running) {
                             painter->drawRoundedRect(progress, 2, 2);
                             painter->setBrush((option.state & static_cast<int>((QStyle::State_Selected) != 0)) != 0 ? option.palette.text()
@@ -363,7 +367,7 @@ public:
                     bool jobsucceeded = index.data(AbstractProjectItem::JobSuccess).toBool();
                     if (!jobsucceeded) {
                         QIcon warning = QIcon::fromTheme(QStringLiteral("process-stop"));
-                        warning.paint(painter, QRect(decoWidth, 41, r.width() - decoWidth, 16));
+                        warning.paint(painter, QRect(decoWidth, 41 + r1.y(), r.width() - decoWidth, 16));
                     }
                 }
             } else {
@@ -373,7 +377,7 @@ public:
                     r.setWidth(int(r.height() * pCore->getCurrentDar()));
                     QPixmap pix = opt.icon.pixmap(opt.icon.actualSize(r.size()));
                     // Draw icon
-                    decoWidth += r.width() + textMargin;
+                    decoWidth += r.width() + style->pixelMetric(QStyle::PM_FocusFrameHMargin) + 1;
                     r.setWidth(r.height() * pix.width() / pix.height());
                     painter->drawPixmap(r, pix, QRect(0, 0, pix.width(), pix.height()));
                 }
