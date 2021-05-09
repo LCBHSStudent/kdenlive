@@ -82,43 +82,34 @@ void ProjectItemModel::buildPlaylist()
     m_binPlaylist.reset(new BinPlaylist());
 }
 
-int ProjectItemModel::mapToColumn(int column) const
-{
+int ProjectItemModel::mapToColumn(int column) const {
     switch (column) {
     case 0:
         return AbstractProjectItem::DataName;
-        break;
     case 1:
         return AbstractProjectItem::DataDate;
-        break;
     case 2:
         return AbstractProjectItem::DataDescription;
-        break;
     case 3:
         return AbstractProjectItem::ClipType;
-        break;
     case 4:
         return AbstractProjectItem::DataTag;
-        break;
     case 5:
         return AbstractProjectItem::DataDuration;
-        break;
     case 6:
         return AbstractProjectItem::DataId;
-        break;
     case 7:
         return AbstractProjectItem::DataRating;
-        break;
     case 8:
         return AbstractProjectItem::UsageCount;
-        break;
+    case 9:
+        return AbstractProjectItem::AssetStatus;
     default:
         return AbstractProjectItem::DataName;
     }
 }
 
-QVariant ProjectItemModel::data(const QModelIndex &index, int role) const
-{
+QVariant ProjectItemModel::data(const QModelIndex &index, int role) const {
     READ_LOCK();
     if (!index.isValid()) {
         return QVariant();

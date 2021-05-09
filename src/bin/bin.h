@@ -524,11 +524,10 @@ private:
     SmallJobLabel *m_infoLabel;
     TagWidget *m_tagsWidget;
     ClipWidget *m_clipWidget;
-    QMenu *m_filterMenu;
-    QActionGroup m_filterGroup;
-    QActionGroup m_filterRateGroup;
-    QActionGroup m_filterTypeGroup;
-    QToolButton *m_filterButton;
+    QActionGroup* m_filterTypeGroup;
+    QActionGroup* m_filterAssetGroup;
+    QWidget* m_toolbarSpacer;
+    
     /** @brief The info widget for failed jobs. */
     KMessageWidget *m_infoMessage;
     BinMessage::BinCategory m_currentMessage;

@@ -248,7 +248,11 @@ public:
                         decoWidth += 82 + textMargin + 15 + r1.x();
                         r.setWidth(r.height() * pix.width() / pix.height());
                         
-                        painter->drawPixmap(r, pix, QRect(0, 0, pix.width(), pix.height()));
+                        painter->drawPixmap(
+                            QRect(r.x(), r.y(), 82, 46),
+                            pix,
+                            QRect(0, 0, pix.width(), pix.height())
+                        );
                     }
                     m_thumbRect = r;
                 }
@@ -992,9 +996,8 @@ Bin::Bin(std::shared_ptr<ProjectItemModel> model, QWidget *parent)
     , m_propertiesPanel(nullptr)
     , m_blankThumb()
     , m_clipWidget()
-    , m_filterGroup(this)
-    , m_filterRateGroup(this)
-    , m_filterTypeGroup(this)
+    , m_filterTypeGroup(new QActionGroup(this))
+    , m_filterAssetGroup(new QActionGroup(this))
     , m_invalidClipDialog(nullptr)
     , m_transcodingDialog(nullptr)
     , m_gainedFocus(false)
@@ -1032,8 +1035,7 @@ Bin::Bin(std::shared_ptr<ProjectItemModel> model, QWidget *parent)
     m_layout->setSpacing(9);
     m_layout->setContentsMargins(10, 14, 10, 18);
     // Search line
-    m_searchLine = new QLineEdit(this);
-    m_searchLine->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Preferred);
+    m_searchLine = new QLineEdit(m_toolbar);
     m_searchLine->setFont(QFontDatabase::systemFont(QFontDatabase::SmallestReadableFont));
     // m_searchLine->setClearButtonEnabled(true);
     m_searchLine->setPlaceholderText(i18n("Search..."));
@@ -1109,7 +1111,7 @@ Bin::Bin(std::shared_ptr<ProjectItemModel> model, QWidget *parent)
     pCore->window()->actionCollection()->addAction(QStringLiteral("bin_view_mode_icon"), iconViewAction);
 
     // Sort menu
-    m_sortDescend = new QAction(i18n("Descending"), this);
+    m_sortDescend = new QAction(i18n("降序"), this);
     m_sortDescend->setCheckable(true);
     m_sortDescend->setChecked(KdenliveSettings::binSorting() > 99);
     connect(m_sortDescend, &QAction::triggered, this, [&] () {
@@ -1235,58 +1237,13 @@ Bin::Bin(std::shared_ptr<ProjectItemModel> model, QWidget *parent)
        }
     });
 
-    // Filter menu
-    m_filterGroup.setExclusive(false);
-    m_filterMenu = new QMenu(i18n("Filter"), this);
-    m_filterButton = new QToolButton;
-    m_filterButton->setCheckable(true);
-    m_filterButton->setPopupMode(QToolButton::MenuButtonPopup);
-    m_filterButton->setIcon(QIcon::fromTheme(QStringLiteral("view-filter")));
-    m_filterButton->setToolTip(i18n("Filter"));
-    m_filterButton->setFont(QFontDatabase::systemFont(QFontDatabase::SmallestReadableFont));
-    m_filterButton->setMenu(m_filterMenu);
-
-    connect(m_filterButton, &QToolButton::toggled, this, [this] (bool toggle) {
-        if (!toggle) {
-            m_proxyModel->slotClearSearchFilters();
-            return;
-        }
-        QList<QAction *> list = m_filterMenu->actions();
-        int rateFilters = 0;
-        int typeFilters = 0;
-        bool usedFilter = false;
-        QStringList tagFilters;
-        for (QAction *ac : qAsConst(list)) {
-            if (ac->isChecked()) {
-                QString actionData = ac->data().toString();
-                if (actionData == QLatin1String("unused")) {
-                    usedFilter = true;
-                } else if (actionData.startsWith(QLatin1Char('#'))) {
-                    // Filter by tag
-                    tagFilters << actionData;
-                } else if (actionData.startsWith(QLatin1Char('.'))) {
-                    // Filter by rating
-                    rateFilters = actionData.remove(0, 1).toInt();
-                }
-            }
-        }
-        // Type actions
-        list = m_filterTypeGroup.actions();
-        for (QAction *ac : qAsConst(list)) {
-            if (ac->isChecked()) {
-                typeFilters = ac->data().toInt();
-                break;
-            }
-        }
-        QSignalBlocker bkt(m_filterButton);
-        if (rateFilters > 0 || !tagFilters.isEmpty() ||typeFilters > 0) {
-            m_filterButton->setChecked(true);
-        } else {
-            m_filterButton->setChecked(false);
-        }
-        m_proxyModel->slotSetFilters(tagFilters, rateFilters, typeFilters, usedFilter);
-    });
-
+    // filter group
+    m_filterTypeGroup->setExclusive(true);
+    m_filterAssetGroup->setExclusive(true);
+    
+    
+/*
+ * 原有的附带tag的过滤设定代码
     connect(m_filterMenu, &QMenu::triggered, this, [this](QAction *action) {
         if (action->data().toString().isEmpty()) {
             // Clear filters action
@@ -1335,6 +1292,7 @@ Bin::Bin(std::shared_ptr<ProjectItemModel> model, QWidget *parent)
         }
         m_proxyModel->slotSetFilters(tagFilters, rateFilters, typeFilters, usedFilter);
     });
+*/
 
     auto *button = new QToolButton;
     button->setIcon(QIcon::fromTheme(QStringLiteral("kdenlive-menu")));
@@ -1376,13 +1334,9 @@ Bin::Bin(std::shared_ptr<ProjectItemModel> model, QWidget *parent)
     });
 
     // Hack, create toolbar spacer
-    QWidget *spacer = new QWidget();
-    spacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-    m_toolbar->addWidget(spacer);
-
-    // Add filter and search line
-    m_toolbar->addWidget(m_filterButton);
-    m_toolbar->addWidget(m_searchLine);
+    m_toolbarSpacer = new QWidget;
+    m_toolbarSpacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+    m_toolbar->addWidget(m_toolbarSpacer);
 
     // connect(pCore->projectManager(), SIGNAL(projectOpened(Project*)), this, SLOT(setProject(Project*)));
     m_headerInfo = QByteArray::fromBase64(KdenliveSettings::treeviewheaders().toLatin1());
@@ -1409,6 +1363,17 @@ Bin::Bin(std::shared_ptr<ProjectItemModel> model, QWidget *parent)
     setGraphicsEffect(se);
     
     m_toolbar->clear();
+    m_searchLine->setVisible(false);
+    m_searchLine->setStyleSheet(R"(
+        QLineEdit {
+            border: 2px solid gray;
+            border-radius: 10px;
+            padding: 0 8px;
+            background: yellow;
+            selection-background-color: darkgray;
+        }
+    )");
+    
     auto autoPlayNext = new QCheckBox(m_toolbar);
     autoPlayNext->setText(i18n("自动播放"));
     autoPlayNext->setStyleSheet(R"(
@@ -1507,6 +1472,12 @@ Bin::Bin(std::shared_ptr<ProjectItemModel> model, QWidget *parent)
             width:  4px;
             height: 4px;
         } 
+        QMenu::separator { 
+            height: 1px; 
+            background: #2D2C39; 
+            margin-left: 5px; 
+            margin-right: 5px; 
+        }
         QMenu::indicator:unchecked {
             image: none;
         } 
@@ -1518,90 +1489,94 @@ Bin::Bin(std::shared_ptr<ProjectItemModel> model, QWidget *parent)
     sortProxyBtnMenu->setStyleSheet(checkGroupMenuQSS);
     MOVE_MENU_ABOUT2SHOW(sortProxyBtnMenu, __customMenuLeftMargin, 3);
     {
-        auto sortTypeGroup = new QActionGroup(this);
+        auto byName = m_sortGroup->actions().at(0);
+        byName->setText(i18n("名称"));
         
-        auto action = new QAction(i18n("名称"), this);
-        action->setData(0);
-        action->setCheckable(true);
-        sortProxyBtnMenu->addAction(action);
-        sortTypeGroup->addAction(action);
+        auto byDuration = m_sortGroup->actions().at(4);
+        byDuration->setText(i18n("时长"));
         
-        action = new QAction(i18n("时长"), this);
-        action->setData(1);
-        action->setCheckable(true);
-        sortProxyBtnMenu->addAction(action);
-        sortTypeGroup->addAction(action);   
-    
-        sortTypeGroup->actions().at(0)->setChecked(true);
+        auto byOrder = m_sortGroup->actions().at(5);
+        byOrder->setText(i18n("添加顺序"));
+        
+        sortProxyBtnMenu->addAction(byName);
+        sortProxyBtnMenu->addAction(byDuration);
+        sortProxyBtnMenu->addAction(byOrder);
+        sortProxyBtnMenu->addSeparator();
+        sortProxyBtnMenu->addAction(m_sortDescend);
     }
     
     filterProxyBtnMenu->setStyleSheet(topLevelMenuQSS);
     MOVE_MENU_ABOUT2SHOW(filterProxyBtnMenu, __customMenuLeftMargin, 17);
     
+    // 项目过滤：按照购买状态筛选
+    connect(
+        m_filterAssetGroup, &QActionGroup::triggered, this, [this](QAction* act) {
+            m_proxyModel->slotSetFilters(QStringList(), 0, m_filterTypeGroup->checkedAction()->data().toInt(), act->data().toInt(), false);
+        }
+    );
     auto assetStatus = new QMenu(i18n("购买情况"));
     {
         MOVE_MENU_ABOUT2SHOW(assetStatus, __customMenuLeftMargin, 0);
         assetStatus->setStyleSheet(checkGroupMenuQSS);
-        
-        auto typeFilterGroup = new QActionGroup(this);
-        typeFilterGroup->setExclusive(true);
     
         auto action = new QAction(i18n("全部"), this);
-        action->setData(0);
+        action->setData(AssetStatus::Unknown);
         action->setCheckable(true);
         assetStatus->addAction(action);
-        typeFilterGroup->addAction(action);
+        m_filterAssetGroup->addAction(action);
         
         action = new QAction(i18n("已购"), this);
-        action->setData(1);
+        action->setData(AssetStatus::Purchased);
         action->setCheckable(true);
         assetStatus->addAction(action);
-        typeFilterGroup->addAction(action);
+        m_filterAssetGroup->addAction(action);
 
         action = new QAction(i18n("未购"), this);
-        action->setData(2);
+        action->setData(AssetStatus::Unpurchased);
         action->setCheckable(true);
         assetStatus->addAction(action);
-        typeFilterGroup->addAction(action);
+        m_filterAssetGroup->addAction(action);
         
         // 默认勾选 <全部> 选项
-        typeFilterGroup->actions().at(0)->setChecked(true);
+        m_filterAssetGroup->actions().at(0)->setChecked(true);
     }
     
+    // 项目过滤：按照素材类型筛选
+    connect(
+        m_filterTypeGroup, &QActionGroup::triggered, this, [this](QAction* act) {
+            m_proxyModel->slotSetFilters(QStringList(), 0, act->data().toInt(), m_filterAssetGroup->checkedAction()->data().toInt(), false);
+        }
+    );
     auto resourceType = new QMenu(i18n("类别"));
     {
         MOVE_MENU_ABOUT2SHOW(resourceType, __customMenuLeftMargin, 0);
         resourceType->setStyleSheet(checkGroupMenuQSS);
         
-        auto typeFilterGroup = new QActionGroup(this);
-        typeFilterGroup->setExclusive(true);
-    
         auto action = new QAction(i18n("全部"), this);
-        action->setData(0);
         action->setCheckable(true);
         resourceType->addAction(action);
-        typeFilterGroup->addAction(action);
+        m_filterTypeGroup->addAction(action);
         
         action = new QAction(i18n("视频"), this);
-        action->setData(1);
+        action->setData(ClipType::AV);
         action->setCheckable(true);
         resourceType->addAction(action);
-        typeFilterGroup->addAction(action);
-
+        m_filterTypeGroup->addAction(action);
+        
         action = new QAction(i18n("图片"), this);
-        action->setData(2);
+        action->setData(ClipType::Image);
         action->setCheckable(true);
         resourceType->addAction(action);
-        typeFilterGroup->addAction(action);
+        m_filterTypeGroup->addAction(action);
         
         action = new QAction(i18n("音频"), this);
-        action->setData(3);
+        action->setData(ClipType::Audio);
         action->setCheckable(true);
         resourceType->addAction(action);
-        typeFilterGroup->addAction(action);
+        m_filterTypeGroup->addAction(action);
         
         // 默认勾选 <全部> 选项
-        typeFilterGroup->actions().at(0)->setChecked(true);
+        m_filterTypeGroup->actions().at(0)->setChecked(true);
     }
     
     filterProxyBtnMenu->addMenu(assetStatus);
@@ -1615,9 +1590,13 @@ Bin::Bin(std::shared_ptr<ProjectItemModel> model, QWidget *parent)
         QPushButton*    pBtn;
     };
     
+    connect(displaySearchBarBtn, &QPushButton::toggled, this, [this] (bool toggle) {
+        m_searchLine->setVisible(toggle);
+        m_searchLine->raise();
+    });
     std::array<__btnInfo, 3> btns = {
         __btnInfo {
-            .checkable  = false,
+            .checkable  = true,
             .size       = 18,
             .pIcon       = "ico_magnifier_18",
             .pMenu      = nullptr,
@@ -2120,10 +2099,7 @@ void Bin::setDocument(KdenliveDoc *project)
     if (m_proxyModel) {
         m_proxyModel->selectionModel()->blockSignals(false);
     }
-    // reset filtering
-    QSignalBlocker bk(m_filterButton);
-    m_filterButton->setChecked(false);
-    m_filterButton->setToolTip(i18n("Filter"));
+
     connect(m_proxyAction, SIGNAL(toggled(bool)), m_doc, SLOT(slotProxyCurrentItem(bool)));
 
     // connect(m_itemModel, SIGNAL(dataChanged(QModelIndex,QModelIndex)), m_itemView
@@ -2145,8 +2121,9 @@ void Bin::setDocument(KdenliveDoc *project)
     rebuildFilters(projectTags);
 }
 
-void Bin::rebuildFilters(QMap <QString, QString> tags)
-{
+void Bin::rebuildFilters(QMap <QString, QString> tags) {
+    (void) tags;
+/*
     m_filterMenu->clear();
     // Add tag filters
     QAction *clearFilter = new QAction(QIcon::fromTheme(QStringLiteral("edit-clear")), i18n("Clear filters"), this);
@@ -2218,6 +2195,7 @@ void Bin::rebuildFilters(QMap <QString, QString> tags)
     typeFilter->setData(ClipType::Color);
     typeFilter->setCheckable(true);
     typeMenu->addAction(typeFilter);
+*/
 }
 
 void Bin::createClip(const QDomElement &xml)
@@ -4960,4 +4938,6 @@ IMPLEMENT_RESIZEHELPER_RB(Bin, QFrame)
 
 void Bin::resizeEvent(QResizeEvent* e) {
     QFrame::resizeEvent(e);
+    m_searchLine->move(m_toolbarSpacer->x(), m_searchLine->y());
+    m_searchLine->resize(m_toolbarSpacer->width(), m_searchLine->height());
 }

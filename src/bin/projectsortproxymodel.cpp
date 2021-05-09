@@ -45,12 +45,18 @@ bool ProjectSortProxyModel::filterAcceptsRow(int sourceRow, const QModelIndex &s
     return hasAcceptedChildren(sourceRow, sourceParent);
 }
 
-bool ProjectSortProxyModel::filterAcceptsRowItself(int sourceRow, const QModelIndex &sourceParent) const
-{
+bool ProjectSortProxyModel::filterAcceptsRowItself(int sourceRow, const QModelIndex &sourceParent) const {
     if (m_unusedFilter) {
         // Column 8 contains the usage
         QModelIndex indexTag = sourceModel()->index(sourceRow, 8, sourceParent);
         if (sourceModel()->data(indexTag).toInt() > 0) {
+            return false;
+        }
+    }
+    if (m_searchAssetStatus > 0) {
+        // Column 9 contains asset status
+        QModelIndex indexTag = sourceModel()->index(sourceRow, 9, sourceParent);
+        if (sourceModel()->data(indexTag).toInt() != m_searchAssetStatus) {
             return false;
         }
     }
@@ -151,21 +157,27 @@ void ProjectSortProxyModel::slotSetSearchString(const QString &str)
     invalidateFilter();
 }
 
-void ProjectSortProxyModel::slotSetFilters(const QStringList tagFilters, const int rateFilters, const int typeFilters, bool unusedFilter)
-{
-    m_searchType = typeFilters;
-    m_searchRating = rateFilters;
-    m_searchTag = tagFilters;
-    m_unusedFilter = unusedFilter;
+void ProjectSortProxyModel::slotSetFilters(
+    const QStringList tagFilters,
+    const int rateFilters, 
+    const int typeFilters,
+    const int statusFilters,
+    bool unusedFilter
+) {
+    m_searchType        = typeFilters;
+    m_searchRating      = rateFilters;
+    m_searchTag         = tagFilters;
+    m_searchAssetStatus = statusFilters;
+    m_unusedFilter      = unusedFilter;
     invalidateFilter();
 }
 
-void ProjectSortProxyModel::slotClearSearchFilters()
-{
+void ProjectSortProxyModel::slotClearSearchFilters() {
     m_searchTag.clear();
-    m_searchRating = 0;
-    m_searchType = 0;
-    m_unusedFilter = false;
+    m_searchRating      = 0;
+    m_searchType        = 0;
+    m_searchAssetStatus = 0;
+    m_unusedFilter      = false;
     invalidateFilter();
 }
 

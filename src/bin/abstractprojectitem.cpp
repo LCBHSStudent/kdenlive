@@ -48,6 +48,7 @@ AbstractProjectItem::AbstractProjectItem(PROJECTITEMTYPE type, QString id, const
     , m_usage(0)
     , m_rating(0)
     , m_clipStatus(FileStatus::StatusReady)
+    , m_assetStatus(AssetStatus::Unknown)
     , m_itemType(type)
     , m_lock(QReadWriteLock::Recursive)
     , m_isCurrent(false)
@@ -220,6 +221,9 @@ QVariant AbstractProjectItem::getData(DataType type) const
         break;
     case ClipToolTip:
         data = QVariant(getToolTip());
+        break;
+    case AssetStatus:
+        data = QVariant(static_cast<int>(m_assetStatus));
         break;
     default:
         break;

@@ -102,6 +102,15 @@ enum AssetType { Preferred, Video, Audio, Custom, CustomAudio, Favorites, AudioC
 Q_ENUM_NS(AssetType)
 }
 
+namespace AssetStatus {
+Q_NAMESPACE
+enum AssetType {
+    Unknown = 0,
+    Unpurchased = 1,
+    Purchased = 2,
+};
+};
+
 namespace ClipType {
 Q_NAMESPACE
 enum ProducerType {

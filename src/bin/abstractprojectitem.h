@@ -142,7 +142,8 @@ public:
         // Item status (ready or not, missing, waiting, ...)
         ClipStatus,
         ClipType,
-        ClipHasAudioAndVideo
+        ClipHasAudioAndVideo,
+        AssetStatus
     };
 
     virtual void setClipStatus(FileStatus::ClipStatus status);
@@ -219,6 +220,7 @@ protected:
     uint m_rating;
     QString m_tags;
     FileStatus::ClipStatus m_clipStatus;
+    AssetStatus::AssetType m_assetStatus;
 
     PROJECTITEMTYPE m_itemType;
 
