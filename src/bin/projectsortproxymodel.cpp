@@ -146,8 +146,7 @@ bool ProjectSortProxyModel::lessThan(const QModelIndex &left, const QModelIndex 
     return leftType > rightType;
 }
 
-QItemSelectionModel *ProjectSortProxyModel::selectionModel()
-{
+QItemSelectionModel* ProjectSortProxyModel::selectionModel() {
     return m_selection;
 }
 

@@ -1012,6 +1012,7 @@ Bin::Bin(std::shared_ptr<ProjectItemModel> model, QWidget *parent)
             border: 0px;
         }
     )");
+    setMouseTracking(true);
     
     setWindowFlags(Qt::FramelessWindowHint);
     
@@ -1036,7 +1037,11 @@ Bin::Bin(std::shared_ptr<ProjectItemModel> model, QWidget *parent)
     m_layout->setContentsMargins(10, 14, 10, 18);
     // Search line
     m_searchLine = new QLineEdit(m_toolbar);
-    m_searchLine->setFont(QFontDatabase::systemFont(QFontDatabase::SmallestReadableFont));
+    auto&& searchFont = QFont("Microsoft YaHei");
+    searchFont.setPixelSize(12);
+
+    m_searchLine->setFont(searchFont);
+    m_searchLine->setFixedSize(128, 24);
     // m_searchLine->setClearButtonEnabled(true);
     m_searchLine->setPlaceholderText(i18n("Search..."));
     m_searchLine->setFocusPolicy(Qt::ClickFocus);
@@ -1333,11 +1338,6 @@ Bin::Bin(std::shared_ptr<ProjectItemModel> model, QWidget *parent)
         pCore->jobManager()->slotCancelPendingJobs();
     });
 
-    // Hack, create toolbar spacer
-    m_toolbarSpacer = new QWidget;
-    m_toolbarSpacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-    m_toolbar->addWidget(m_toolbarSpacer);
-
     // connect(pCore->projectManager(), SIGNAL(projectOpened(Project*)), this, SLOT(setProject(Project*)));
     m_headerInfo = QByteArray::fromBase64(KdenliveSettings::treeviewheaders().toLatin1());
     m_propertiesPanel = new QScrollArea(this);
@@ -1366,10 +1366,10 @@ Bin::Bin(std::shared_ptr<ProjectItemModel> model, QWidget *parent)
     m_searchLine->setVisible(false);
     m_searchLine->setStyleSheet(R"(
         QLineEdit {
-            border: 2px solid gray;
-            border-radius: 10px;
-            padding: 0 8px;
-            background: yellow;
+            border: 1px solid #2D8CF0;
+            border-radius: 0px;
+            padding: 0px;
+            background: transparent;
             selection-background-color: darkgray;
         }
     )");
@@ -1396,9 +1396,9 @@ Bin::Bin(std::shared_ptr<ProjectItemModel> model, QWidget *parent)
     )");
     m_toolbar->addWidget(autoPlayNext);
     
-    auto spacerWidget = new QWidget(m_toolbar);
-    spacerWidget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
-    m_toolbar->addWidget(spacerWidget);
+    m_toolbarSpacer = new QWidget(m_toolbar);
+    m_toolbarSpacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
+    m_toolbar->addWidget(m_toolbarSpacer);
     
     const char* btnQSS = R"(
         QPushButton {
@@ -1590,29 +1590,29 @@ Bin::Bin(std::shared_ptr<ProjectItemModel> model, QWidget *parent)
         QPushButton*    pBtn;
     };
     
-    connect(displaySearchBarBtn, &QPushButton::toggled, this, [this] (bool toggle) {
-        m_searchLine->setVisible(toggle);
+    connect(displaySearchBarBtn, &QPushButton::clicked, this, [this] {
+        m_searchLine->setVisible(m_searchLine->isHidden());
         m_searchLine->raise();
     });
     std::array<__btnInfo, 3> btns = {
         __btnInfo {
-            .checkable  = true,
-            .size       = 18,
-            .pIcon       = "ico_magnifier_18",
+            .checkable  = false,
+            .size       = 15,
+            .pIcon      = "ico_magnifier_15",
             .pMenu      = nullptr,
             .pBtn       = displaySearchBarBtn
         },
         __btnInfo {
             .checkable  = true,
             .size       = 24,
-            .pIcon       = "btn_filter_24",
+            .pIcon      = "btn_filter_24",
             .pMenu      = filterProxyBtnMenu,
             .pBtn       = filterProxyBtn
         },
         __btnInfo {
             .checkable  = true,
             .size       = 24,
-            .pIcon       = "btn_sort_24",
+            .pIcon      = "btn_sort_24",
             .pMenu      = sortProxyBtnMenu,
             .pBtn       = sortProxyBtn
         }
@@ -1626,7 +1626,7 @@ Bin::Bin(std::shared_ptr<ProjectItemModel> model, QWidget *parent)
             btn.pBtn->setMenu(btn.pMenu);
         }
         btn.pBtn->setStyleSheet(btnQSS);
-        btn.pBtn->setIconSize(btn.pBtn->size());
+        btn.pBtn->setIconSize(QSize(btn.size, btn.size));
         
         m_toolbar->addWidget(btn.pBtn);
     }
@@ -1749,6 +1749,11 @@ bool Bin::eventFilter(QObject *obj, QEvent *event)
             // emit zoomView(e->delta() > 0);
             return true;
         }
+    }
+    if (event->type() == QEvent::MouseMove) {
+        auto e = static_cast<QMouseEvent*>(event);
+        mouseMoveEvent(e);
+        return false;
     }
     return QWidget::eventFilter(obj, event);
 }
@@ -2643,8 +2648,7 @@ void Bin::rebuildMenu()
     m_menu->insertMenu(m_reloadAction, m_clipsActionsMenu);
 }
 
-void Bin::contextMenuEvent(QContextMenuEvent *event)
-{    
+void Bin::contextMenuEvent(QContextMenuEvent* event) {
     bool enableClipActions = false;
     ClipType::ProducerType type = ClipType::Unknown;
     bool isFolder = false;
@@ -2654,7 +2658,10 @@ void Bin::contextMenuEvent(QContextMenuEvent *event)
     QString audioCodec;
     bool clickInView = false;
     if (m_itemView) {
-        QRect viewRect(m_itemView->mapToGlobal(m_itemView->geometry().topLeft()), m_itemView->mapToGlobal(m_itemView->geometry().bottomRight()));
+        QRect viewRect(m_itemView->mapToGlobal(m_itemView->geometry().topLeft()), m_itemView->mapToGlobal(m_itemView->geometry().bottomRight()));        
+        // 范围问题
+        viewRect.adjust(0, -viewRect.y(), 0, viewRect.y());
+        
         if (viewRect.contains(event->globalPos())) {
             clickInView = true;
             QModelIndex idx = m_itemView->indexAt(m_itemView->viewport()->mapFromGlobal(event->globalPos()));
@@ -2755,14 +2762,14 @@ void Bin::contextMenuEvent(QContextMenuEvent *event)
     m_extractAudioAction->menuAction()->setVisible(!isFolder && !audioCodec.isEmpty());
     m_locateAction->setVisible(itemType == AbstractProjectItem::ClipItem && (isImported));
 
-    // Show menu
+    // 展示上下文菜单
     event->setAccepted(true);
     if (enableClipActions) {
         m_menu->exec(event->globalPos());
-    } else {
+    } /*else {
         // Clicked in empty area
         m_addButton->menu()->exec(event->globalPos());
-    }
+    }*/
 }
 
 void Bin::slotItemDoubleClicked(const QModelIndex &ix, const QPoint &pos, uint modifiers)
@@ -4863,7 +4870,7 @@ QList<int> Bin::getUsedClipIds()
     return timelineClipIds;
 }
 
-ClipWidget* Bin::getWidget(){
+ClipWidget* Bin::getWidget() {
     return m_clipWidget;
 }
 
@@ -4938,6 +4945,5 @@ IMPLEMENT_RESIZEHELPER_RB(Bin, QFrame)
 
 void Bin::resizeEvent(QResizeEvent* e) {
     QFrame::resizeEvent(e);
-    m_searchLine->move(m_toolbarSpacer->x(), m_searchLine->y());
-    m_searchLine->resize(m_toolbarSpacer->width(), m_searchLine->height());
+    m_searchLine->move(m_toolbar->width() - 80 - m_searchLine->width(), (m_toolbar->height() - 24) / 2);
 }
