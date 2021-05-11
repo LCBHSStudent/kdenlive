@@ -9,6 +9,7 @@
 
 #include "core.h"
 #include "macros.hpp"
+#include "bin/bin.h"
 #include "mainwindow.h"
 
 CustomEditorToolBar::CustomEditorToolBar(QWidget* parent)
@@ -93,7 +94,8 @@ CustomEditorToolBar::CustomEditorToolBar(QWidget* parent)
     );
     
     m_leadinBtn = new QPushButton(this);
-    m_leadinBtn->setFixedSize(83, 30);
+    m_leadinBtn->setCheckable(true);
+    m_leadinBtn->setFixedSize(80, 30);
     m_leadinBtn->setText(i18n("导  入"));
     m_leadinBtn->setStyleSheet(R"(
         QPushButton {
@@ -111,12 +113,46 @@ CustomEditorToolBar::CustomEditorToolBar(QWidget* parent)
             subcontrol-position: right center;
             padding-right: 16px;
         }
+
+        QPushButton:open {
+            background-color: #3E3D4C;
+            border: 0px;
+        }
     )");
     
     
     auto testMenu = new QMenu(this);
-    m_leadinBtn->setMenu(testMenu);
+    testMenu->setStyleSheet(R"(
+        QMenu {
+            border: 1px solid #58596B;
+            background-color: #3E3D4C;
+        }
+        QMenu::item {
+            padding-left: 19px;
+            padding-right: 29px;
+            padding-top: 13px;
+            padding-bottom: 11px;
+        }
+        QMenu::item:selected {
+            background-color: #33323F;
+        }
+    )");
+    MOVE_MENU_ABOUT2SHOW(testMenu, 0, 5);
     
+    auto action = new QAction(i18n("从播放列表导入"));
+    action->setEnabled(false);
+    testMenu->addAction(action);
+    
+    action = new QAction(i18n("从我的资源库导入"));
+    action->setEnabled(false);
+    testMenu->addAction(action);
+    
+    action = new QAction(i18n("从本地导入"));
+    pCore->window()->addAction(QStringLiteral("add_clip"), action);
+    testMenu->addAction(action);
+    connect(action, &QAction::triggered, pCore->bin(), &Bin::slotAddClip);
+    
+    m_leadinBtn->setMenu(testMenu);
     
     m_projMediasetBtn->move(20, 5);
     m_leadinBtn->move(106, 5);

@@ -29,7 +29,7 @@ public:
                 padding-bottom: 7px;
             }
             QMenu::item:selected {
-                background-color: #997781F4;
+                background-color: #33323F;
             }
 			QMenu::icon {
                 position: absolute;

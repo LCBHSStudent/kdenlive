@@ -4758,12 +4758,12 @@ void MainWindow::setupMenuBar() {
         addGuide->setIcon(QIcon());
         m_cutMenu->addAction(addGuide);
         
-        auto jmp2nextGuide = ACTION_COLL("monitor_seek_guide_backward");
+        auto jmp2nextGuide = ACTION_COLL("monitor_seek_guide_forward");
         jmp2nextGuide->setIcon(QIcon());
         jmp2nextGuide->setText(i18n("转到下一标记"));
         m_cutMenu->addAction(jmp2nextGuide);
 
-        auto jmp2prevGuide = ACTION_COLL("monitor_seek_guide_forward");
+        auto jmp2prevGuide = ACTION_COLL("monitor_seek_guide_backward");
         jmp2prevGuide->setIcon(QIcon());
         jmp2prevGuide->setText(i18n("转到上一标记"));
         m_cutMenu->addAction(jmp2prevGuide);

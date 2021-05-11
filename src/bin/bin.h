@@ -353,7 +353,6 @@ public:
     void requestTranscoding(const QString &url, const QString &id);
 
 private slots:
-    void slotAddClip();
     /** @brief Reload clip from disk */
     void slotReloadClip();
     /** @brief Replace clip with another file */
@@ -417,6 +416,7 @@ private slots:
     void editTags(QList <QString> allClips, const QString &tag, bool add);
 
 public slots:
+    void slotAddClip();
     void slotRemoveInvalidClip(const QString &id, bool replace, const QString &errorMessage);
     /** @brief Reload clip thumbnail - when frame for thumbnail changed */
     void slotRefreshClipThumbnail(const QString &id);

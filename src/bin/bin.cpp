@@ -152,21 +152,37 @@ public:
         }
         QStyleOptionViewItem opt = option;
         initStyleOption(&opt, index);
+        
         QRect r1 = option.rect;
         int type = index.data(AbstractProjectItem::ItemTypeRole).toInt();
         int decoWidth = 0;
         if (opt.decorationSize.height() > 0) {
-            decoWidth += int(r1.height() * pCore->getCurrentDar());
+            decoWidth += 102;
         }
-        int mid = 0;
+        
+        int topMargin = 0;
         if (type == AbstractProjectItem::ClipItem || type == AbstractProjectItem::SubClipItem) {
-            mid = int((r1.height() / 2));
+            topMargin = 10;
         }
-        r1.adjust(decoWidth, 0, 0, -mid);
+        r1.adjust(decoWidth, topMargin - 1, 0, 0);
         QFont ft = option.font;
-        ft.setBold(true);
+        ft.setBold(false);
         QFontMetricsF fm(ft);
-        QRect r2 = fm.boundingRect(r1, Qt::AlignLeft | Qt::AlignTop, index.data(AbstractProjectItem::DataName).toString()).toRect();
+        QRect r2 = fm.boundingRect(
+            r1, Qt::AlignLeft | Qt::AlignTop,
+                opt.fontMetrics.elidedText(
+                    index.data(AbstractProjectItem::DataName).toString(),
+                    Qt::ElideRight, r1.width() - 6
+                )
+            ).toRect();
+        
+        editor->setStyleSheet(R"(
+            QExpandingLineEdit {
+                background-color: #2D4467;
+                border: 1px solid #3E3D4C;
+            }
+        )");
+        r2.adjust(0, 0, 1, 1);
         editor->setGeometry(r2);
     }
 
@@ -1822,6 +1838,7 @@ void Bin::slotAddClip()
     // Check if we are in a folder
     QString parentFolder = getCurrentFolder();
     ClipCreationDialog::createClipsCommand(m_doc, parentFolder, m_itemModel);
+    pCore->window()->setProjectMediasetVisible(true);
     pCore->window()->raiseBin();
 }
 
@@ -3180,15 +3197,9 @@ void Bin::setupGeneratorMenu()
 //    m_menu->insertSeparator(m_deleteAction);
 }
 
-void Bin::setupMenu()
-{
+void Bin::setupMenu() {
     auto *addClipMenu = new QMenu(this);
-
-    QAction *addClip =
-        addAction(QStringLiteral("add_clip"), i18n("Add Clip or Folder"), QIcon::fromTheme(QStringLiteral("kdenlive-add-clip")));
-    addClipMenu->addAction(addClip);
-    connect(addClip, &QAction::triggered, this, &Bin::slotAddClip);
-
+    
     setupAddClipAction(addClipMenu, ClipType::Color, QStringLiteral("add_color_clip"), i18n("Add Color Clip"), QIcon::fromTheme(QStringLiteral("kdenlive-add-color-clip")));
     setupAddClipAction(addClipMenu, ClipType::SlideShow, QStringLiteral("add_slide_clip"), i18n("Add Image Sequence"), QIcon::fromTheme(QStringLiteral("kdenlive-add-slide-clip")));
     setupAddClipAction(addClipMenu, ClipType::Text, QStringLiteral("add_text_clip"), i18n("Add Title Clip"), QIcon::fromTheme(QStringLiteral("kdenlive-add-text-clip")));
@@ -3266,7 +3277,6 @@ void Bin::setupMenu()
     m->addActions(addClipMenu->actions());
     m_addButton = new QToolButton(this);
     m_addButton->setMenu(m);
-    m_addButton->setDefaultAction(addClip);
     m_addButton->setPopupMode(QToolButton::MenuButtonPopup);
 //    m_toolbar->insertWidget(m_upAction, m_addButton);
     m_addButton->hide();
@@ -3322,8 +3332,7 @@ void Bin::setupMenu()
     
     action = new QAction(i18n("重命名"));
     connect(action, &QAction::triggered, this, [this] {
-        m_propertiesPanel->setParent(nullptr);
-        m_propertiesPanel->show();
+        m_itemView->edit(m_itemView->currentIndex());
     });
     m_menu->addAction(action);
     
