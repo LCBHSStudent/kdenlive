@@ -202,7 +202,7 @@ Item {
             Item {
                 id: audioThumb
                 property bool stateVisible: (root.permanentAudiothumb || clipMonitorRuler.containsMouse || thumbMouseArea.containsMouse || dragZone.opacity == 1 || thumbTimer.running || root.showZoomBar)
-                property bool isAudioClip: controller.clipType == ProducerType.Audio
+                property bool isAudioClip: controller.clipType === ProducerType.Audio
                 anchors {
                     left: parent.left
                     bottom: parent.bottom
@@ -226,7 +226,7 @@ Item {
                 height: isAudioClip ? parent.height : parent.height / 6
                 //font.pixelSize * 3
                 width: parent.width
-                visible: (root.permanentAudiothumb || root.showAudiothumb) && (isAudioClip || controller.clipType == ProducerType.AV || controller.clipType == ProducerType.Playlist)
+                visible: (root.permanentAudiothumb || root.showAudiothumb) && (isAudioClip || controller.clipType === ProducerType.AV || controller.clipType === ProducerType.Playlist)
                 onStateVisibleChanged: {
                     // adjust monitor image size
                     if (stateVisible && root.permanentAudiothumb && audioThumb.visible) {

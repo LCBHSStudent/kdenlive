@@ -1,11 +1,11 @@
 #ifndef CLIPMONITORFRAME_H
 #define CLIPMONITORFRAME_H
 
-#include <QFrame>
+#include "framelessmovablewidget.h"
 
 class Monitor;
 
-class ClipMonitorFrame: public QFrame {
+class ClipMonitorFrame: public FramelessMovableWidget {
 	Q_OBJECT
 public:
     explicit ClipMonitorFrame(Monitor* clipMonitor, QWidget* parent = nullptr);

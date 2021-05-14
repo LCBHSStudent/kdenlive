@@ -43,7 +43,6 @@ Row {
             background: Rectangle {
                 anchors.fill: parent
                 color: tabBtn.selected? uiconfig.darkerSpaceColor: tabBtn.hovered? Qt.darker(uiconfig.lighterSpaceColor, 1.1): uiconfig.lighterSpaceColor
-                radius: 10
                 Rectangle {
                     width: parent.width
                     height: parent.radius

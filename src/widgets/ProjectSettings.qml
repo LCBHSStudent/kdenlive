@@ -4,6 +4,8 @@ import QtQuick.Layouts 1.12
 import QtGraphicalEffects 1.12
 import DFW.Components 1.0
 
+import "qrc:/qml/widgets/"
+
 Item {
     id: projSettingRoot
     property int __dropshadowMargin
@@ -14,6 +16,10 @@ Item {
     property int profileW                   // 项目宽度
     property int profileH                   // 项目高度
     property real profileFps                // 时基 (帧率)
+    
+    property int aspectNum                  // 横纵比: 水平
+    property int aspectDen                  // 横纵比: 垂直
+    property int scanMethod                 // 扫描方式
     
     onProfileFpsChanged: {
         for (var i = 0; i < timebaseCombo.fpsList.length; i++) {
@@ -41,14 +47,33 @@ Item {
     Rectangle {
         anchors.fill: parent
         anchors.bottomMargin: __dropshadowMargin
-        radius: 20
         color: uiconfig.lighterSpaceColor
         
-        layer.enabled: true
-        layer.effect: DropShadow {
-            verticalOffset: 6
-            radius: 6
-            color: "#29000000"
+        MouseArea {
+            id: movableHeader
+            anchors {
+                top: parent.top
+                bottom: tabBar.top
+                left: parent.left
+                right: parent.right
+            }
+            
+            property int pressX
+            property int pressY
+            
+            onPressed: {
+                cursorShape = Qt.SizeAllCursor
+                pressX = mouseX
+                pressY = mouseY
+            }
+            
+            onPositionChanged: {
+                move(mouseX - pressX, mouseY - pressY)
+            }
+
+            onReleased: {
+                cursorShape = Qt.ArrowCursor
+            }
         }
         
         TabHeader {
@@ -112,16 +137,16 @@ Item {
                         ]
                         
                         model: [
-                            i18n("15.00         帧/秒"),
-                            i18n("23.976       帧/秒"),
-                            i18n("24.00         帧/秒"),
-                            i18n("25.00         帧/秒"),
-                            i18n("29.97         帧/秒"),
-                            i18n("30.00         帧/秒"),
-                            i18n("49.9994     帧/秒"),
-                            i18n("50.00         帧/秒"),
-                            i18n("59.9401     帧/秒"),
-                            i18n("60.00         帧/秒")
+                            [i18n("15.00         帧/秒"), ""],
+                            [i18n("23.976       帧/秒"), ""],
+                            [i18n("24.00         帧/秒"), ""],
+                            [i18n("25.00         帧/秒"), ""],
+                            [i18n("29.97         帧/秒"), ""],
+                            [i18n("30.00         帧/秒"), ""],
+                            [i18n("49.9994     帧/秒"), ""],
+                            [i18n("50.00         帧/秒"), ""],
+                            [i18n("59.9401     帧/秒"), ""],
+                            [i18n("60.00         帧/秒"), ""]
                         ]
                         anchors {
                             left: timebaseText.right
@@ -251,13 +276,13 @@ Item {
                         }
                         
                         model: [
-                            i18n("9 : 16 (竖屏)  抖音"),
-                            i18n("16 : 9 (宽屏)"),
-                            i18n("1 : 1  Instagram"),
-                            i18n("4 : 3 (标准)"),
-                            i18n("3 : 4 (电商)"),
-                            i18n("21: 9 (影院)"),
-                            i18n("21: 9 (影院)")
+                            [i18n("9 : 16 (竖屏)  抖音"), "qrc:/classic/components/icon_fire.png"],
+                            [i18n("16 : 9 (宽屏)"), "qrc:/classic/components/icon_bilibili.png"],
+                            [i18n("1 : 1  Instagram"), ""],
+                            [i18n("4 : 3 (标准)"), ""],
+                            [i18n("3 : 4 (电商)"), ""],
+                            [i18n("21: 9 (影院)"), ""],
+                            [i18n("自定义"), ""],
                         ]
                     }
                     
@@ -566,7 +591,7 @@ Item {
                 anchors.bottom: parent.bottom
                 
                 onClicked: {
-                    
+                    confirm()
                 }
             }
             PopupButton {

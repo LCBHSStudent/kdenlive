@@ -3,12 +3,11 @@
 #include "monitor/monitor.h"
 
 ClipMonitorFrame::ClipMonitorFrame(Monitor* clipMonitor, QWidget* parent)
-    : QFrame(parent)
+    : FramelessMovableWidget(parent)
     , m_clipMonitor(clipMonitor)
 {
     setAttribute(Qt::WA_TranslucentBackground, true);
-    setWindowFlags(Qt::Dialog | Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint);
-    setWindowModality(Qt::NonModal);
+    setWindowFlags(Qt::Widget | Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint);
     
     m_clipMonitor->setParent(this);
     
@@ -17,6 +16,7 @@ ClipMonitorFrame::ClipMonitorFrame(Monitor* clipMonitor, QWidget* parent)
     hide();
 }
 
-void ClipMonitorFrame::resizeEvent(QResizeEvent*) {
+void ClipMonitorFrame::resizeEvent(QResizeEvent* e) {
+    FramelessMovableWidget::resizeEvent(e);
     m_clipMonitor->setGeometry(0, 0, width(), height());
 }

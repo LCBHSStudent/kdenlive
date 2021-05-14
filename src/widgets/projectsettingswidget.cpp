@@ -13,7 +13,7 @@
 
 #include "macros.hpp"
 
-constexpr int __dropshadowMargin = 6;
+constexpr int __dropshadowMargin = 0;
 
 
 #ifdef DEBUG_BUILD
@@ -78,8 +78,8 @@ void ProjectSettingsWidget::move(QVariant x, QVariant y) {
     auto&& mainGeo = pCore->window()->geometry();
     
     QQuickWidget::move(
-        qBound(mainGeo.x(), x.toInt(), mainGeo.x() + mainGeo.width()),
-        qBound(mainGeo.y(), y.toInt(), mainGeo.y() + mainGeo.height())
+        qBound(mainGeo.x(), x.toInt() + pos().x(), mainGeo.x() + mainGeo.width() - width()),
+        qBound(mainGeo.y(), y.toInt() + pos().y(), mainGeo.y() + mainGeo.height() - height())
     );
 }
 
@@ -95,6 +95,8 @@ void ProjectSettingsWidget::confirmSettings() {
         auto profileW           = rootObj->property("profileW").toInt();
         auto profileH           = rootObj->property("profileH").toInt();
         auto profileFps         = rootObj->property("profileFps").toReal();
+        
+        
     }
     
     close();
