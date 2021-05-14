@@ -49,6 +49,9 @@ private:
     bool        m_hasPath       = false;
     bool        m_hasVideo      = false;
     bool        m_hasAudio      = false;
+    
+    QWidget*    m_pathHoverTipArea  = nullptr;
+    QWidget*    m_titleHoverTipArea = nullptr;
 };
 
 #endif // CLIPPROPERTIESWIDGET_H

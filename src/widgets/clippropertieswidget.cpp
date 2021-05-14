@@ -14,12 +14,31 @@ constexpr int fixedWidth = 370;
 constexpr int binLeftMargin = 20;
 constexpr int binTopMargin = 16;
 
+// painter area
+constexpr auto lineMargin           = 14;
+constexpr auto blockMargin          = 41;
+constexpr auto leftWidth            = 97;
+constexpr auto rightContentWidth    = 168;
+constexpr auto lrSpacing            = 40;
+
 ClipPropertiesWidget::ClipPropertiesWidget(QWidget* parent)
 	: FramelessMovableWidget(parent)
+    , m_pathHoverTipArea(new QWidget(this))
+    , m_titleHoverTipArea(new QWidget(this))
 {   
     setFixedWidth(fixedWidth);
     resize(fixedWidth, 490);
     setWindowFlags(Qt::Widget | Qt::FramelessWindowHint);
+    
+    auto&& yahei = QFont("Microsoft YaHei");
+    yahei.setPixelSize(12);
+    
+    QFontMetrics fm(yahei);
+    m_pathHoverTipArea->setFixedSize(rightContentWidth, fm.height());
+    m_titleHoverTipArea->setFixedSize(rightContentWidth, fm.height());
+    
+    m_titleHoverTipArea->move(150, 56);
+    m_pathHoverTipArea->move(149, 86);
     
     setStyleSheet(R"(
     QFrame {
@@ -35,11 +54,7 @@ void ClipPropertiesWidget::showEvent(QShowEvent*) {
     move(binGeo.width() + binGeo.x() + binLeftMargin, binGeo.y() + binTopMargin);
 }
 
-constexpr auto lineMargin           = 14;
-constexpr auto blockMargin          = 41;
-constexpr auto leftWidth            = 97;
-constexpr auto rightContentWidth    = 168;
-constexpr auto lrSpacing            = 40;
+
 
 #define CPW_DRAW_LABEL(__TEXT) \
     p.drawText(12, dy, leftWidth, lineHeight, Qt::AlignVCenter | Qt::AlignRight, i18n(__TEXT))
@@ -159,7 +174,10 @@ void ClipPropertiesWidget::slotRefreshProperties() {
     m_hasPath   = !m_controller->clipUrl().isEmpty();
     
     m_title = m_controller->clipName();
+    m_titleHoverTipArea->setToolTip(m_title);
     m_path = m_controller->clipUrl();
+    m_pathHoverTipArea->setToolTip(m_path);
+    
     m_duration = m_controller->getStringDuration();
     
     if (m_type == ClipType::AV ||

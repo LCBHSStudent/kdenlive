@@ -83,6 +83,7 @@ void CustomToolTip::paintEvent(QPaintEvent* e) {
 //    p.drawPath(path);
     
 //    p.drawRoundedRect(0, 0, width(), height(), 4, 4);
+    p.setPen(Qt::transparent);
     p.setBrush(QColor(0, 0, 0, 51));
     p.drawRect(0, 0, width() - 1, height() - 1);
     
