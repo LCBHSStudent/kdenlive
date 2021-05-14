@@ -103,6 +103,7 @@ CustomEditorToolBar::CustomEditorToolBar(QWidget* parent)
             background-color: transparent;
             font-size: 12px;
             font-family: "Microsoft YaHei";
+            border: none;
         }
 
         QPushButton::menu-indicator {
@@ -116,10 +117,8 @@ CustomEditorToolBar::CustomEditorToolBar(QWidget* parent)
 
         QPushButton:open {
             background-color: #3E3D4C;
-            border: 0px;
         }
     )");
-    
     
     auto testMenu = new QMenu(this);
     testMenu->setStyleSheet(R"(

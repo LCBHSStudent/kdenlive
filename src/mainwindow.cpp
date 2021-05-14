@@ -200,8 +200,8 @@ class MyProxyStyle: public QProxyStyle {
 public:
     int pixelMetric(
         QStyle::PixelMetric metric,
-        const QStyleOption *option = nullptr,
-        const QWidget *widget = nullptr
+        const QStyleOption* option = nullptr,
+        const QWidget*      widget = nullptr
     ) const override {
         if (metric == QStyle::PixelMetric::PM_ButtonShiftHorizontal | 
             metric == QStyle::PixelMetric::PM_ButtonShiftVertical
