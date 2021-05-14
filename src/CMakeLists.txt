@@ -90,11 +90,19 @@ add_library(kdenliveLib STATIC ${kdenlive_SRCS} ${kdenlive_UIS} ${kdenlive_MOC} 
 
 target_link_libraries(kdenliveLib Qt::WinExtras)
 
-qt5_add_resources(kdenlive_extra_SRCS icons.qrc uiresources.qrc icon.qrc)
+if (CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
+	add_definitions("-DDEBUG_BUILD")
+	qt5_add_resources(kdenlive_extra_SRCS icons.qrc icon.qrc uiresources.qrc)
+else()
+	find_package(Qt5QuickCompiler)
+	qt5_add_resources(kdenlive_extra_SRCS icons.qrc icon.qrc)
+	qtquick_compiler_add_resources(UI_FILES uiresources.qrc)
+endif()
+
 ## Icon for Windows and OSX
 file(GLOB ICONS_SRCS "${CMAKE_CURRENT_SOURCE_DIR}/../data/icons/*-apps-smartip.png")
 ecm_add_app_icon(SmartIP-Editor ICONS ${ICONS_SRCS}) # icon name = variable name
-add_executable(SmartIP-Editor main.cpp ${kdenlive_extra_SRCS} ${SmartIP-Editor})
+add_executable(SmartIP-Editor main.cpp ${kdenlive_extra_SRCS} ${SmartIP-Editor} ${UI_FILES})
 target_include_directories(SmartIP-Editor
     PRIVATE ${CMAKE_BINARY_DIR}
     )
@@ -222,8 +230,4 @@ if (BUILD_QCH)
         QCH_INSTALL_DESTINATION ${CMAKE_INSTALL_PREFIX}/share/docs/qch
         COMPONENT Devel
     )
-endif()
-
-if (CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
-	add_definitions("-DDEBUG_BUILD")
 endif()
