@@ -1642,10 +1642,10 @@ bool TimelineController::requestSpacerEndOperation(int clipId, int startPosition
     // Start undoable command
     std::function<bool(void)> undo = []() { return true; };
     std::function<bool(void)> redo = []() { return true; };
-    if(guideStart > -1 && KdenliveSettings::lockedGuides()) {
+    if(guideStart > -1) {
         moveGuidesInRange(guideStart, -1, endPosition - startPosition, undo, redo);
     }
-    bool result = TimelineFunctions::requestSpacerEndOperation(m_model, clipId, startPosition, endPosition, affectedTrack, undo, redo);
+    bool result = TimelineFunctions::requestSpacerEndOperation(m_model, clipId, startPosition, endPosition, affectedTrack, false, undo, redo);
     return result;
 }
 
@@ -4086,12 +4086,16 @@ void TimelineController::editSubtitle(int startFrame, int endFrame, QString newT
     auto subtitleModel = pCore->getSubtitleModel();
     Fun local_redo = [subtitleModel, startFrame, endFrame, newText]() {
         subtitleModel->editSubtitle(GenTime(startFrame, pCore->getCurrentFps()), newText);
-        pCore->refreshProjectRange({startFrame, endFrame});
+        QPair<int, int> range = {startFrame, endFrame};
+        pCore->invalidateRange(range);
+        pCore->refreshProjectRange(range);
         return true;
     };
     Fun local_undo = [subtitleModel, startFrame, endFrame, oldText]() {
         subtitleModel->editSubtitle(GenTime(startFrame, pCore->getCurrentFps()), oldText);
-        pCore->refreshProjectRange({startFrame, endFrame});
+        QPair<int, int> range = {startFrame, endFrame};
+        pCore->invalidateRange(range);
+        pCore->refreshProjectRange(range);
         return true;
     };
     local_redo();
@@ -4133,12 +4137,16 @@ void TimelineController::addSubtitle(int startframe, QString text)
     }
     Fun local_undo = [subtitleModel, id, startframe, endframe]() {
         subtitleModel->removeSubtitle(id);
-        pCore->refreshProjectRange({startframe, endframe});
+        QPair<int, int> range = {startframe, endframe};
+        pCore->invalidateRange(range);
+        pCore->refreshProjectRange(range);
         return true;
     };
     Fun local_redo = [subtitleModel, id, startframe, endframe, text]() {
         if (subtitleModel->addSubtitle(id, GenTime(startframe, pCore->getCurrentFps()), GenTime(endframe, pCore->getCurrentFps()), text)) {
-            pCore->refreshProjectRange({startframe, endframe});
+            QPair<int, int> range = {startframe, endframe};
+            pCore->invalidateRange(range);
+            pCore->refreshProjectRange(range);
             return true;
         }
         return false;
