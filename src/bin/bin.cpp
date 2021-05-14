@@ -56,6 +56,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "ui_qtextclip_ui.h"
 #include "undohelper.hpp"
 #include "xml/xml.hpp"
+#include "widgets/clippropertieswidget.h"
 #include "macros.hpp"
 #include <dialogs/textbasededit.h>
 #include <memory>
@@ -2951,6 +2952,7 @@ void Bin::showClipProperties(const std::shared_ptr<ProjectClip> &clip, bool forc
     }
     m_propertiesPanel->setEnabled(true);
     QString panelId = m_propertiesPanel->property("clipId").toString();
+    
     if (!forceRefresh && panelId == clip->AbstractProjectItem::clipId()) {
         // the properties panel is already displaying current clip, do nothing
         return;
@@ -3317,10 +3319,7 @@ void Bin::setupMenu() {
     });
     m_menu->addAction(action);
     
-    action = new QAction(i18n("插入"));
-    connect(action, &QAction::triggered, this, [] {
-
-    });
+    action = pCore->window()->actionCollection()->action("insert_to_in_point");
     m_menu->addAction(action);
     
     action = new QAction(i18n("音频转文字"));
@@ -3340,8 +3339,11 @@ void Bin::setupMenu() {
     
     action = new QAction(i18n("属性"));
     connect(action, &QAction::triggered, this, [this] {
-        m_propertiesPanel->setParent(nullptr);
-        m_propertiesPanel->show();
+        std::shared_ptr<ProjectClip> currentItem = getFirstSelectedClip();
+        pCore->clipPropertiesWidget()->slotSetClipController(static_cast<ClipController*>(currentItem.get()));
+        pCore->clipPropertiesWidget()->slotRefreshProperties();
+        pCore->clipPropertiesWidget()->show();
+        pCore->clipPropertiesWidget()->raise();
     });
     
     

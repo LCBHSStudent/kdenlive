@@ -42,6 +42,7 @@ class ProjectManager;
 class SubtitleEdit;
 class SubtitleModel;
 class TextBasedEdit;
+class ClipPropertiesWidget;
 
 namespace Mlt {
     class Repository;
@@ -108,6 +109,8 @@ public:
     MonitorManager *monitorManager();
     /** @brief Returns a pointer to the view of the project bin. */
     Bin *bin();
+    /** @brief 返回剪辑属性组件 */
+    ClipPropertiesWidget* clipPropertiesWidget() const;
     /** @brief Select a clip in the Bin from its id. */
     void selectBinClip(const QString &id, bool activateMonitor = true, int frame = -1, const QPoint &zone = QPoint());
     /** @brief Selects an item in the current timeline (clip, composition, subtitle). */
@@ -261,6 +264,7 @@ private:
     MainWindow *m_mainWindow{nullptr};
     ProjectManager *m_projectManager{nullptr};
     MonitorManager *m_monitorManager{nullptr};
+    ClipPropertiesWidget* m_clipPropertiesWidget = nullptr;
     std::shared_ptr<ProjectItemModel> m_projectItemModel;
     std::shared_ptr<JobManager> m_jobManager;
     Bin *m_binWidget{nullptr};

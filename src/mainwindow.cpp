@@ -1701,8 +1701,8 @@ void MainWindow::setupActions()
 
     addAction(QStringLiteral("overwrite_to_in_point"), i18n("Overwrite Clip Zone in Timeline"), this, SLOT(slotInsertClipOverwrite()),
               QIcon::fromTheme(QStringLiteral("timeline-overwrite")), Qt::Key_B);
-    addAction(QStringLiteral("insert_to_in_point"), i18n("Insert Clip Zone in Timeline"), this, SLOT(slotInsertClipInsert()),
-              QIcon::fromTheme(QStringLiteral("timeline-insert")), Qt::Key_V);
+    addAction(QStringLiteral("insert_to_in_point"), i18n("插入"), this, SLOT(slotInsertClipInsert()),
+              QIcon());
     addAction(QStringLiteral("remove_extract"), i18n("Extract Timeline Zone"), this, SLOT(slotExtractZone()),
               QIcon::fromTheme(QStringLiteral("timeline-extract")), Qt::SHIFT + Qt::Key_X);
     addAction(QStringLiteral("remove_lift"), i18n("Lift Timeline Zone"), this, SLOT(slotLiftZone()), QIcon::fromTheme(QStringLiteral("timeline-lift")),
@@ -4730,7 +4730,7 @@ void MainWindow::setupMenuBar() {
     
     // 剪辑菜单
     {   
-        auto insert = new QAction(tr("插入"), m_cutMenu);
+        auto insert = ACTION_COLL("insert_to_in_point");
         m_cutMenu->addAction(insert);
         
         auto replaceClip = ACTION_COLL("replace_clip");

@@ -32,6 +32,7 @@ the Free Software Foundation, either version 3 of the License, or
 #include "dialogs/subtitleedit.h"
 #include "dialogs/textbasededit.h"
 #include "widgets/customtooltip.h"
+#include "widgets/clippropertieswidget.h"
 #include <mlt++/MltRepository.h>
 
 #include <KMessageBox>
@@ -132,6 +133,7 @@ void Core::initGUI(bool isAppImage, const QString &MltPath, const QUrl &Url, con
     connect(this, &Core::showConfigDialog, m_mainWindow, &MainWindow::slotPreferences);
     
     m_projectManager = new ProjectManager(this);
+    m_clipPropertiesWidget = new ClipPropertiesWidget(m_mainWindow);
     m_binWidget = new Bin(m_projectItemModel, m_mainWindow);
     m_library = new LibraryWidget(m_projectManager, m_mainWindow);
     m_subtitleWidget = new SubtitleEdit(m_mainWindow);
@@ -280,6 +282,10 @@ Monitor *Core::getMonitor(int id)
 Bin *Core::bin()
 {
     return m_binWidget;
+}
+
+ClipPropertiesWidget* Core::clipPropertiesWidget() const {
+    return m_clipPropertiesWidget;
 }
 
 void Core::selectBinClip(const QString &clipId, bool activateMonitor, int frame, const QPoint &zone)

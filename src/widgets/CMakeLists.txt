@@ -17,5 +17,7 @@ set(kdenlive_SRCS
   widgets/projectsettingswidget.cpp
   widgets/menubareventpasser.cpp
   widgets/clipmonitorframe.cpp
+  widgets/clippropertieswidget.cpp
+  widgets/framelessmovablewidget.cpp
   PARENT_SCOPE
 )

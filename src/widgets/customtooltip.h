@@ -17,9 +17,9 @@ public:
 	inline static const char defaultQSS[] = R"(
         QLabel {
             padding-left: 6px;
-            padding-top: 2px;
-            padding-right: 6px;
-            padding-bottom: 3px;
+            padding-top: 4px;
+            padding-right: 7px;
+            padding-bottom: 4px;
             font-size: 12px; 
             font-family: "Microsoft YaHei";    
             color: "#CCFFFFFF"

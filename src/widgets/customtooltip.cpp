@@ -75,14 +75,16 @@ void CustomToolTip::paintEvent(QPaintEvent* e) {
     QPainter p(this);
     p.setRenderHint(QPainter::Antialiasing);
     
-    QPainterPath path;
-    path.addRoundedRect(QRectF(0, 0, width(), height()), 4, 4);
-    QPen pen(QColor(119, 129, 244), 1);
-    p.setPen(pen);
-    p.fillPath(path, QColor(66, 64, 109));
-    p.drawPath(path);
+//    QPainterPath path;
+//    path.addRoundedRect(QRectF(0, 0, width(), height()), 4, 4);
+//    QPen pen(QColor(119, 129, 244), 1);
+//    p.setPen(pen);
+//    p.fillPath(path, QColor(66, 64, 109));
+//    p.drawPath(path);
     
-    p.drawRoundedRect(0, 0, width(), height(), 4, 4);
+//    p.drawRoundedRect(0, 0, width(), height(), 4, 4);
+    p.setBrush(QColor(0, 0, 0, 51));
+    p.drawRect(0, 0, width() - 1, height() - 1);
     
     QLabel::paintEvent(e);
 }
