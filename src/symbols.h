@@ -20,7 +20,7 @@ private:                                                                        
     __TYPE__ m_##__NAME__;                                                                                                                                      \
     
 // 提供左下 / 右下两种widget缩放策略
-constexpr auto borderWidth = 10;
+// 在前方定义borderWidth const expression或macro
 #define REGIST_RESIZEHELPER                                                                                                                                     \
 protected:                                                                                                                                                      \
     void mouseMoveEvent(QMouseEvent*) override;                                                                                                                 \

@@ -1746,10 +1746,12 @@ bool Bin::eventFilter(QObject *obj, QEvent *event)
         if (m_itemView) {
             QModelIndex idx = m_itemView->indexAt(mouseEvent->pos());
             if (!idx.isValid()) {
-                // User double clicked on empty area
+                // 弹出添加资源窗口
                 slotAddClip();
             } else {
-                slotItemDoubleClicked(idx, mouseEvent->pos(), mouseEvent->modifiers());
+                auto clipMonitor = reinterpret_cast<QWidget*>(pCore->window()->clipMonitorFrame());
+                clipMonitor->show();
+                pCore->monitorManager()->refreshClipMonitor(true);
             }
         } else {
             qCDebug(KDENLIVE_LOG) << " +++++++ NO VIEW-------!!";
@@ -4952,6 +4954,7 @@ void Bin::requestTranscoding(const QString &url, const QString &id)
 }
 
 #include "symbols.h"
+constexpr auto borderWidth = 6;
 IMPLEMENT_RESIZEHELPER_RB(Bin, QFrame)
 
 void Bin::resizeEvent(QResizeEvent* e) {
