@@ -195,11 +195,35 @@ MainWindow::MainWindow(QWidget *parent)
     hide();
 }
 
-void MainWindow::init(const QString &mltPath)
-{
-    setMinimumWidth(1024);
-    qApp->setStyleSheet(qApp->styleSheet() + R"( * { font-family: "Microsoft YaHei"; })");
+#ifndef DEBUG_BUILD
+class MyProxyStyle: public QProxyStyle {
+public:
+    int pixelMetric(
+        QStyle::PixelMetric metric,
+        const QStyleOption *option = nullptr,
+        const QWidget *widget = nullptr
+    ) const override {
+        if (metric == QStyle::PixelMetric::PM_ButtonShiftHorizontal | 
+            metric == QStyle::PixelMetric::PM_ButtonShiftVertical
+        ) {
+            return 0;
+        } else {
+            return QProxyStyle::pixelMetric(metric, option, widget);
+        }
+    }
     
+};
+
+#endif
+
+void MainWindow::init(const QString &mltPath) {
+    setMinimumWidth(1024);
+    qApp->setStyleSheet(qApp->styleSheet() + R"( * { font-family: "Microsoft YaHei"; } )");
+
+#ifndef DEBUG_BUILD
+    qApp->setStyle(new MyProxyStyle);
+#endif
+
     QString desktopStyle = QApplication::style()->objectName();
     // Load themes
     auto themeManager = new ThemeManager(actionCollection());
