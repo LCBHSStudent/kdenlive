@@ -170,7 +170,7 @@ Item {
             anchors.verticalCenterOffset : (root.permanentAudiothumb && audioThumb.visible) ? -(audioThumb.height + root.zoomOffset) / 2 : -root.zoomOffset / 2
 
             Loader {
-                anchors.fill: parent
+                width: controller.displayRect
                 source: {
                     switch(root.overlayType)
                     {
@@ -558,5 +558,14 @@ Item {
             bottom: root.bottom
         }
         height: controller.rulerHeight
+    }
+    
+    Rectangle {
+        color: uiconfig.darkerSpaceColor
+        anchors.bottom: parent.bottom
+        anchors.bottomMargin: 1
+        anchors.horizontalCenter: parent.horizontalCenter
+        width: parent.width
+        height: 175
     }
 }

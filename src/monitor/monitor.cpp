@@ -152,7 +152,13 @@ Monitor::Monitor(Kdenlive::MonitorId id, MonitorManager *manager, QWidget *paren
     connect(m_glMonitor, &GLWidget::panView, this, &Monitor::panView);
     connect(m_glMonitor->getControllerProxy(), &MonitorProxy::requestSeek, this, &Monitor::processSeek, Qt::DirectConnection);
     connect(m_glMonitor->getControllerProxy(), &MonitorProxy::positionChanged, this, &Monitor::slotSeekPosition);
-
+    if (id == Kdenlive::ClipMonitor) {
+        m_glMonitor->m_rectTopMargin = 40; // frame header height
+        m_glMonitor->m_rectTop = 40;
+        m_glMonitor->m_rectBottomMargin = 175; // controller height
+        m_glMonitor->m_rectBottom = 175;
+    }
+    
     m_videoWidget = m_glMonitor;
     m_videoWidget->setAcceptDrops(true);
     auto *leventEater = new QuickEventEater(this);
@@ -166,7 +172,7 @@ Monitor::Monitor(Kdenlive::MonitorId id, MonitorManager *manager, QWidget *paren
     connect(m_qmlManager, &QmlManager::activateTrack, this, &Monitor::activateTrack);
 #ifdef DEBUG_BUILD
     connect(m_qmlManager, &QmlManager::sigReloadQmlScene, [this](QVariant sceneData) {
-        this->loadQmlScene(m_qmlManager->sceneType(), sceneData);
+        this->loadQmlScene(MonitorSceneDefault, sceneData);
     });
 #endif
     
@@ -940,6 +946,9 @@ void Monitor::slotSwitchFullScreen(bool minimizeOnly)
         } else {
             m_glWidget->setParent(nullptr);
         }
+        m_glMonitor->m_rectTop      = 0;
+        m_glMonitor->m_rectBottom   = 0;
+        
         m_glWidget->showFullScreen();
         m_videoWidget->setFocus();
     } else {
@@ -947,6 +956,9 @@ void Monitor::slotSwitchFullScreen(bool minimizeOnly)
         auto *lay = static_cast<QVBoxLayout *>(layout());
         lay->insertWidget(0, m_glWidget, 10);
         setFocus();
+        
+        m_glMonitor->m_rectTop      = m_glMonitor->m_rectTopMargin;
+        m_glMonitor->m_rectBottom   = m_glMonitor->m_rectBottomMargin;
     }
 }
 
@@ -2197,7 +2209,6 @@ QSize Monitor::profileSize() const
 
 void Monitor::loadQmlScene(MonitorSceneType type, QVariant sceneData)
 {
-    LOG_DEBUG() << type << sceneData;
     if (m_id == Kdenlive::DvdMonitor) {
         m_qmlManager->setScene(m_id, MonitorSceneDefault, pCore->getCurrentFrameSize(), pCore->getCurrentDar(), m_glMonitor->displayRect(), double(m_glMonitor->zoom()), m_timePos->maximum());
         m_qmlManager->setProperty(QStringLiteral("fps"), QString::number(pCore->getCurrentFps(), 'f', 2));
@@ -2206,12 +2217,14 @@ void Monitor::loadQmlScene(MonitorSceneType type, QVariant sceneData)
     if (type == m_qmlManager->sceneType() && sceneData.isNull()) {
         return;
     }
+
     bool sceneWithEdit = type == MonitorSceneGeometry || type == MonitorSceneCorners || type == MonitorSceneRoto;
     if (!m_monitorManager->getAction(QStringLiteral("monitor_editmode"))->isChecked() && sceneWithEdit) {
         // User doesn't want effect scenes
         pCore->displayMessage(i18n("Enable edit mode in monitor to edit effect"), InformationMessage, 500);
         type = MonitorSceneDefault;
     }
+
     m_qmlManager->setScene(m_id, type, pCore->getCurrentFrameSize(), pCore->getCurrentDar(), m_glMonitor->displayRect(), double(m_glMonitor->zoom()), m_timePos->maximum());
     QQuickItem *root = m_glMonitor->rootObject();
     switch (type) {

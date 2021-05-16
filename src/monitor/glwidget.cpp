@@ -72,7 +72,7 @@ GLWidget::GLWidget(int id, QWidget *parent)
     , m_producer(nullptr)
     , m_id(id)
     , m_rulerHeight(int(QFontInfo(QFontDatabase::systemFont(QFontDatabase::SmallestReadableFont)).pixelSize() * 1.5))
-    , m_bgColor(KdenliveSettings::window_background())
+    , m_bgColor(id == Kdenlive::ClipMonitor? Qt::black: KdenliveSettings::window_background())
     , m_shader(nullptr)
     , m_initSem(0)
     , m_analyseSem(1)
@@ -111,11 +111,12 @@ GLWidget::GLWidget(int id, QWidget *parent)
     qRegisterMetaType<Mlt::Frame>("Mlt::Frame");
     qRegisterMetaType<SharedFrame>("SharedFrame");
 
-    if (m_id == Kdenlive::ClipMonitor && !(KdenliveSettings::displayClipMonitorInfo() & 0x01)) {
-        m_rulerHeight = 0;
-    } else if (!(KdenliveSettings::displayProjectMonitorInfo() & 0x01)) {
-        m_rulerHeight = 0;
-    }
+//    if (m_id == Kdenlive::ClipMonitor && !(KdenliveSettings::displayClipMonitorInfo() & 0x01)) {
+//        m_rulerHeight = 0;
+//    } else if (!(KdenliveSettings::displayProjectMonitorInfo() & 0x01)) {
+//        m_rulerHeight = 0;
+//    }
+    m_rulerHeight = 0;
     m_displayRulerHeight = m_rulerHeight;
 
     quickWindow()->setPersistentOpenGLContext(true);
@@ -223,7 +224,7 @@ void GLWidget::initializeGL()
 void GLWidget::resizeGL(int width, int height)
 {
     int x, y, w, h;
-    height -= m_displayRulerHeight;
+    height -= m_displayRulerHeight - m_rectTop - m_rectBottom;
     double this_aspect = double(width) / height;
 
     // Special case optimization to negate odd effect of sample aspect ratio
@@ -241,7 +242,7 @@ void GLWidget::resizeGL(int width, int height)
         h = height;
     }
     x = (width - w) / 2;
-    y = (height - h) / 2;
+    y = m_rectTop > 0? m_rectTop: (height - h) / 2;
     m_rect.setRect(x, y, w, h);
     QQuickItem *rootQml = rootObject();
     if (rootQml) {
@@ -509,13 +510,13 @@ bool GLWidget::initGPUAccelSync()
 void GLWidget::paintGL()
 {
     QOpenGLFunctions *f = quickWindow()->openglContext()->functions();
-    float width = float(this->width() * devicePixelRatio());
-    float height = float(this->height() * devicePixelRatio());
+    float width = float(m_rect.width() * devicePixelRatio());
+    float height = float(m_rect.height() * devicePixelRatio());
 
     f->glDisable(GL_BLEND);
     f->glDisable(GL_DEPTH_TEST);
     f->glDepthMask(GL_FALSE);
-    f->glViewport(0, int(m_displayRulerHeight * devicePixelRatio() * 0.5 + 0.5), int(width), int(height));
+    f->glViewport(int(m_rect.x() * devicePixelRatio()), int(m_rectBottom * devicePixelRatio()), int(width), int(height));
     check_error(f);
     f->glClearColor(float(m_bgColor.redF()), float(m_bgColor.greenF()), float(m_bgColor.blueF()), 0);
     f->glClear(GL_COLOR_BUFFER_BIT);

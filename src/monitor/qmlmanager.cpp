@@ -191,6 +191,7 @@ bool QmlManager::eventFilter(QObject*, QEvent* e) {
         auto ke = static_cast<QKeyEvent*>(e);
         if (ke->key() == Qt::Key_Q) {
             if (ke->modifiers() & Qt::Modifier::ALT) {
+                m_sceneType = MonitorSceneNone;
                 m_view->setSource(QUrl());
                 m_view->engine()->clearComponentCache();
                 
