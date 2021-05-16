@@ -187,6 +187,7 @@ void QmlManager::effectRotoChanged()
 }
 
 bool QmlManager::eventFilter(QObject*, QEvent* e) {
+#ifdef DEBUG_BUILD
     if (e->type() == QEvent::KeyPress) {
         auto ke = static_cast<QKeyEvent*>(e);
         if (ke->key() == Qt::Key_Q) {
@@ -202,6 +203,6 @@ bool QmlManager::eventFilter(QObject*, QEvent* e) {
         }
         
     }
-    
+#endif
     return false;
 }

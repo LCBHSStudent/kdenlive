@@ -234,32 +234,14 @@ Item {
                 bottomMargin: 5
             }
             
-            onWidthChanged: {
-                thumbRepeater.model = Math.ceil(width / thumbRepeater.thumbWidth)
-            }
-            
             Repeater {
                 id: thumbRepeater
-                model: 1
-                
-                property bool init: false
-                property int thumbWidth: 1
-                
-                onThumbWidthChanged: {
-                    if (init)
-                        model = Math.ceil(width / thumbRepeater.thumbWidth)
-                }
+                model: Math.floor(videoEditBar.width / 64) + 1
                 
                 delegate: Image {
                     height: parent.height
                     fillMode: Image.PreserveAspectFit
                     source: baseThumbPath + Math.floor(root.duration / thumbRepeater.model * modelData)
-                    onWidthChanged: {
-                        if (!thumbRepeater.init) {
-                            thumbRepeater.init = true
-                            thumbRepeater.thumbWidth = width
-                        }
-                    }
                 }
             }
         }
@@ -330,6 +312,14 @@ Item {
                 inControlLabelText.text = controller.toTimecode(controller.zoneIn)
                 controller.qBlockSignals(false)
             }
+            
+            Connections {
+                target: controller
+                function onClipIdChanged() {
+                    controller.zoneIn = (inControl.x + inControl.width / 2) / videoEditBar.width * root.duration
+                    inControlLabelText.text = controller.toTimecode(controller.zoneIn)
+                }
+            }
         }
         
         Rectangle {
@@ -381,7 +371,6 @@ Item {
             
             ThemeText {
                 id: inControlLabelText
-                text: controller.toTimecode(controller.zoneIn)
                 anchors.centerIn: parent
             }
         }
