@@ -120,5 +120,7 @@
         <file alias="/components/ptcontroller/record_stream.png">../data/icon/components/ptcontroller/record_stream.png</file>
         <file alias="/components/ptcontroller/speed_adjust.png">../data/icon/components/ptcontroller/speed_adjust.png</file>
         <file alias="/components/ptcontroller/timeline_fit.png">../data/icon/components/ptcontroller/timeline_fit.png</file>
+        <file alias="/controllers/btn_add_to_track.png">../data/icon/controllers/btn_add_to_track.png</file>
+        <file alias="/components/ptcontroller/pause.png">../data/icon/components/ptcontroller/pause.png</file>
     </qresource>
 </RCC>

@@ -63,6 +63,7 @@ public:
                 const QMap<QString, QString> &metadata, const QPair<int, int> &tracks, int audioChannels, bool *openBackup, MainWindow *parent = nullptr);
     ~KdenliveDoc() override;
     friend class LoadJob;
+    friend class ProjectSettingsWidget;
     /** @brief Get current document's producer. */
     const QByteArray getAndClearProjectXml();
     double fps() const;

@@ -19,7 +19,32 @@ Item {
     
     property int aspectNum                  // 横纵比: 水平
     property int aspectDen                  // 横纵比: 垂直
+    property int aspectIndex                // 辅助纵横比
     property int scanMethod                 // 扫描方式
+    property int channelIndex               // 声道
+    property int audioSampleIndex           // 采样率
+    property int audioCodecIndex            // 编码器
+    property int bitRateControlIndex        // 编码率控制
+    property int bitRateIndex               // 码率
+    property bool disableAudio              // 禁用音频 
+    
+    onScanMethodChanged: scanCombo.currentIndex = scanMethod
+    onChannelIndexChanged: channelCombo.currentIndex = channelIndex
+    onAudioSampleIndexChanged: sampleCombo.currentIndex = audioSampleIndex
+    onAudioCodecIndexChanged: codecCombo.currentIndex = audioCodecIndex
+    onBitRateControlIndexChanged: codecRateCtrlCombo.currentIndex = bitRateControlIndex
+    onBitRateIndexChanged: bitRateCombo.currentIndex = bitRateIndex
+    onDisableAudioChanged: disableChecker.checked = disableAudio
+    onAspectIndexChanged: {
+        var aspectData = [[9, 16], [16, 9], [1, 1], [4, 3], [3, 4], [21, 9], [0, 0]]
+        aspectNum = aspectData[aspectIndex][0]
+        aspectDen = aspectData[aspectIndex][1]
+        aspectCombo.currentIndex = aspectIndex
+        
+        if (aspectNum != 0) {
+            profileH = Math.floor(profileW / aspectNum * aspectDen)
+        }
+    }
     
     onProfileFpsChanged: {
         for (var i = 0; i < timebaseCombo.fpsList.length; i++) {
@@ -29,7 +54,7 @@ Item {
             }
         }
     }
-    
+
     onSubtitleMarginHorChanged: ssmHor.text = subtitleMarginHor
     onSubtitleMarginVerChanged: ssmVer.text = subtitleMarginVer
     onActionMarginHorChanged: asmHor.text = actionMarginHor
@@ -183,6 +208,8 @@ Item {
                             bottom: 0
                         }
                         suffix: i18n("px 水平")
+                        
+                        onTextChanged: subtitleMarginHor = Number(text)
                     }
                     
                     StyledTextField {
@@ -200,6 +227,8 @@ Item {
                             bottom: 0
                         }
                         suffix: i18n("px 垂直")
+                        
+                        onTextChanged: subtitleMarginVer = Number(text)
                     }
                     
                     ThemeText {
@@ -228,6 +257,8 @@ Item {
                             bottom: 0
                         }
                         suffix: i18n("px 水平")
+                        
+                        onTextChanged: actionMarginHor = Number(text)
                     }
                     
                     StyledTextField {
@@ -245,6 +276,8 @@ Item {
                             bottom: 0
                         }
                         suffix: i18n("px 垂直")
+                        
+                        onTextChanged: actionMarginVer = Number(text)
                     }
                     
                 }
@@ -284,6 +317,8 @@ Item {
                             [i18n("21: 9 (影院)"), ""],
                             [i18n("自定义"), ""],
                         ]
+                        
+                        onCurrentIndexChanged: aspectIndex = currentIndex
                     }
                     
                     ThemeText {
@@ -309,7 +344,19 @@ Item {
                         suffixMargin: 10
                         validator: IntValidator {
                             bottom: 0
-                            top: 9999
+                            top: 99999
+                        }
+                        
+                        property bool blockUpdate: false
+                        
+                        onTextChanged: {
+                            if (blockUpdate) return
+                            resolutionH.blockUpdate = true
+                            profileW = Number(text)
+                            if (aspectNum != 0) {
+                                profileH = Math.floor(profileW / aspectNum * aspectDen)
+                            }
+                            resolutionH.blockUpdate = false
                         }
                     }
                     
@@ -323,7 +370,19 @@ Item {
                         }
                         validator: IntValidator {
                             bottom: 0
-                            top: 9999
+                            top: 99999
+                        }
+                        
+                        property bool blockUpdate: false
+                        
+                        onTextChanged: {
+                            if (blockUpdate) return                            
+                            resolutionW.blockUpdate = true
+                            profileH = Number(text)
+                            if (aspectDen != 0) {
+                                profileW = Math.floor(profileH / aspectDen * aspectNum)
+                            }
+                            resolutionW.blockUpdate = false
                         }
                     }
                     
@@ -380,10 +439,14 @@ Item {
                         }
                         
                         model: [
-                            i18n("立体声"),
-                            i18n("单声道"),
-                            i18n("6（5.1）")
+                            [i18n("立体声"), ""],
+                            [i18n("单声道"), ""],
+                            [i18n("6（5.1）"), ""]
                         ]
+                        
+                        onCurrentIndexChanged: {
+                            channelIndex = currentIndex
+                        }
                     }
                     
                     ThemeText {
@@ -407,8 +470,14 @@ Item {
                         }
                         
                         model: [
-                            48000
+                            [32000, ""],
+                            [44100, ""],
+                            [48000, ""]
                         ]
+                        
+                        onCurrentIndexChanged: {
+                            audioSampleIndex = currentIndex
+                        }
                     }
                     
                     ThemeText {
@@ -442,8 +511,17 @@ Item {
                         }
                         
                         model: [
-                            "acc"
+                            ["acc", ""],
+                            ["alac", ""],
+                            ["flac", ""],
+                            ["mp3", ""],
+                            ["wav", ""],
+                            ["wma", ""]
                         ]
+                        
+                        onCurrentIndexChanged: {
+                            audioCodecIndex = currentIndex
+                        }
                     }
                     
                     
@@ -468,8 +546,14 @@ Item {
                         }
                         
                         model: [
-                            i18n("平均码率（ABR）"),
+                            [i18n("平均码率（ABR）"), ""],
+                            [i18n("固定码率（CBR）"), ""],
+                            [i18n("可变码率（VBR）"), ""]
                         ]
+                        
+                        onCurrentIndexChanged: {
+                            bitRateControlIndex = currentIndex
+                        }
                     }
                     
                     ThemeText {
@@ -493,8 +577,17 @@ Item {
                         }
                         
                         model: [
-                            "384k"
+                            ["96k", ""],
+                            ["128k", ""],
+                            ["192k", ""],
+                            ["220k", ""],
+                            ["256k", ""],
+                            ["384k", ""]
                         ]
+                        
+                        onCurrentIndexChanged: {
+                            bitRateIndex = currentIndex
+                        }
                     }
                     
                     ThemeText {
@@ -508,6 +601,7 @@ Item {
                     }
                     
                     StyledCheckable {
+                        id: disableChecker
                         indicatorBorder: false
                         text: i18n("禁用音频")
                         leftPadding: 0
@@ -515,6 +609,10 @@ Item {
                             left: channelCombo.left
                             top: parent.top
                             topMargin: 352
+                        }
+                        
+                        onCheckedChanged: {
+                            disableAudio = checked
                         }
                     }
                 }
@@ -534,7 +632,12 @@ Item {
                 anchors.bottom: parent.bottom
                 
                 onClicked: {
-                    confirm()
+                    if (profileH < 50 || profileW < 50) {
+                        cancel()
+                    } else {
+                        confirm()
+                    }
+
                 }
             }
             PopupButton {

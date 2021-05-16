@@ -405,3 +405,11 @@ void MonitorProxy::setSpeed(double speed)
         emit speedChanged();
     }
 }
+
+void MonitorProxy::addToProjectBin() {
+    
+}
+
+void MonitorProxy::qBlockSignals(bool block) {
+    blockSignals(block);
+}

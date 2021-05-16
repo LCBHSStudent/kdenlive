@@ -84,6 +84,7 @@ public:
     Q_INVOKABLE void seek(int delta, uint modifiers);
     Q_INVOKABLE QColor thumbColor1() const;
     Q_INVOKABLE QColor thumbColor2() const;
+    Q_INVOKABLE void addToProjectBin();
     bool audioThumbFormat() const;
     bool audioThumbNormalize() const;
     void positionFromConsumer(int pos, bool playing);
@@ -107,6 +108,7 @@ public:
     Q_INVOKABLE void switchAutoKeyframe();
     Q_INVOKABLE bool autoKeyframe() const;
     Q_INVOKABLE void setWidgetKeyBinding(const QString &text = QString()) const;
+    Q_INVOKABLE void qBlockSignals(bool block);
     QPoint profile();
     void setClipProperties(int clipId, ClipType::ProducerType type, bool hasAV, const QString clipName);
     void setAudioThumb(const QList <int> streamIndexes = QList <int>(), QList <int> channels = QList <int>());

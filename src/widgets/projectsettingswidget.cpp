@@ -2,8 +2,13 @@
 
 #include "core.h"
 #include "profiles/profileinfo.hpp"
+#include "profiles/profilerepository.hpp"
 #include "profiles/profilemodel.hpp"
+#include "doc/kdenlivedoc.h"
 #include "mainwindow.h"
+#include "jobs/loadjob.hpp"
+#include "kdenlivesettings.h"
+#include "jobs/jobmanager.h"
 
 #include <QAction>
 #include <KLocalizedContext>
@@ -22,6 +27,9 @@ constexpr int __dropshadowMargin = 0;
     static const char* qmlPath = "qrc:/qml/ProjectSettings.qml";
 #endif
 
+#define GET_AND_SET(__NAME, __TYPE, __DEFAULT) \
+    rootObj->setProperty(#__NAME, m_projSettings.value(#__NAME, __DEFAULT).to##__TYPE())
+    
 ProjectSettingsWidget::ProjectSettingsWidget(QWidget* parent)
 	: QQuickWidget(parent)
 {
@@ -43,13 +51,22 @@ ProjectSettingsWidget::ProjectSettingsWidget(QWidget* parent)
             std::unique_ptr<ProfileModel>& profile = pCore->getCurrentProfile();
             
             rootObj->setProperty("__dropshadowMargin", __dropshadowMargin);
-            rootObj->setProperty("subtitleMarginHor", m_projSettings.value("subtitleMarginHor", 20).toInt());
-            rootObj->setProperty("subtitleMarginVer", m_projSettings.value("subtitleMarginVer", 20).toInt());
-            rootObj->setProperty("actionMarginHor", m_projSettings.value("actionMarginHor", 10).toInt());
-            rootObj->setProperty("actionMarginVer", m_projSettings.value("actionMarginVer", 10).toInt());
             rootObj->setProperty("profileW", profile->width());
             rootObj->setProperty("profileH", profile->height());
             rootObj->setProperty("profileFps", profile->fps());
+            
+            GET_AND_SET(subtitleMarginHor, Int, 20);
+            GET_AND_SET(subtitleMarginVer, Int, 20);
+            GET_AND_SET(actionMarginHor, Int, 10);
+            GET_AND_SET(actionMarginVer, Int, 10);
+            GET_AND_SET(scanMethod, Int, 0);
+            GET_AND_SET(aspectIndex, Int, 6);
+            GET_AND_SET(channelIndex, Int, 0);
+            GET_AND_SET(audioSampleIndex, Int, 2);
+            GET_AND_SET(audioCodecIndex, Int, 0);
+            GET_AND_SET(bitRateControlIndex, Int, 0);
+            GET_AND_SET(bitRateIndex, Int, 5);
+            GET_AND_SET(disableAudio, Bool, false);      
             
             connect(rootObj, SIGNAL(move(QVariant,QVariant)), this, SLOT(move(QVariant,QVariant)));
             connect(rootObj, SIGNAL(cancel()), this, SLOT(close()));
@@ -74,6 +91,8 @@ ProjectSettingsWidget::ProjectSettingsWidget(QWidget* parent)
     show();
 }
 
+#undef GET_AND_SET
+
 void ProjectSettingsWidget::move(QVariant x, QVariant y) {
     auto&& mainGeo = pCore->window()->geometry();
     
@@ -83,26 +102,51 @@ void ProjectSettingsWidget::move(QVariant x, QVariant y) {
     );
 }
 
+#define GET_AND_SET(__NAME, __TYPE) \
+    auto __NAME = rootObj->property(#__NAME).to##__TYPE(); \
+    m_projSettings.setValue(#__NAME, __NAME) 
+
 void ProjectSettingsWidget::confirmSettings() {
     auto rootObj = rootObject();
     if (rootObj) {
-        std::unique_ptr<ProfileModel>& profile = pCore->getCurrentProfile();
-        
-        auto subtitleMarginHor  = rootObj->property("subtitleMarginHor").toInt();
-        auto subtitleMarginVer  = rootObj->property("subtitleMarginVer").toInt();
-        auto actionMarginHor    = rootObj->property("actionMarginHor").toInt();
-        auto actionMarginVer    = rootObj->property("actionMarginVer").toInt();
-        m_projSettings.setValue("subtitleMarginHor", subtitleMarginHor);
-        m_projSettings.setValue("subtitleMarginVer", subtitleMarginVer);
-        m_projSettings.setValue("actionMarginHor", actionMarginHor);
-        m_projSettings.setValue("actionMarginVer", actionMarginVer);
+        GET_AND_SET(subtitleMarginHor, Int);
+        GET_AND_SET(subtitleMarginVer, Int);
+        GET_AND_SET(actionMarginHor, Int);
+        GET_AND_SET(actionMarginVer, Int);
         
         auto profileW           = rootObj->property("profileW").toInt();
         auto profileH           = rootObj->property("profileH").toInt();
         auto profileFps         = rootObj->property("profileFps").toReal();
         
+        std::unique_ptr<Mlt::Profile> blankProfile(new Mlt::Profile());
+        blankProfile->set_frame_rate(profileFps * 10000, 10000);
+        blankProfile->set_width(profileW);
+        blankProfile->set_height(profileH);
         
+        std::unique_ptr<ProfileParam> profile(new ProfileParam(blankProfile.get()));
+        profile->m_description = QStringLiteral("%1x%2 %3fps")
+                                     .arg(profile->m_width)
+                                     .arg(profile->m_height)
+                                     .arg(QString::number(double(profile->m_frame_rate_num) / profile->m_frame_rate_den, 'f', 2));
+        QString profilePath = ProfileRepository::get()->saveProfile(profile.get());
+        // Discard all current jobs
+        pCore->jobManager()->slotCancelJobs();
+        pCore->setCurrentProfile(profilePath);   
+        
+        pCore->currentDoc()->updateProjectProfile(true);
+        emit pCore->currentDoc()->docModified(true);
+        
+        GET_AND_SET(scanMethod, Int);
+        GET_AND_SET(channelIndex, Int);
+        GET_AND_SET(aspectIndex, Int);
+        GET_AND_SET(audioSampleIndex, Int);
+        GET_AND_SET(audioCodecIndex, Int);
+        GET_AND_SET(bitRateControlIndex, Int);
+        GET_AND_SET(bitRateIndex, Int);
+        GET_AND_SET(disableAudio, Bool);        
     }
     
     close();
 }
+
+#undef GET_AND_SET

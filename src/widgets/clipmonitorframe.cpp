@@ -34,5 +34,5 @@ ClipMonitorFrame::ClipMonitorFrame(Monitor* clipMonitor, QWidget* parent)
 
 void ClipMonitorFrame::resizeEvent(QResizeEvent* e) {
     FramelessMovableWidget::resizeEvent(e);
-    m_clipMonitor->setGeometry(cLRBorderWidth, headerHeight(), width() - 2*cLRBorderWidth, height() - headerHeight());
+    m_clipMonitor->setGeometry(cLRBorderWidth, headerHeight(), width() - 2*cLRBorderWidth, height() - 1 - headerHeight());
 }

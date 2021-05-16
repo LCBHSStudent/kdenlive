@@ -32,6 +32,9 @@
 #include <kdeclarative_version.h>
 #include <klocalizedstring.h>
 #include <memory>
+#include <QUuid>
+
+#include "timeline2/view/qmltypes/thumbnailprovider.h"
 
 #include "core.h"
 #include "glwidget.h"
@@ -145,6 +148,8 @@ GLWidget::GLWidget(int id, QWidget *parent)
     registerTimelineItems();
     m_proxy = new MonitorProxy(this);
     rootContext()->setContextProperty("controller", m_proxy);
+    rootContext()->setContextProperty("documentId", QUuid::createUuid());
+    engine()->addImageProvider(QStringLiteral("thumbnail"), new ThumbnailProvider);
 }
 
 GLWidget::~GLWidget()

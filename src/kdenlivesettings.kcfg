@@ -964,12 +964,12 @@
 
     <entry name="thumbColor1" type="Color">
       <label>Color to draw even audio channels.</label>
-      <default>#2ac1a0</default>
+      <default>#38FFFFFF</default>
     </entry>
 
     <entry name="thumbColor2" type="Color">
       <label>Color to draw odd audio channels.</label>
-      <default>#2ed172</default>
+      <default>#38FFFFFF</default>
     </entry>
 
     <entry name="rescalekeepratio" type="Bool">
