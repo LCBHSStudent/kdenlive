@@ -92,6 +92,11 @@ void ProjectSettingsWidget::confirmSettings() {
         auto subtitleMarginVer  = rootObj->property("subtitleMarginVer").toInt();
         auto actionMarginHor    = rootObj->property("actionMarginHor").toInt();
         auto actionMarginVer    = rootObj->property("actionMarginVer").toInt();
+        m_projSettings.setValue("subtitleMarginHor", subtitleMarginHor);
+        m_projSettings.setValue("subtitleMarginVer", subtitleMarginVer);
+        m_projSettings.setValue("actionMarginHor", actionMarginHor);
+        m_projSettings.setValue("actionMarginVer", actionMarginVer);
+        
         auto profileW           = rootObj->property("profileW").toInt();
         auto profileH           = rootObj->property("profileH").toInt();
         auto profileFps         = rootObj->property("profileFps").toReal();

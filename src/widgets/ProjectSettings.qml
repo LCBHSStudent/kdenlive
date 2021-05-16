@@ -341,72 +341,15 @@ Item {
                     
                     StyledComboBoxRect {
                         id: scanCombo
-                        
+                        width: 99
                         anchors {
                             left: aspectCombo.left
                             verticalCenter: scanText.verticalCenter
                         }
                         
                         model: [
-                            i18n("逐行"),
-                            i18n("隔行")
-                        ]
-                    }
-                    
-                    
-                    ThemeText {
-                        id: interlaceText
-                        color: uiconfig.lighterFontColor
-                        text: i18n("反交错")
-                        anchors {
-                            right: parent.right
-                            rightMargin: 318
-                            top: parent.top
-                            topMargin: 248
-                        }
-                    }
-                    
-                    StyledComboBoxRect {
-                        id: interlaceCombo
-                        
-                        anchors {
-                            left: aspectCombo.left
-                            verticalCenter: interlaceText.verticalCenter
-                        }
-                        
-                        model: [
-                            i18n("仅用单场（快速）"),
-                            i18n("线性混合（快速）"),
-                            i18n("YADIF - 时间（质量好）"),
-                            i18n("YADIF - 时间与空间（质量最佳）")
-                        ]
-                    }
-                    
-                    ThemeText {
-                        id: interpolationText
-                        color: uiconfig.lighterFontColor
-                        text: i18n("插值")
-                        anchors {
-                            right: parent.right
-                            rightMargin: 318
-                            top: parent.top
-                            topMargin: 308
-                        }
-                    }
-                    
-                    StyledComboBoxRect {
-                        id: interpolationCombo
-                        
-                        anchors {
-                            left: aspectCombo.left
-                            verticalCenter: interpolationText.verticalCenter
-                        }
-                        
-                        model: [
-                            i18n("最近像素（快速）"),
-                            i18n("双线性（良好）"),
-                            i18n("双立方（更佳）"),
-                            i18n("Hyper/Lanczos（最佳）")
+                            [i18n("逐行"), ""],
+                            [i18n("隔行"), ""]
                         ]
                     }
                 }
@@ -429,7 +372,7 @@ Item {
                     
                     StyledComboBoxRect {
                         id: channelCombo
-                        
+                        width: 112
                         anchors {
                             left: channelText.right
                             leftMargin: 20
@@ -457,7 +400,7 @@ Item {
                     
                     StyledComboBoxRect {
                         id: sampleCombo
-                        
+                        width: 113
                         anchors {
                             left: channelCombo.left
                             verticalCenter: sampleText.verticalCenter
@@ -492,7 +435,7 @@ Item {
                     
                     StyledComboBoxRect {
                         id: codecCombo
-                        
+                        width: 111
                         anchors {
                             left: channelCombo.left
                             verticalCenter: codecText.verticalCenter
@@ -518,7 +461,7 @@ Item {
                     
                     StyledComboBoxRect {
                         id: codecRateCtrlCombo
-                        
+                        width: 174
                         anchors {
                             left: channelCombo.left
                             verticalCenter: codecRateCtrlText.verticalCenter
@@ -543,7 +486,7 @@ Item {
                     
                     StyledComboBoxRect {
                         id: bitRateCombo
-                        
+                        width: 103
                         anchors {
                             left: channelCombo.left
                             verticalCenter: bitRateText.verticalCenter
@@ -558,14 +501,14 @@ Item {
                         color: uiconfig.lighterFontColor
                         anchors {
                             left: bitRateCombo.right
-                            leftMargin: 10
+                            leftMargin: 17
                             verticalCenter: bitRateCombo.verticalCenter
                         }
                         text: i18n("比特/秒")
                     }
                     
                     StyledCheckable {
-                        indicatorBorder: true
+                        indicatorBorder: false
                         text: i18n("禁用音频")
                         leftPadding: 0
                         anchors {
@@ -584,7 +527,7 @@ Item {
                 bottom: parent.bottom
                 bottomMargin: 30
             }
-            spacing: 80
+            spacing: 105
             
             PopupButton {
                 text: i18n("确    定")

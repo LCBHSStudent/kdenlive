@@ -156,7 +156,8 @@ public:
     bool isPlaying() const;
     /** @brief Enables / disables effect scene*/
     void enableEffectScene(bool enable);
-    
+    /** @brief 加载监视器qml场景 */
+    void loadQmlScene(MonitorSceneType type, QVariant sceneData = QVariant());
 
 protected:
     void mousePressEvent(QMouseEvent *event) override;
@@ -229,7 +230,6 @@ private:
     QMetaObject::Connection m_switchConnection;
 
     void adjustScrollBars(float horizontal, float vertical);
-    void loadQmlScene(MonitorSceneType type, QVariant sceneData = QVariant());
     void updateQmlDisplay(int currentOverlay);
     /** @brief Create temporary Mlt::Tractor holding a clip and it's effectless clone */
     void buildSplitEffect(Mlt::Producer *original);

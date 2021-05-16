@@ -48,6 +48,9 @@ private:
     QQuickWidget *m_view;
     MonitorSceneType m_sceneType;
 
+protected:
+    bool eventFilter(QObject*,QEvent*) override;
+    
 private slots:
     void effectRectChanged();
     void effectPolygonChanged();
@@ -57,6 +60,9 @@ signals:
     void effectChanged(const QRect &);
     void effectPointsChanged(const QVariantList &);
     void activateTrack(int);
+#ifdef DEBUG_BUILD
+    void sigReloadQmlScene(QVariant sceneData);
+#endif
 };
 
 #endif

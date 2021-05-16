@@ -164,7 +164,12 @@ Monitor::Monitor(Kdenlive::MonitorId id, MonitorManager *manager, QWidget *paren
     connect(m_qmlManager, &QmlManager::effectChanged, this, &Monitor::effectChanged);
     connect(m_qmlManager, &QmlManager::effectPointsChanged, this, &Monitor::effectPointsChanged);
     connect(m_qmlManager, &QmlManager::activateTrack, this, &Monitor::activateTrack);
-
+#ifdef DEBUG_BUILD
+    connect(m_qmlManager, &QmlManager::sigReloadQmlScene, [this](QVariant sceneData) {
+        this->loadQmlScene(m_qmlManager->sceneType(), sceneData);
+    });
+#endif
+    
     glayout->addWidget(m_videoWidget, 0, 0);
     m_videoWidget->update();
     m_verticalScroll = new QScrollBar(Qt::Vertical);

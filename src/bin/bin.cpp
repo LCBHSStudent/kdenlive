@@ -1405,10 +1405,10 @@ Bin::Bin(std::shared_ptr<ProjectItemModel> model, QWidget *parent)
             height: 20px;
         }
         QCheckBox::indicator:enabled:unchecked {
-            image: url(:/classic/controllers/checkbox_border_unchecked.png);
+            image: url(:/classic/controllers/checkbox_noborder_unchecked.png);
         }
         QCheckBox::indicator:enabled:checked {
-            image: url(:/classic/controllers/checkbox_border_checked.png);
+            image: url(:/classic/controllers/checkbox_noborder_checked.png);
         }
     )");
     m_toolbar->addWidget(autoPlayNext);

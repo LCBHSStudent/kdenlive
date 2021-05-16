@@ -28,6 +28,12 @@
 #include <QQuickWidget>
 #include <QQuickItem>
 
+#include "macros.hpp"
+
+#include <QQmlEngine>
+#include <QEvent>
+#include <QKeyEvent>
+
 QmlManager::QmlManager(QQuickWidget *view)
     : QObject(view)
     , m_view(view)
@@ -51,9 +57,15 @@ void QmlManager::setScene(Kdenlive::MonitorId id, MonitorSceneType type, QSize p
         // Scene type already active
         return;
     }
-    /*if (id == Kdenlive::DvdMonitor) {
-        return;
-    }*/
+    
+#ifdef DEBUG_BUILD
+    m_view->removeEventFilter(this);
+    
+    if (id == Kdenlive::ClipMonitor) {
+        m_view->installEventFilter(this);
+    }
+#endif
+    
     m_sceneType = type;
     QQuickItem *root = nullptr;
     m_view->rootContext()->setContextProperty("fixedFont", QFontDatabase::systemFont(QFontDatabase::FixedFont));
@@ -115,9 +127,14 @@ void QmlManager::setScene(Kdenlive::MonitorId id, MonitorSceneType type, QSize p
         m_view->setSource(QUrl(QStringLiteral("qrc:/qml/kdenlivemonitorripple.qml")));
         root = m_view->rootObject();
         break;
-    default:         
+    default:
+#ifdef DEBUG_BUILD
+        m_view->setSource(
+            QUrl(id == Kdenlive::ClipMonitor || id == Kdenlive::DvdMonitor ? QStringLiteral("file:///A:/CraftRoot/build/kde/kdemultimedia/kdenlive/work/kde_based_editor/src/monitor/view/kdenliveclipmonitor.qml"): QStringLiteral("file:///A:/CraftRoot/build/kde/kdemultimedia/kdenlive/work/kde_based_editor/src/monitor/view/kdenlivemonitor.qml")));
+#else
         m_view->setSource(
             QUrl(id == Kdenlive::ClipMonitor || id == Kdenlive::DvdMonitor ? QStringLiteral("qrc:/qml/kdenliveclipmonitor.qml") : QStringLiteral("qrc:/qml/kdenlivemonitor.qml")));
+#endif
         root = m_view->rootObject();
         root->setProperty("profile", QPoint(profile.width(), profile.height()));
         root->setProperty("scalex", scalex);
@@ -167,4 +184,24 @@ void QmlManager::effectRotoChanged()
         mix << controlPoints.at(2 * i + 1);
     }
     emit effectPointsChanged(mix);
+}
+
+bool QmlManager::eventFilter(QObject*, QEvent* e) {
+    if (e->type() == QEvent::KeyPress) {
+        auto ke = static_cast<QKeyEvent*>(e);
+        if (ke->key() == Qt::Key_Q) {
+            if (ke->modifiers() & Qt::Modifier::ALT) {
+                m_view->setSource(QUrl());
+                m_view->engine()->clearComponentCache();
+                
+                emit sigReloadQmlScene(property("tracks"));
+                
+                return true;
+            }
+        }
+        
+    }
+    
+    
+    return false;
 }
