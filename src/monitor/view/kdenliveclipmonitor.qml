@@ -3,15 +3,17 @@ import QtQuick.Window 2.2
 import Kdenlive.Controls 1.0
 import QtQuick 2.11
 import com.enums 1.0
+import DFW.Components 1.0
 
 Item {
     id: root
     objectName: "root"
-
-    SystemPalette { id: activePalette }
+    
+    UIConfig { id: uiconfig }
 
     // default size, but scalable by user
     height: 300; width: 400
+    property string clipName: controller.clipName
     property string markerText
     property int itemType: 0
     property point profile: controller.profile
@@ -37,7 +39,6 @@ Item {
     // Always display audio thumbs under video
     property bool permanentAudiothumb: false
     property bool showToolbar: false
-    property string clipName: controller.clipName
     property real baseUnit: fontMetrics.font.pixelSize
     property int duration: 300
     property int mouseRulerPos: 0
@@ -80,9 +81,6 @@ Item {
         clipMonitorRuler.updateRuler()
     }
     onClipNameChanged: {
-        // Animate clip name
-        clipNameLabel.opacity = 1
-        showAnimate.restart()
         // Reset zoom on clip change
         root.zoomStart = 0
         root.zoomFactor = 1
@@ -142,9 +140,6 @@ Item {
             controller.seek(wheel.angleDelta.x + wheel.angleDelta.y, wheel.modifiers)
         }
         onEntered: {
-            // Show clip name
-            clipNameLabel.opacity = 1
-            showAnimate.restart()
             controller.setWidgetKeyBinding(i18n("<b>Click</b> to play, <b>Double click</b> for fullscreen, <b>Hover right</b> for toolbar, <b>Wheel</b> or <b>arrows</b> to seek, <b>Ctrl wheel</b> to zoom"));
         }
         onExited: {
@@ -373,33 +368,6 @@ Item {
                     }
                 }
             }
-            Label {
-                id: clipNameLabel
-                font: fixedFont
-                anchors {
-                    top: parent.top
-                    horizontalCenter: parent.horizontalCenter
-                }
-                color: "white"
-                text: clipName
-                onTextChanged: {
-                    if (thumbTimer.running) {
-                        thumbTimer.stop()
-                    }
-                    thumbTimer.start()
-                }
-                background: Rectangle {
-                    color: "#222277"
-                }
-                visible: clipName != ""
-                padding :4
-                SequentialAnimation {
-                    id: showAnimate
-                    running: false
-                    NumberAnimation { target: clipNameLabel; duration: 3000 }
-                    NumberAnimation { target: clipNameLabel; property: "opacity"; to: 0; duration: 1000 }
-                }
-            }
 
             Label {
                 id: timecode
@@ -523,7 +491,7 @@ Item {
             y: inPoint.visible || outPoint.visible || marker.visible ? parent.height - inPoint.height - height - 2 - overlayMargin : parent.height - height - 2 - overlayMargin
             width: childrenRect.width
             height: childrenRect.height
-            color: Qt.rgba(activePalette.highlight.r, activePalette.highlight.g, activePalette.highlight.b, 0.7)
+            color: Qt.rgba(uiconfig.foregroundColor.r,uiconfig.foregroundColor.g, uiconfig.foregroundColor.b, 0.7)
             radius: 4
             opacity: (dragAudioArea.containsMouse || dragVideoArea.containsMouse  || thumbMouseArea.containsMouse || (barOverArea.containsMouse && (barOverArea.mouseY >= (parent.height - inPoint.height - height - 2 - (audioThumb.height + root.zoomOffset) - root.baseUnit)))) ? 1 : 0
             visible: controller.clipHasAV

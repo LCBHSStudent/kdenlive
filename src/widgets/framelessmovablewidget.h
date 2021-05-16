@@ -19,6 +19,8 @@ public:
         title() const;
     void    
         setTitle(const QString&);
+    QPushButton*
+        closeBtn() const;
     
 protected:
     void paintEvent(QPaintEvent*) override;

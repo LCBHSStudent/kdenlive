@@ -75,6 +75,7 @@ class Monitor : public AbstractMonitor
 
 public:
     friend class MonitorManager;
+    friend class ClipMonitorFrame;
 
     Monitor(Kdenlive::MonitorId id, MonitorManager *manager, QWidget *parent = nullptr);
     ~Monitor() override;

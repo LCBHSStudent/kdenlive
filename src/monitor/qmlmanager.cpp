@@ -202,6 +202,5 @@ bool QmlManager::eventFilter(QObject*, QEvent* e) {
         
     }
     
-    
     return false;
 }

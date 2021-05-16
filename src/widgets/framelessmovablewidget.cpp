@@ -69,12 +69,17 @@ void FramelessMovableWidget::resizeEvent(QResizeEvent* e) {
 void FramelessMovableWidget::paintEvent(QPaintEvent *) {
     QFont YaHei("Microsoft YaHei");
     YaHei.setPixelSize(14);
+    QFontMetrics fm(YaHei);
     
     QPainter p(this);
     p.setFont(YaHei);
     p.setBrush(Qt::white);
     
-    p.drawText(0, 0, this->width(), headerHeight(), Qt::AlignCenter, m_title);    
+    p.drawText(
+        this->width() * 0.2, 0, 
+        this->width() * 0.6, headerHeight(), Qt::AlignCenter, 
+        fm.elidedText(m_title, Qt::TextElideMode::ElideMiddle, this->width() * 0.6)
+    );
 }
 
 int FramelessMovableWidget::headerHeight() const {
@@ -92,4 +97,8 @@ QString FramelessMovableWidget::title() const {
 void FramelessMovableWidget::setTitle(const QString& title) {
     m_title = title;
     update();
+}
+
+QPushButton* FramelessMovableWidget::closeBtn() const {
+    return m_closeBtn;
 }

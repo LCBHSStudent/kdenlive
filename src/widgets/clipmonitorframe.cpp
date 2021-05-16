@@ -1,6 +1,8 @@
 #include "clipmonitorframe.h"
 
 #include "monitor/monitor.h"
+#include "monitor/glwidget.h"
+#include "monitor/monitorproxy.h"
 
 constexpr auto cLRBorderWidth = 20;
 constexpr auto cHeaderHeight = 50;
@@ -19,6 +21,9 @@ ClipMonitorFrame::ClipMonitorFrame(Monitor* clipMonitor, QWidget* parent)
             border: 1px solid #5E5F72;
         }
     )");
+    connect(m_clipMonitor->m_glMonitor->getControllerProxy(), &MonitorProxy::clipNameChanged, [this] {
+        setTitle(m_clipMonitor->m_glMonitor->getControllerProxy()->property("clipName").toString());
+    });
     
     resize(900, 720);
     

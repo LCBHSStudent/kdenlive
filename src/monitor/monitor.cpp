@@ -2197,6 +2197,7 @@ QSize Monitor::profileSize() const
 
 void Monitor::loadQmlScene(MonitorSceneType type, QVariant sceneData)
 {
+    LOG_DEBUG() << type << sceneData;
     if (m_id == Kdenlive::DvdMonitor) {
         m_qmlManager->setScene(m_id, MonitorSceneDefault, pCore->getCurrentFrameSize(), pCore->getCurrentDar(), m_glMonitor->displayRect(), double(m_glMonitor->zoom()), m_timePos->maximum());
         m_qmlManager->setProperty(QStringLiteral("fps"), QString::number(pCore->getCurrentFps(), 'f', 2));

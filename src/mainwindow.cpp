@@ -928,6 +928,7 @@ void MainWindow::init(const QString &mltPath) {
     // 设置顶端导航栏
     m_framelessHelper->addExcludeItem(new TopNavigationBar(menuBar()));
     m_framelessHelper->addExcludeItem(m_clipMonitorFrame);
+    m_framelessHelper->addExcludeItem(m_clipMonitorFrame->closeBtn());
     
     auto passer = new MenuBarEventPasser(menuBar());
     passer->setFixedSize(48 * menuBar()->actions().count(), menuBar()->height());
