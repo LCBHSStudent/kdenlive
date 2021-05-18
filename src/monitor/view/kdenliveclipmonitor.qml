@@ -50,7 +50,6 @@ Item {
     property color overlayColor: 'cyan'
     property bool isClipMonitor: true
     property int dragType: 0
-    property int overlayMargin: (audioThumb.stateVisible && !audioThumb.isAudioClip && audioThumb.visible) ? (audioThumb.height + root.zoomOffset) : root.zoomOffset + (audioThumb.isAudioClip && audioSeekZone.visible) ? audioSeekZone.height : 0
     
     property string baseThumbPath: controller.clipId >= 0? 'image://thumbnail/' + controller.clipId + '/' + documentId + '/#': ""
     
@@ -88,24 +87,9 @@ Item {
         root.zoomFactor = 1
         root.showZoomBar = false
         root.zoomOffset = 0
-
-        // adjust monitor image size if audio thumb is displayed
-        if (audioThumb.stateVisible && root.permanentAudiothumb && audioThumb.visible) {
-            controller.rulerHeight = audioThumb.height + root.zoomOffset
-        } else {
-            controller.rulerHeight = root.zoomOffset
-        }
     }
     
     onZoomOffsetChanged: {
-        if (audioThumb.stateVisible && root.permanentAudiothumb && audioThumb.visible) {
-            controller.rulerHeight = audioThumb.height + root.zoomOffset
-        } else {
-            controller.rulerHeight = root.zoomOffset
-        }
-    }
-    
-    onHeightChanged: {
         if (audioThumb.stateVisible && root.permanentAudiothumb && audioThumb.visible) {
             controller.rulerHeight = audioThumb.height + root.zoomOffset
         } else {
@@ -131,6 +115,7 @@ Item {
         hoverEnabled: true
         acceptedButtons: Qt.NoButton
         anchors.fill: parent
+        propagateComposedEvents: true
         onPositionChanged: {
             if (mouse.modifiers & Qt.ShiftModifier) {
                 var pos = Math.max(mouseX, 0)
@@ -172,10 +157,10 @@ Item {
             anchors.verticalCenterOffset : (root.permanentAudiothumb && audioThumb.visible) ? -(audioThumb.height + root.zoomOffset) / 2 : -root.zoomOffset / 2
 
             Loader {
-                width: controller.displayRect
+                anchors.fill: parent
+                
                 source: {
-                    switch(root.overlayType)
-                    {
+                    switch(root.overlayType) {
                         case 0:
                             return '';
                         case 1:
@@ -217,6 +202,22 @@ Item {
         border.width: 1
         border.color: uiconfig.foregroundColor
         
+        MouseArea {
+            anchors.fill: parent
+            onPositionChanged: {
+                var factor = mouseX / videoEditBar.width
+                if (factor > 1) {
+                    factor = 1
+                } else if (factor < 0) {
+                    factor = 0            
+                }
+                controller.setPosition(factor * root.duration)
+            }
+            onClicked: {
+                onPositionChanged(mouse)
+            }
+        }
+        
         Rectangle {
             x: inControl.x + inControl.width / 2
             width: outControl.x - inControl.x 
@@ -253,6 +254,7 @@ Item {
                 thumbTimer.start()
             }
             property double streamHeight: 19 / streamThumb.count
+            
             Item {
                 anchors.fill: parent
                 anchors.topMargin: 2
@@ -266,12 +268,12 @@ Item {
                     binId: controller.clipId
                     audioStream: controller.audioStreams[model.index]
                     isFirstChunk: false
-                    showItem: audioThumb.visible
+                    showItem: true
                     format: controller.audioThumbFormat
                     normalize: controller.audioThumbNormalize
-                    scaleFactor: audioThumb.width / (root.duration - 1) / root.zoomFactor
+                    scaleFactor: videoEditBar.width / (root.duration - 1) / root.zoomFactor
                     drawInPoint: 0
-                    drawOutPoint: audioThumb.width
+                    drawOutPoint: videoEditBar.width
                     waveInPoint: (root.duration - 1) * root.zoomStart * channels
                     waveOutPointWithUpdate: (root.duration - 1) * (root.zoomStart + root.zoomFactor) * channels
                     fillColor1: root.thumbColor1
@@ -349,7 +351,6 @@ Item {
             }
             
             onXChanged: {
-                console.debug(x, root.duration, controller.zoneIn, controller.zoneOut)
                 controller.qBlockSignals(true)
                 controller.zoneOut = (x + width / 2) / videoEditBar.width * root.duration
                 outControlLabelText.text = controller.toTimecode(controller.zoneOut)
@@ -420,13 +421,32 @@ Item {
         anchors.rightMargin: 30
         spacing: 20
         IconToolButton {
-            size: 50   
-            iconSource: "qrc:/classic/components/ptcontroller/mark.png"            
+            reactAreaFactor: 0.75
+            iconSize: 30
+            iconSource: "qrc:/classic/components/ptcontroller/mark.png"
         }
         IconToolButton {
-            size: 50     
+            id: spdAdjustBtn
+            
+            checkable: true
+            bgColor: checked? uiconfig.lighterSpaceColor: "transparent"
+            reactAreaFactor: 0.75
+            iconSize: 30
             iconSource: "qrc:/classic/components/ptcontroller/speed_adjust.png"
         }
+    }
+    
+    Rectangle {
+        id: speedCtrlMenu
+        visible: spdAdjustBtn.checked
+        color: uiconfig.lighterSpaceColor
+        width: 70
+        height: 150
+        
+        property point targetPos: editControl.mapToItem(root, Qt.point(spdAdjustBtn.x, spdAdjustBtn.y))
+        
+        y: targetPos.y
+        x: targetPos.x
     }
     
     Row {
@@ -435,35 +455,61 @@ Item {
         anchors.bottomMargin: 23
         anchors.horizontalCenter: parent.horizontalCenter
         IconToolButton {
-            size: 50          
+            reactAreaFactor: 0.75
+            iconSize: 50
             iconSource: "qrc:/classic/components/ptcontroller/prev_keypoint.png"
+            onClicked: {
+                controller.requestPlayPrev()
+            }
         }
         IconToolButton {
-            size: 50   
+            iconSize: 50   
+            reactAreaFactor: 0.75
             iconSource: "qrc:/classic/components/ptcontroller/prev_frame.png"
+            onClicked: {
+                controller.requestRewind()
+            }
         }
         IconToolButton {
-            size: 50   
-            iconSource: "qrc:/classic/components/ptcontroller/play.png"
+            iconSize: 50   
+            reactAreaFactor: 0.75
+            iconSource: controller.playing? "qrc:/classic/components/ptcontroller/pause.png":
+                                            "qrc:/classic/components/ptcontroller/play.png"
+            onClicked: {
+                controller.playing = !controller.playing
+            }
         }
         IconToolButton {
-            size: 50   
+            iconSize: 50   
+            reactAreaFactor: 0.75
             iconSource: "qrc:/classic/components/ptcontroller/next_frame.png"
+            onClicked: {
+                controller.requestFastforward()
+            }
         }
         IconToolButton {
-            size: 50         
+            iconSize: 50
+            reactAreaFactor: 0.75
             iconSource: "qrc:/classic/components/ptcontroller/next_keypoint.png"
+            onClicked: {
+                controller.requestPlayNext()
+            }
         }
     }
     
     IconToolButton {
-        size: 50      
+        iconSize: 30
         
+        reactAreaFactor: 0.75
         anchors.verticalCenter: playControl.verticalCenter
         anchors.left: playControl.right
         anchors.leftMargin: 30
         
         iconSource: "qrc:/classic/controllers/btn_add_to_track.png"
+        
+        onClicked: {
+            controller.requestInsert()
+        }
     }
     
     
@@ -474,93 +520,6 @@ Item {
         id: monitorOverlay
         anchors.fill: parent
 
-        Item {
-            id: audioThumb
-            property bool stateVisible: (root.permanentAudiothumb || thumbTimer.running || root.showZoomBar)
-            property bool isAudioClip: controller.clipType === ProducerType.Audio
-            anchors {
-                left: parent.left
-                bottom: parent.bottom
-                bottomMargin: root.zoomOffset
-            }
-            Label {
-                id: clipStreamLabel
-                font: fixedFont
-                anchors {
-                    bottom: audioThumb.isAudioClip ? parent.bottom : parent.top
-                    horizontalCenter: parent.horizontalCenter
-                }
-                color: "white"
-                text: controller.clipStream
-                background: Rectangle {
-                    color: "#222277"
-                }
-                visible: text != ""
-                padding :4
-            }
-            height: isAudioClip ? parent.height : parent.height / 6
-            //font.pixelSize * 3
-            width: parent.width
-            visible: (root.permanentAudiothumb || root.showAudiothumb) && (isAudioClip || controller.clipType === ProducerType.AV || controller.clipType === ProducerType.Playlist)
-            onStateVisibleChanged: {
-                // adjust monitor image size
-                if (stateVisible && root.permanentAudiothumb && audioThumb.visible) {
-                    controller.rulerHeight = audioThumb.height + root.zoomOffset
-                } else {
-                    controller.rulerHeight = root.zoomOffset
-                }
-            }
-
-        Rectangle {
-            // Audio or video only drag zone
-            id: dragZone
-            x: 2
-            y: inPoint.visible || outPoint.visible || marker.visible ? parent.height - inPoint.height - height - 2 - overlayMargin : parent.height - height - 2 - overlayMargin
-            width: childrenRect.width
-            height: childrenRect.height
-            color: Qt.rgba(activePalette.highlight.r, activePalette.highlight.g, activePalette.highlight.b, 0.7)
-            radius: 4
-            opacity: (dragAudioArea.containsMouse || dragVideoArea.containsMouse  || thumbMouseArea.containsMouse || marker.hovered || (barOverArea.containsMouse && (barOverArea.mouseY >= (parent.height - inPoint.height - height - 2 - (audioThumb.height + root.zoomOffset) - root.baseUnit)))) ? 1 : 0
-            visible: controller.clipHasAV
-            onOpacityChanged: {
-                if (opacity == 1) {
-                    videoDragButton.x = 0
-                    videoDragButton.y = 0
-                    audioDragButton.x = videoDragButton.x + videoDragButton.width
-                    audioDragButton.y = 0
-                }
-            }
-                Rectangle {
-                    id: audioSeekZone
-                    width: parent.width
-                    height: parent.height / 6
-                    anchors.centerIn: parent
-                    anchors.verticalCenterOffset: audioThumb.isAudioClip ? parent.height * 5 / 12 : 0
-                    visible: audioThumb.isAudioClip && thumbMouseArea.containsMouse && thumbMouseArea.mouseY > y
-                    color: 'yellow'
-                    opacity: 0.5
-                    Rectangle {
-                        width: parent.width
-                        height: 1
-                        color: '#000'
-                        anchors.top: parent.top
-                    }
-                    // frame ticks
-                    Repeater {
-                        id: rulerAudioTicks
-                        model: parent.width / root.frameSize + 2
-                        Rectangle {
-                            x: index * root.frameSize - root.frameSize
-                            anchors.top: audioSeekZone.top
-                            height: (index % 5) ? audioSeekZone.height / 6 : audioSeekZone.height / 3
-                            width: 1
-                            color: '#000'
-                            opacity: 0.8
-                        }
-                    }
-                }
-            }
-        }
         TextField {
             id: marker
             font: fixedFont
@@ -572,13 +531,13 @@ Item {
                 marker.focus = false
                 root.editCurrentMarker()
             }
-            anchors {
-                left: outPoint.visible ? outPoint.right : inPoint.visible ? inPoint.right : parent.left
-                bottom: parent.bottom
-                bottomMargin: overlayMargin
-            }
+//            anchors {
+//                left: outPoint.visible ? outPoint.right : inPoint.visible ? inPoint.right : parent.left
+//                bottom: parent.bottom
+//                bottomMargin: overlayMargin
+//            }
             visible: root.showMarkers && text != ""
-            height: inPoint.height
+//            height: inPoint.height
             width: fontMetrics.boundingRect(displayText).width + 10
             horizontalAlignment: displayText == text ? TextInput.AlignHCenter : TextInput.AlignLeft
             background: Rectangle {

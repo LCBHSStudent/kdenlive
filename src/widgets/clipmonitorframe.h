@@ -13,7 +13,7 @@ public:
 	
 protected:
 	void resizeEvent(QResizeEvent*) override;
-	
+	void hideEvent(QHideEvent*) override;
 private:
 	Monitor* const m_clipMonitor;
 	

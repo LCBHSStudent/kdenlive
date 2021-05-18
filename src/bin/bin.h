@@ -416,6 +416,11 @@ private slots:
     void editTags(QList <QString> allClips, const QString &tag, bool add);
 
 public slots:
+    /** @brief 单独选择视图中的上一个 (主要) 素材 */
+    void slotSelectPrev();
+    /** @brief 单独选择视图中的下一个 (主要) 素材 */
+    void slotSelectNext();
+    
     void slotAddClip();
     void slotRemoveInvalidClip(const QString &id, bool replace, const QString &errorMessage);
     /** @brief Reload clip thumbnail - when frame for thumbnail changed */

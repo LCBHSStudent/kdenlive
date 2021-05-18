@@ -350,7 +350,15 @@ Monitor::Monitor(Kdenlive::MonitorId id, MonitorManager *manager, QWidget *paren
     m_playAction = new KDualAction(i18n("Play"), i18n("Pause"), this);
     m_playAction->setInactiveIcon(QIcon::fromTheme(QStringLiteral("media-playback-start")));
     m_playAction->setActiveIcon(QIcon::fromTheme(QStringLiteral("media-playback-pause")));
-
+    connect(m_playAction, &KDualAction::activeChanged, this, [this] (bool active) {
+        m_glMonitor->getControllerProxy()->setPlaying(active);
+    });
+    connect(m_glMonitor->getControllerProxy(), &MonitorProxy::playingChanged, [this] {
+        if (m_playAction->isActive() != m_glMonitor->getControllerProxy()->playing()) {
+            m_playAction->trigger();
+        }
+    });
+    
     QString strippedTooltip = m_playAction->toolTip().remove(QRegExp(QStringLiteral("\\s\\(.*\\)")));
     // append shortcut if it exists for action
     if (originalPlayAction->shortcut() == QKeySequence(0)) {
@@ -360,7 +368,7 @@ Monitor::Monitor(Kdenlive::MonitorId id, MonitorManager *manager, QWidget *paren
     }
     m_playMenu->addAction(m_playAction);
     connect(m_playAction, &QAction::triggered, this, &Monitor::slotSwitchPlay);
-
+    
     playButton->setMenu(m_playMenu);
     playButton->setPopupMode(QToolButton::MenuButtonPopup);
     m_toolbar->addWidget(playButton);
@@ -374,8 +382,7 @@ Monitor::Monitor(Kdenlive::MonitorId id, MonitorManager *manager, QWidget *paren
 
     playButton->setDefaultAction(m_playAction);
     m_configMenu = new QMenu(i18n("Misc..."), this);
-
-
+    
     if (id == Kdenlive::ClipMonitor) {
         m_markerMenu = new QMenu(i18n("Go to marker..."), this);
     } else {
@@ -479,6 +486,27 @@ Monitor::Monitor(Kdenlive::MonitorId id, MonitorManager *manager, QWidget *paren
     m_infoMessage = new KMessageWidget(this);
     layout->addWidget(m_infoMessage);
     m_infoMessage->hide();
+    
+    connect(
+        m_glMonitor->getControllerProxy(), &MonitorProxy::requestFastforward,
+        [this] {
+            slotForward();
+        }
+    );
+    connect(
+        m_glMonitor->getControllerProxy(), &MonitorProxy::requestRewind,
+        [this] {
+            slotRewind();
+        }
+    );
+    connect(
+        m_glMonitor->getControllerProxy(), &MonitorProxy::requestPlayNext,
+        pCore->bin(), &Bin::slotSelectPrev
+    );
+    connect(
+        m_glMonitor->getControllerProxy(), &MonitorProxy::requestPlayNext,
+        pCore->bin(), &Bin::slotSelectNext
+    );
 }
 
 Monitor::~Monitor()

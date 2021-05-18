@@ -1297,9 +1297,6 @@ void GLWidget::mouseReleaseEvent(QMouseEvent *event)
         event->ignore();
         return;
     }
-    if (!m_dragStart.isNull() && m_panStart.isNull() && ((event->button() & Qt::LeftButton) != 0u) && !event->isAccepted()) {
-        emit monitorPlay();
-    }
     m_dragStart = QPoint();
     m_panStart = QPoint();
     setCursor(Qt::ArrowCursor);
@@ -1314,6 +1311,14 @@ void GLWidget::purgeCache()
     }
 }
 
+void GLWidget::hideEvent(QHideEvent* e) {
+    e->accept();
+}
+
+void GLWidget::closeEvent(QCloseEvent* e) {
+    e->accept();
+}
+
 void GLWidget::mouseDoubleClickEvent(QMouseEvent *event)
 {
     QQuickWidget::mouseDoubleClickEvent(event);
@@ -1321,7 +1326,7 @@ void GLWidget::mouseDoubleClickEvent(QMouseEvent *event)
         return;
     }
     if ((rootObject() == nullptr) || rootObject()->objectName() != QLatin1String("rooteffectscene")) {
-        emit switchFullScreen();
+        // showFullScreen
     }
     event->accept();
 }

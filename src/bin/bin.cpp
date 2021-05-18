@@ -5008,3 +5008,11 @@ bool Bin::addProjectClipInFolder(const QString &path, const QString &parentFolde
     }
     return ok;
 }
+
+void Bin::slotSelectPrev() {
+    
+}
+
+void Bin::slotSelectNext() {
+    
+}

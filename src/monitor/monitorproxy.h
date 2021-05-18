@@ -56,6 +56,7 @@ class MonitorProxy : public QObject
     Q_PROPERTY(bool autoKeyframe READ autoKeyframe NOTIFY autoKeyframeChanged)
     Q_PROPERTY(bool audioThumbFormat READ audioThumbFormat NOTIFY audioThumbFormatChanged)
     Q_PROPERTY(bool audioThumbNormalize READ audioThumbNormalize NOTIFY audioThumbNormalizeChanged)
+    Q_PROPERTY(bool playing MEMBER m_playing WRITE setPlaying NOTIFY playingChanged)
     /** @brief: Returns true if current clip in monitor has Audio and Video
      * */
     Q_PROPERTY(bool clipHasAV MEMBER m_hasAV NOTIFY clipHasAVChanged)
@@ -99,6 +100,7 @@ public:
     Q_INVOKABLE void activateClipMonitor(bool isClipMonitor);
     void setZone(QPoint zone, bool sendUpdate = true);
     void resetZone();
+    bool playing() const;
     QPoint zone() const;
     QImage extractFrame(int frame_position, const QString &path = QString(), int width = -1, int height = -1, bool useSourceProfile = false);
     Q_INVOKABLE QString toTimecode(int frames) const;
@@ -120,6 +122,8 @@ public:
     void resetPosition();
     /** @brief Used to display qml info about speed*/
     void setSpeed(double speed);
+    /** @brief 设置播放 */
+    void setPlaying(bool playing);
 
 signals:
     void positionChanged(int);
@@ -151,6 +155,12 @@ signals:
     void autoKeyframeChanged();
     void timecodeChanged();
     void speedChanged();
+    void playingChanged();
+    void requestInsert();
+    void requestPlayNext();
+    void requestPlayPrev();
+    void requestFastforward();
+    void requestRewind();
 
 private:
     GLWidget *q;
@@ -159,6 +169,7 @@ private:
     int m_zoneOut;
     bool m_hasAV;
     double m_speed;
+    bool m_playing = false;
     QList <int> m_audioStreams;
     QList <int> m_audioChannels;
     QString m_markerComment;

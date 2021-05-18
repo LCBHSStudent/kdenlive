@@ -146,6 +146,8 @@ public:
 protected:
     void mouseReleaseEvent(QMouseEvent *event) override;
     void mouseDoubleClickEvent(QMouseEvent *event) override;
+    void hideEvent(QHideEvent*) override;
+    void closeEvent(QCloseEvent*) override;
     /** @brief Update producer, should ONLY be called from monitor */
     int setProducer(const std::shared_ptr<Mlt::Producer> &producer, bool isActive, int position);
     int setProducer(const QString &file);

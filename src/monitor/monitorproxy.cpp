@@ -32,6 +32,9 @@
 #include <mlt++/MltProducer.h>
 #include <mlt++/MltProfile.h>
 
+#include <KXmlGuiWindow>
+#include <KActionCollection>
+
 MonitorProxy::MonitorProxy(GLWidget *parent)
     : QObject(parent)
     , q(parent)
@@ -45,6 +48,13 @@ MonitorProxy::MonitorProxy(GLWidget *parent)
     , m_seekFinished(true)
     , m_td(nullptr)
 {
+    auto insertAction = reinterpret_cast<KXmlGuiWindow*>(pCore->window())->actionCollection()->action("insert_to_in_point");
+    connect(
+        this, &MonitorProxy::requestInsert,
+        [insertAction] {
+            insertAction->trigger();
+        }
+    );
 }
 
 int MonitorProxy::getPosition() const
@@ -205,6 +215,10 @@ void MonitorProxy::resetZone()
 {
     m_zoneIn = 0;
     m_zoneOut = -1;
+}
+
+bool MonitorProxy::playing() const {
+    return m_playing;
 }
 
 double MonitorProxy::fps() const
@@ -412,4 +426,11 @@ void MonitorProxy::addToProjectBin() {
 
 void MonitorProxy::qBlockSignals(bool block) {
     blockSignals(block);
+}
+
+void MonitorProxy::setPlaying(bool playing) {
+    if (m_playing != playing) {
+        m_playing = playing;
+        emit playingChanged();
+    }
 }
