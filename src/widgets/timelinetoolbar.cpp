@@ -5,6 +5,8 @@
 
 #include "macros.hpp"
 
+#include <KLocalizedString>
+
 const QString TimelineToolButton::defaultStyleSheet = R"(
     QPushButton {
         background-color: #FF2D2C39;

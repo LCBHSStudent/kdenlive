@@ -529,31 +529,7 @@ Item {
                     audioDragButton.x = videoDragButton.x + videoDragButton.width
                     audioDragButton.y = 0
                 }
-                onPositionChanged: {
-                    if (!(mouse.modifiers & Qt.ShiftModifier) && audioThumb.isAudioClip && mouseY < audioSeekZone.y) {
-                        mouse.accepted = false
-                        return
-                    }
-                    if (mouse.modifiers & Qt.ShiftModifier || pressed) {
-                        var pos = Math.max(mouseX, 0)
-                        pos += audioThumb.width/root.zoomFactor * root.zoomStart
-                        controller.setPosition(Math.min(pos / root.timeScale, root.duration));
-                    }
-                }
-                onWheel: {
-                    if (wheel.modifiers & Qt.ControlModifier) {
-                        if (wheel.angleDelta.y < 0) {
-                            // zoom out
-                            clipMonitorRuler.zoomOutRuler(wheel.x)
-                        } else {
-                            // zoom in
-                            clipMonitorRuler.zoomInRuler(wheel.x)
-                        }
-                    } else {
-                        wheel.accepted = false
-                    }
-                    
-                }
+            }
                 Rectangle {
                     id: audioSeekZone
                     width: parent.width

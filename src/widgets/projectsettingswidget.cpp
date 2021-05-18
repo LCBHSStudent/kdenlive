@@ -6,9 +6,8 @@
 #include "profiles/profilemodel.hpp"
 #include "doc/kdenlivedoc.h"
 #include "mainwindow.h"
-#include "jobs/loadjob.hpp"
 #include "kdenlivesettings.h"
-#include "jobs/jobmanager.h"
+#include "jobs/taskmanager.h"
 
 #include <QAction>
 #include <KLocalizedContext>
@@ -130,7 +129,7 @@ void ProjectSettingsWidget::confirmSettings() {
                                      .arg(QString::number(double(profile->m_frame_rate_num) / profile->m_frame_rate_den, 'f', 2));
         QString profilePath = ProfileRepository::get()->saveProfile(profile.get());
         // Discard all current jobs
-        pCore->jobManager()->slotCancelJobs();
+        pCore->taskManager.slotCancelJobs();
         pCore->setCurrentProfile(profilePath);   
         
         pCore->currentDoc()->updateProjectProfile(true);
