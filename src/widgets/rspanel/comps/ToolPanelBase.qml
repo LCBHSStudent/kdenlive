@@ -8,11 +8,13 @@ import DFW.Components 1.0
  @comment: 左侧有着20px的margin, 注意调整BG相关位置
  */
 
-Item {
+Rectangle {
     id: __toolPanelBase_qml
     
     anchors.fill: parent
     anchors.rightMargin: tabBarWidth
+    
+    readonly property int topMargin: 17
     
     property StackLayout    contentItem: null
     property Item           currentItem: contentItem.children[contentItem.currentIndex]
@@ -22,20 +24,20 @@ Item {
     
     // control content flickable
     signal moveToPos(var position)
+
+    color: uiconfig.lighterSpaceColor
     
     Rectangle {
         id: contentItemBase
-        color: uiconfig.lighterSpaceColor
-        radius: 10
+        color: uiconfig.darkerSpaceColor
         anchors {
             top: parent.top
             bottom: parent.bottom
             right: contentScrollBar.left
             left: parent.left
-            topMargin: 63
-            bottomMargin: 20
-            rightMargin: 0
-            leftMargin: 0
+            topMargin: tabBar.height + topMargin
+            bottomMargin: topMargin
+            leftMargin: 19
         }
 
         Rectangle {
@@ -48,7 +50,7 @@ Item {
         Row {
             id: tabBar
             width: parent.width
-            height: tabModel.length? 45: 0
+            height: tabModel.length? 32: 0
             spacing: 0
             
             property int currentIndex: 0

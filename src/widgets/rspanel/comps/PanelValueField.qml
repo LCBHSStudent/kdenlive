@@ -25,7 +25,7 @@ Item {
             color: "#FF20202A"
         }
 
-        color: application.buttonFontColor
+        color: uiconfig.normalFontColor
         font {
             family: application.fontFamily
             pixelSize: 14

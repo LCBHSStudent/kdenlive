@@ -24,7 +24,7 @@ TabButton {
     background: Rectangle {
         anchors.fill: parent
         color: selected? uiconfig.darkerSpaceColor: control.down? Qt.darker(uiconfig.lighterSpaceColor, 1.1): uiconfig.lighterSpaceColor
-        radius: 10
+        radius: 0
         Rectangle {
             width: parent.width
             height: parent.radius
