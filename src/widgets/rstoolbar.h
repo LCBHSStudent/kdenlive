@@ -13,7 +13,8 @@ protected:
 	void mousePressEvent(QMouseEvent*) override;
 	void mouseReleaseEvent(QMouseEvent*) override;
 	void mouseMoveEvent(QMouseEvent*) override;
-	
+	void keyReleaseEvent(QKeyEvent*) override;
+    
 private:
 	
 };

@@ -4,6 +4,13 @@
 #include <KDeclarative/KDeclarative>
 
 #include <QQmlContext>
+#include <QQuickItem>
+
+#ifdef DEBUG_BUILD
+    const QUrl qmlPath("file:///A:/CraftRoot/build/kde/kdemultimedia/kdenlive/work/kde_based_editor/src/widgets/RSToolBar.qml");
+#else
+    const QUrl qmlPath("qrc:/qml/RSToolBar.qml");
+#endif
 
 RSToolBar::RSToolBar(QWidget* parent)
     : QQuickWidget(parent)
@@ -19,11 +26,9 @@ RSToolBar::RSToolBar(QWidget* parent)
     
     setResizeMode(QQuickWidget::SizeRootObjectToView);
     
-    setWindowFlag(Qt::WindowStaysOnTopHint);
-    
     setClearColor(Qt::transparent);
     
-    setSource(QUrl("qrc:/qml/RSToolBar.qml"));
+    setSource(qmlPath);
 }
 
 void RSToolBar::mousePressEvent(QMouseEvent* e) {
@@ -36,4 +41,31 @@ void RSToolBar::mouseMoveEvent(QMouseEvent* e) {
 
 void RSToolBar::mouseReleaseEvent(QMouseEvent* e) {
     QQuickWidget::mouseReleaseEvent(e);
+}
+
+void RSToolBar::keyReleaseEvent(QKeyEvent* ke) {
+    QQuickWidget::keyReleaseEvent(ke);
+    if (!ke->isAccepted()) {
+// handle hot reload
+#ifdef DEBUG_BUILD
+        if (ke->key() == Qt::Key_Q && ke->modifiers() == Qt::AltModifier) {
+            auto rootObj = rootObject();
+            int tabBarWidth = 0;
+            int tabItemHeight = 0;
+            
+            if (rootObj != nullptr) {
+                tabBarWidth = rootObj->property("tabBarWidth").toInt();
+                tabItemHeight = rootObj->property("tabItemHeight").toInt();           
+            }
+            setSource(QUrl());
+            engine()->clearComponentCache();
+            setSource(qmlPath);
+            
+            rootObj = rootObject();
+            rootObj->setProperty("tabBarWidth", tabBarWidth);
+            rootObj->setProperty("tabItemHeight", tabItemHeight);     
+        }
+#endif
+        ke->accept();
+    }
 }

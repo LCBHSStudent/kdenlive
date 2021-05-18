@@ -1,6 +1,10 @@
 import QtQuick 2.12
 import QtGraphicalEffects 1.12
 
+import "./rspanel/"
+
+import DFW.Components 1.0
+
 Item {
     id: rsBarRoot
     
@@ -10,25 +14,35 @@ Item {
     
     readonly property int noCurTab: -1
     
-    Rectangle {
+    UIConfig { id: uiconfig }
+    
+    Loader {
         id: panel
-        radius: 20
-        border.width: 1
-        border.color: "#FF7781F4"
-        width: parent.width + radius
+        width: parent.width
         height: parent.height
-        color: "#FF3E3D4C"
         x: rsBarRoot.width - tabBarWidth
         
-        PropertyAnimation {
-            id: panelAnimation
-            target: panel
-            property: "x"
-            duration: 350
-            easing.type: Easing.OutQuart
-            from: currentTab === noCurTab? 0: rsBarRoot.width - tabBarWidth
-            to: currentTab === noCurTab? rsBarRoot.width - tabBarWidth: 0
-        }
+        sourceComponent: VideoPanel {}
+        
+        state: "close"
+        
+        states: [
+            State {
+                name: "close"
+                PropertyChanges {
+                    target: panel
+                    x: rsBarRoot.width - tabBarWidth
+                }
+            },
+            State {
+                name: "open"
+                PropertyChanges {
+                    target: panel
+                    x: 0
+                }
+            }
+
+        ]
     }
     
     Rectangle {
@@ -104,10 +118,10 @@ Item {
                         onClicked: {
                             if (index === currentTab) {
                                 currentTab = noCurTab
-                                panelAnimation.restart()
+                                panel.state = "close"
                             } else {
                                 currentTab = index
-                                panelAnimation.restart()
+                                panel.state = "open"
                             }
                         }
                     }

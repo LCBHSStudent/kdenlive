@@ -49,6 +49,25 @@
         <file alias="ProjectSettings.qml">widgets/ProjectSettings.qml</file>
         <file>widgets/PopupButton.qml</file>
         <file>widgets/TabHeader.qml</file>
+        <file alias="/rspanel/pages/TransitionBasicPage.qml">widgets/rspanel/pages/TransitionBasicPage.qml</file>
+        <file alias="/rspanel/pages/VideoBasicPage.qml">widgets/rspanel/pages/VideoBasicPage.qml</file>
+        <file alias="/rspanel/pages/VideoColorPage.qml">widgets/rspanel/pages/VideoColorPage.qml</file>
+        <file alias="/rspanel/pages/VideoPagesHelper.js">widgets/rspanel/pages/VideoPagesHelper.js</file>
+        <file alias="/rspanel/comps/KeyframesButton.qml">widgets/rspanel/comps/KeyframesButton.qml</file>
+        <file alias="/rspanel/comps/PanelTabButton.qml">widgets/rspanel/comps/PanelTabButton.qml</file>
+        <file alias="/rspanel/comps/PanelValueField.qml">widgets/rspanel/comps/PanelValueField.qml</file>
+        <file alias="/rspanel/comps/ResetValueButton.qml">widgets/rspanel/comps/ResetValueButton.qml</file>
+        <file alias="/rspanel/comps/SectionContentItem.qml">widgets/rspanel/comps/SectionContentItem.qml</file>
+        <file alias="/rspanel/comps/ServiceControlBlock.qml">widgets/rspanel/comps/ServiceControlBlock.qml</file>
+        <file alias="/rspanel/comps/ToolPanelBase.qml">widgets/rspanel/comps/ToolPanelBase.qml</file>
+        <file alias="/rspanel/AudioPanel.qml">widgets/rspanel/AudioPanel.qml</file>
+        <file alias="/rspanel/EffectPanel.qml">widgets/rspanel/EffectPanel.qml</file>
+        <file alias="/rspanel/FilterPanel.qml">widgets/rspanel/FilterPanel.qml</file>
+        <file alias="/rspanel/MusicPanel.qml">widgets/rspanel/MusicPanel.qml</file>
+        <file alias="/rspanel/SplitScreenPanel.qml">widgets/rspanel/SplitScreenPanel.qml</file>
+        <file alias="/rspanel/TextPanel.qml">widgets/rspanel/TextPanel.qml</file>
+        <file alias="/rspanel/TransitionPanel.qml">widgets/rspanel/TransitionPanel.qml</file>
+        <file alias="/rspanel/VideoPanel.qml">widgets/rspanel/VideoPanel.qml</file>
     </qresource>
     <qresource prefix="/data">
         <file alias="blacklisted_effects.txt">../data/blacklisted_effects.txt</file>
