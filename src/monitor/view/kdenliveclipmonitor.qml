@@ -511,35 +511,23 @@ Item {
                 }
             }
 
-            states: [
-                State { when: audioThumb.stateVisible || audioThumb.isAudioClip;
-                    PropertyChanges {   target: audioThumb; opacity: 1.0    } },
-                State { when: !audioThumb.stateVisible && !audioThumb.isAudioClip;
-                    PropertyChanges {   target: audioThumb; opacity: 0.0    } }
-            ]
-
-            
-            // 指针
-//            Rectangle {
-//                color: "red"
-//                width: 1
-//                height: parent.height
-//                x: controller.position * timeScale - (audioThumb.width/root.zoomFactor * root.zoomStart)
-//            }
-            MouseArea {
-                id: thumbMouseArea
-                anchors.fill: parent
-                acceptedButtons: Qt.LeftButton
-                hoverEnabled: true
-                propagateComposedEvents: true
-                onPressed: {
-                    if (audioThumb.isAudioClip && mouseY < audioSeekZone.y) {
-                        mouse.accepted = false
-                        return
-                    }
-                    var pos = Math.max(mouseX, 0)
-                    pos += audioThumb.width/root.zoomFactor * root.zoomStart
-                    controller.setPosition(Math.min(pos / root.timeScale, root.duration));
+        Rectangle {
+            // Audio or video only drag zone
+            id: dragZone
+            x: 2
+            y: inPoint.visible || outPoint.visible || marker.visible ? parent.height - inPoint.height - height - 2 - overlayMargin : parent.height - height - 2 - overlayMargin
+            width: childrenRect.width
+            height: childrenRect.height
+            color: Qt.rgba(activePalette.highlight.r, activePalette.highlight.g, activePalette.highlight.b, 0.7)
+            radius: 4
+            opacity: (dragAudioArea.containsMouse || dragVideoArea.containsMouse  || thumbMouseArea.containsMouse || marker.hovered || (barOverArea.containsMouse && (barOverArea.mouseY >= (parent.height - inPoint.height - height - 2 - (audioThumb.height + root.zoomOffset) - root.baseUnit)))) ? 1 : 0
+            visible: controller.clipHasAV
+            onOpacityChanged: {
+                if (opacity == 1) {
+                    videoDragButton.x = 0
+                    videoDragButton.y = 0
+                    audioDragButton.x = videoDragButton.x + videoDragButton.width
+                    audioDragButton.y = 0
                 }
                 onPositionChanged: {
                     if (!(mouse.modifiers & Qt.ShiftModifier) && audioThumb.isAudioClip && mouseY < audioSeekZone.y) {

@@ -133,7 +133,7 @@ void QmlManager::setScene(Kdenlive::MonitorId id, MonitorSceneType type, QSize p
             QUrl(id == Kdenlive::ClipMonitor || id == Kdenlive::DvdMonitor ? QStringLiteral("file:///A:/CraftRoot/build/kde/kdemultimedia/kdenlive/work/kde_based_editor/src/monitor/view/kdenliveclipmonitor.qml"): QStringLiteral("file:///A:/CraftRoot/build/kde/kdemultimedia/kdenlive/work/kde_based_editor/src/monitor/view/kdenlivemonitor.qml")));
 #else
         m_view->setSource(
-            QUrl(id == Kdenlive::ClipMonitor || id == Kdenlive::DvdMonitor ? QStringLiteral("qrc:/qml/kdenliveclipmonitor.qml") : QStringLiteral("qrc:/qml/kdenlivemonitor.qml")));
+            QUrl(id == Kdenlive::ClipMonitor ? QStringLiteral("qrc:/qml/kdenliveclipmonitor.qml") : QStringLiteral("qrc:/qml/kdenlivemonitor.qml")));
 #endif
         root = m_view->rootObject();
         root->setProperty("profile", QPoint(profile.width(), profile.height()));

@@ -1,5 +1,6 @@
 /***************************************************************************
- *   Copyright (C) 2009 by Jean-Baptiste Mardelle (jb@kdenlive.org)        *
+ *                                                                         *
+ *   Copyright (C) 2021 by Jean-Baptiste Mardelle (jb@kdenlive.org)        *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -17,48 +18,40 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA          *
  ***************************************************************************/
 
-#ifndef DVDWIZARDCHAPTERS_H
-#define DVDWIZARDCHAPTERS_H
+#ifndef STABILIZETASK_H
+#define STABILIZETASK_H
 
-#include "dvdwizardvob.h"
-#include "monitor/monitor.h"
-#include "monitor/monitormanager.h"
-#include "ui_dvdwizardchapters_ui.h"
+#include "abstracttask.h"
+#include <memory>
+#include <unordered_map>
+#include <mlt++/MltConsumer.h>
 
-#include <QWizardPage>
+class QProcess;
 
-class DvdWizardChapters : public QWizardPage
+class StabilizeTask : public AbstractTask
 {
-    Q_OBJECT
-
 public:
-    explicit DvdWizardChapters(MonitorManager *manager, DVDFORMAT format, QWidget *parent = nullptr);
-    ~DvdWizardChapters() override;
-    void changeProfile(DVDFORMAT format);
-    void setPal(bool isPal);
-    void setVobFiles(DVDFORMAT format, const QStringList &movies, const QStringList &durations, const QStringList &chapters);
-    QStringList selectedTitles() const;
-    QStringList selectedTargets() const;
-    QStringList chapters(int ix) const;
-    QDomElement toXml() const;
-    QMap<QString, QString> chaptersData() const;
-    void stopMonitor();
-    void createMonitor(DVDFORMAT format);
-
-private:
-    Ui::DvdWizardChapters_UI m_view;
-    DVDFORMAT m_format;
-    Monitor *m_monitor;
-    MonitorManager *m_manager;
-    Timecode m_tc;
-    void updateMonitorMarkers();
+    StabilizeTask(const ObjectId &owner, const QString &binId, const QString &destination, int in, int out, std::unordered_map<QString, QVariant> filterParams, QObject* object);
+    static void start(QObject* object, bool force = false);
+    int length;
 
 private slots:
-    void slotUpdateChaptersList();
-    void slotAddChapter();
-    void slotRemoveChapter();
-    void slotGoToChapter();
-    void slotEnableChapters(int state);
+    void processLogInfo();
+
+protected:
+    void run() override;
+
+private:
+    QString m_binId;
+    int m_inPoint;
+    int m_outPoint;
+    std::unordered_map<QString, QVariant> m_filterParams;
+    const QString m_destination;
+    QStringList m_consumerArgs;
+    QString m_errorMessage;
+    QString m_logDetails;
+    std::unique_ptr<QProcess> m_jobProcess;
 };
+
 
 #endif

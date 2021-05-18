@@ -35,10 +35,10 @@
 #include <KXmlGuiWindow>
 #include <kautosavefile.h>
 #include <utility>
+#include <mlt++/Mlt.h>
 
 #include "bin/bin.h"
 #include "definitions.h"
-#include "dvdwizard/dvdwizard.h"
 #include "gentime.h"
 #include "kdenlive_debug.h"
 #include "kdenlivecore_export.h"
@@ -64,6 +64,7 @@ class FramelessHelper;
 class ClipMonitorFrame;
 class ProjectMonitorFrame;
 class CustomEditorToolBar;
+class KDualAction;
 
 class MltErrorEvent : public QEvent
 {
@@ -287,7 +288,7 @@ public slots:
     void slotReloadEffects(const QStringList &paths);
     Q_SCRIPTABLE void setRenderingProgress(const QString &url, int progress, int frame);
     Q_SCRIPTABLE void setRenderingFinished(const QString &url, int status, const QString &error);
-    Q_SCRIPTABLE void addProjectClip(const QString &url);
+    Q_SCRIPTABLE void addProjectClip(const QString &url, const QString & folder = QStringLiteral("-1"));
     Q_SCRIPTABLE void addTimelineClip(const QString &url);
     Q_SCRIPTABLE void addEffect(const QString &effectId);
     Q_SCRIPTABLE void scriptRender(const QString &url);
@@ -436,7 +437,6 @@ private slots:
     void slotGetNewKeyboardStuff(QComboBox *schemesList);
     void slotAutoTransition();
     void slotRunWizard();
-    void slotDvdWizard(const QString &url = QString());
     void slotGroupClips();
     void slotUnGroupClips();
     void slotEditItemDuration();
