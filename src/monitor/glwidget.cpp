@@ -42,7 +42,11 @@
 #include "monitorproxy.h"
 #include "profiles/profilemodel.hpp"
 #include "timeline2/view/qml/timelineitems.h"
+<<<<<<< HEAD
 #include "widgets/customtooltip.h"
+=======
+#include "timeline2/view/qmltypes/thumbnailprovider.h"
+>>>>>>> 0491ae3aa3f36823f7a8c311bc9bb43b72348b08
 #include <mlt++/Mlt.h>
 #include <lib/localeHandling.h>
 

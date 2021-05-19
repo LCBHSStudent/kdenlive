@@ -29,6 +29,7 @@
 #include <QDir>
 #include <QList>
 #include <QMap>
+#include <QUuid>
 #include <memory>
 #include <qdom.h>
 
@@ -70,6 +71,7 @@ public:
     int width() const;
     int height() const;
     QUrl url() const;
+    QUuid uuid;
     KAutoSaveFile *m_autosave;
     Timecode timecode() const;
     std::shared_ptr<DocUndoStack> commandStack();
