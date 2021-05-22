@@ -10,14 +10,16 @@ Item {
     id: blockRoot
 
     anchors.horizontalCenter: parent.horizontalCenter
-    width: parent.width - 40
+    anchors.horizontalCenterOffset: -1
+    width: parent.width - 42
+    // top margin: 32
     height: sectionCuttler.checked? /* 15 + 20 + 20 */ 55 + contentBg.height: 50
 
-    property alias section: sectionText.text
-    property alias content: contentBg.sectionContent
+    property alias  section: sectionText.text
+    property alias  content: contentBg.sectionContent
     property string serviceName: ""
     property int    serviceEnum: -1
-    property bool serviceSelected: false
+    property bool   serviceSelected: false
 
 
     ThemeText {
@@ -30,9 +32,9 @@ Item {
     IconToolButton {
         id: sectionCuttler
         width: 20; height: 20
-        iconSource: 'qrc:/icons/dark/toolpanel/cuttler.png'
+        iconSource: 'qrc:/classic/controllers/indicator-downarrow.png'
         checkable: true
-        rotation: checked? 0: 90
+        rotation: checked? 0: -90
         bgColor: "transparent"
         anchors {
             left: parent.left
@@ -52,7 +54,7 @@ Item {
         }
 
         color: "#00000000"
-        border.color: "#FF707070"
+        border.color: "#494950"
         border.width: 0.5
 
         property Column sectionContent: null
@@ -71,19 +73,6 @@ Item {
         propagateComposedEvents: true
 
         onPressed: {
-            if (!serviceSelected) {
-                if (attFilterModel.isProducerSelected) {
-                    var index = attFilterModel.findServiceIndex(serviceName)
-                    var isNew = false
-                    if (index < 0) {
-                        attFilterModel.add(metadataModel.specifiedFiler(serviceName))
-                        index = attFilterModel.findServiceIndex(serviceName)
-                    }
-
-                    filterCon.setCurrentFilter(index, isNew, serviceEnum)
-                    serviceSelected = true
-                }
-            }
             mouse.accepted = false
         }
     }

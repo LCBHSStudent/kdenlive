@@ -16,13 +16,25 @@ Item {
     
     UIConfig { id: uiconfig }
     
+    Component {
+        id: videoPanel
+        VideoPanel {}
+    }
+    
     Loader {
         id: panel
         width: parent.width
         height: parent.height
         x: rsBarRoot.width - tabBarWidth
         
-        sourceComponent: VideoPanel {}
+        sourceComponent: {
+            switch(currentTab) {
+            case 0:
+                return videoPanel 
+            default: 
+                return null
+            }
+        }
         
         state: "close"
         
@@ -54,10 +66,9 @@ Item {
 
         width: tabBarWidth + radius
         height: parent.height
-        radius: 6
         color: "#FF3E3D4C"
         
-        layer.enabled: true
+        layer.enabled: currentTab === noCurTab
         layer.effect: DropShadow {
             color: "#AA000000"
             radius: 4
@@ -83,11 +94,9 @@ Item {
                     [i18n("特效"), "effect"]
                 ]
                 
-                delegate: Rectangle {
+                delegate: Item {
                     height: tabItemHeight
-                    width: tabBarWidth - 2 + radius
-                    radius: 6
-                    color: index === currentTab?  "#FF7781F4": "transparent"
+                    width: tabBarWidth - 2
                     
                     Image {
                         id: tabIcon
@@ -97,15 +106,34 @@ Item {
                             left: parent.left
                             leftMargin: parent.width * 0.154
                         }
+                        
+                        layer.enabled: index === currentTab
+                        layer.effect: ColorOverlay {
+                            color: uiconfig.foregroundColor
+                        }
+                    }
+                    
+                    Rectangle {
+                        visible: index === currentTab
+                        anchors {
+                            right: parent.right
+                            rightMargin: 6
+                            verticalCenter: parent.verticalCenter
+                        }
+                        width: 4
+                        height: 30
+                        radius: width
+                        color: uiconfig.foregroundColor
                     }
                     
                     Text {
                         text: modelData[0]
                         font {
+                            bold: true
                             pixelSize: 14
                             family: "Microsoft Yahei"
                         }
-                        color: "#E6FFFFFF"
+                        color: index === currentTab? uiconfig.foregroundColor: uiconfig.lighterFontColor
                         anchors {
                             verticalCenter: parent.verticalCenter
                             left: parent.left

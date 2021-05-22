@@ -4,8 +4,8 @@ import QtQuick.Layouts 1.12
 
 import DFW.Components 1.0
 
-import "./panelComponents/"
-import "./indexPages/"
+import "./comps/"
+import "./pages/"
 
 ToolPanelBase {
     id: transitionPanle
