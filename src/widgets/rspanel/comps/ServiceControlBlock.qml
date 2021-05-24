@@ -24,6 +24,7 @@ Item {
 
     ThemeText {
         id: sectionText
+        color: uiconfig.lighterFontColor
         anchors {
             top: parent.top
         }

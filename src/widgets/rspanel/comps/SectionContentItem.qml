@@ -11,15 +11,15 @@ Item {
     property alias roleText: __roleText.text
 
     signal resetValue()
-    signal keyframeBtnClicked(var checked)
+    signal keyframeToggled(var checked)
 
-    function setKeyframeBtnChecked(checked) { keyframeBtn.checked = checked }
+    function toggleKeyframe(checked) { keyframeBtn.checked = checked }
 
     ThemeText {
         id: __roleText
         anchors {
             right: parent.right
-            rightMargin: parent.width - 65
+            rightMargin: parent.width - 60
             verticalCenter: parent.verticalCenter
         }
         horizontalAlignment: Text.AlignRight
@@ -32,8 +32,8 @@ Item {
         centralPart.height = this.height
         centralPart.anchors.left = __roleText.right
         centralPart.anchors.right = this.right
-        centralPart.anchors.leftMargin = 12
-        centralPart.anchors.rightMargin = 60
+        centralPart.anchors.leftMargin = 17
+        centralPart.anchors.rightMargin = 62
     }
 
     ResetValueButton {
@@ -41,17 +41,17 @@ Item {
         onClicked: {
             resetValue()
         }
-        anchors.right: parent.right
-        anchors.rightMargin: width + 1
+        anchors.right: keyframeBtn.left
+        anchors.rightMargin: 15
     }
 
     KeyframesButton {
         id: keyframeBtn
         visible: enableKeyframe
         onClicked: {
-            toggleKeyframeBtn(checked)
+            keyframeToggled(checked)
         }
         anchors.right: parent.right
-        anchors.rightMargin: 1
+        anchors.rightMargin: 19
     }
 }

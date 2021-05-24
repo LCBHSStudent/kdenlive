@@ -32,7 +32,7 @@ Page {
             ServiceControlBlock {
                 id: sizePositionBlock
                 serviceName: "size_position"
-                serviceEnum: Constants.SizePosition
+                serviceEnum: 0
                 section: qsTr("位置与尺寸")
                 content: Column {
                     SectionContentItem {
@@ -41,14 +41,21 @@ Page {
                             Row {
                                 anchors.verticalCenter: parent.verticalCenter
                                 anchors.left: parent.left
-                                PanelValueField {}
+                                PanelValueField {
+                                    prefix: "X"
+                                    margin: 10
+                                }
+                                PanelValueField {
+                                    prefix: "，Y"
+                                    margin: 10
+                                }
                             }
                         }
 
                         onResetValue: {
 
                         }
-                        onKeyframeBtnClicked: {
+                        onKeyframeToggled: {
                             
                         }
                     }
@@ -56,14 +63,40 @@ Page {
                     SectionContentItem {
                         roleText: qsTr("大小")
                         centralPart: Item {
+                            Row {
+                                anchors.verticalCenter: parent.verticalCenter
+                                anchors.left: parent.left
+                                PanelValueField {
+                                    prefix: "W"
+                                    margin: 7
+                                }
+                                PanelValueField {
+                                    prefix: "，H"
+                                    margin: 10
+                                }
+                            }
+                        }
 
+                        onResetValue: {
+
+                        }
+                        onKeyframeToggled: {
+                            
                         }
                     }
 
                     SectionContentItem {
                         roleText: qsTr("缩放")
                         centralPart: Item {
-
+                            Row {
+                                anchors.verticalCenter: parent.verticalCenter
+                                StyledSlider {
+                                    
+                                }
+                                PanelValueField {
+                                    textSuffix: "%"
+                                }
+                            }
                         }
                     }
 
@@ -81,9 +114,9 @@ Page {
                         enableResetValue: false
                         centralPart: Item {
                             IconToolButton {
-                                width: 28; height: 28
+                                iconSize: 28
                                 anchors.verticalCenter: parent.verticalCenter
-                                iconSource: "qrc:/icons/dark/toolpanel/horizontal_rotate.png"
+                                iconSource: "qrc:/classic/controllers/btn_horizontal_rotate.png"
 
                                 onClicked: {
                                     if (filter.getInt(horziontalRotationProperty) === 0) {
@@ -96,10 +129,10 @@ Page {
                                 // tooltip: qsTr("水平翻转")
                             }
                             IconToolButton {
-                                width: 28; height: 28
+                                iconSize: 28
                                 x: 48
                                 anchors.verticalCenter: parent.verticalCenter
-                                iconSource: "qrc:/icons/dark/toolpanel/vertical_rotate.png"
+                                iconSource: "qrc:/classic/controllers/btn_vertical_rotate.png"
                     
                                 onClicked: {
                                     if (filter.getInt(verticalRotationProperty) === 0) {

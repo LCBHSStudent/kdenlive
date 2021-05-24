@@ -1,12 +1,10 @@
 import DFW.Components 1.0
 
 IconToolButton {
-    width: 28
-    height: 28
-    
+    iconSize: 14
     hoverEnabled: false
     bgColor: "#00000000"
-    iconSource: "qrc:/icons/dark/toolpanel/reset.png"
+    iconSource: "qrc:/classic/controllers/btn_reset.png"
 
     anchors.verticalCenter: parent.verticalCenter
 }
