@@ -1,3 +1,9 @@
 set(kdenlive_SRCS
   ${kdenlive_SRCS}
+  qml/colorpickeritem.cpp
+  qml/colorwheelitem.cpp
+  qml/qmlcursorarea.cpp
+  qml/qmlhovertip.cpp
+  qml/qmlrichtext.cpp
+  qml/qmltypehelper.cpp
   PARENT_SCOPE)

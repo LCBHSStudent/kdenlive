@@ -20,6 +20,7 @@ the Free Software Foundation, either version 3 of the License, or
 #include "audiomixer/mixermanager.hpp"
 #include "mainwindow.h"
 #include "mltconnection.h"
+#include "qml/qmltypehelper.h"
 #include "mltcontroller/clipcontroller.h"
 #include "monitor/monitormanager.h"
 #include "profiles/profilemodel.hpp"
@@ -81,6 +82,7 @@ bool Core::build(bool testMode)
     m_self.reset(new Core());
     m_self->initLocale();
     qApp->installEventFilter(m_self.get());
+    QmlTypeHelper::registerAllQmlTypes();
 
     qRegisterMetaType<audioShortVector>("audioShortVector");
     qRegisterMetaType<QVector<double>>("QVector<double>");

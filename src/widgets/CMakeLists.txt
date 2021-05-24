@@ -19,5 +19,6 @@ set(kdenlive_SRCS
   widgets/clipmonitorframe.cpp
   widgets/clippropertieswidget.cpp
   widgets/framelessmovablewidget.cpp
+  widgets/colorpicker.cpp
   PARENT_SCOPE
 )
