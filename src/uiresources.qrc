@@ -69,6 +69,7 @@
         <file alias="/rspanel/TransitionPanel.qml">widgets/rspanel/TransitionPanel.qml</file>
         <file alias="/rspanel/VideoPanel.qml">widgets/rspanel/VideoPanel.qml</file>
         <file alias="EmptyItem.qml">qml/EmptyItem.qml</file>
+        <file alias="/rspanel/comps/PanelValueSlider.qml">widgets/rspanel/comps/PanelValueSlider.qml</file>
     </qresource>
     <qresource prefix="/data">
         <file alias="blacklisted_effects.txt">../data/blacklisted_effects.txt</file>

@@ -19,9 +19,6 @@ ColorPicker::ColorPicker(QWidget* parent)
     initGlobalScreen();
     // 全屏窗口
     showFullScreen();
-    // 对齐显示器
-    setGeometry(getScreenRect());
-    move(0, 0);
     // 置顶窗口
     onEgoistic();
     // hover启用事件
@@ -36,8 +33,9 @@ ColorPicker::ColorPicker(QWidget* parent)
         this, SIGNAL(posChanged(int,int)),
         this, SLOT(onPosChanged(int,int))
     );
+    setWindowFlags(Qt::Tool | Qt::FramelessWindowHint);
     setAttribute(Qt::WA_DeleteOnClose);
-    setWindowModality(Qt::ApplicationModal);
+    setWindowModality(Qt::WindowModal);
     
     onPosChanged(cursor().pos().x(), cursor().pos().y());
     
