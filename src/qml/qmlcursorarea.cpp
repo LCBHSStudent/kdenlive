@@ -15,7 +15,7 @@ QmlCursorArea::QmlCursorArea(QQuickItem *parent)
 
 QmlCursorArea::~QmlCursorArea() {
     if (m_cursor != DefaultCursor) {
-        QGuiApplication::setOverrideCursor(QCursor());
+        QGuiApplication::restoreOverrideCursor();
     }
 }
 
@@ -34,7 +34,7 @@ void QmlCursorArea::hoverLeaveEvent(QHoverEvent* e) {
 void QmlCursorArea::setCursor(Cursor cursor) {
     switch (cursor) {
         case DefaultCursor:
-            QGuiApplication::setOverrideCursor(QCursor());
+            QGuiApplication::restoreOverrideCursor();
             break;
         case ArrowCursor:
             QGuiApplication::setOverrideCursor(Qt::ArrowCursor);

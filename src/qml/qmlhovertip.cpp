@@ -3,7 +3,10 @@
 #include <QQuickWidget>
 #include <QQmlContext>
 #include <QQmlEngine>
+#include <QDir>
 #include <mutex>
+
+#include "core.h"
 
 QmlHoverTip::QmlHoverTip(QQuickItem* parent)
     : QQuickItem(parent)
@@ -25,6 +28,8 @@ QmlHoverTip::QmlHoverTip(QQuickItem* parent)
         QTimer::singleShot(1, this, [] {
             s_toolTip = new QQuickWidget(nullptr); // default constructor
             s_toolTip->setAttribute(Qt::WA_AlwaysStackOnTop);
+            s_toolTip->setAttribute(Qt::WA_TranslucentBackground);
+            s_toolTip->setClearColor(Qt::transparent);
             
             s_toolTip->setResizeMode(QQuickWidget::SizeViewToRootObject);
             s_toolTip->setWindowFlag(Qt::WindowStaysOnTopHint, true);
@@ -32,12 +37,14 @@ QmlHoverTip::QmlHoverTip(QQuickItem* parent)
             
             s_toolTip->rootContext()->setContextProperty("tooltip", s_toolTip);
             
-            QStringList path;
-            
-            qDebug() << s_toolTip->engine()->importPathList();
-            
-            
-            path << "modules" << "DFW" << "Components" << "HoverTipBase.qml";
+            foreach (auto& importList, s_toolTip->engine()->importPathList()) {
+                QDir dir(importList);
+                if (dir.cd("DFW")) {
+                    if (dir.cd("Components")) {
+                        s_toolTip->setSource(QUrl::fromLocalFile(dir.filePath("HoverTipBase.qml")));
+                    } else continue;
+                } else continue;
+            }
             
             s_toolTipQmlUrl = s_toolTip->source();
         });
@@ -90,6 +97,25 @@ void QmlHoverTip::onDisplayTriggered() {
     
     s_toolTip->setSource(s_toolTipQmlUrl);
     s_toolTip->rootObject()->setProperty("text", m_text);
+    auto toolTipPos = [](int width, int height) {
+        auto&& scrGeo = reinterpret_cast<QWidget*>(pCore->window())->geometry();
+        auto&& curPos = QCursor::pos();
+        
+        // 15: horizontal margin; 4: vertical margin
+        auto targetX = curPos.x() + 15;
+        auto targetY = curPos.y() + 4;
+        
+        if (targetX + width >= scrGeo.x() + scrGeo.width()) {
+            targetX = scrGeo.x() + scrGeo.width() - width - 2;
+        }
+        if (targetY + height >= scrGeo.x() + scrGeo.width()) {
+            targetY = scrGeo.y() + scrGeo.height() - height - 2;
+        }
+        
+        return QPoint(targetX, targetY);
+    };
+    s_toolTip->adjustSize();
+    s_toolTip->move(toolTipPos(s_toolTip->width(), s_toolTip->height()));
     m_hideTimer->start();
 }
 
