@@ -4691,8 +4691,7 @@ void Bin::adjustProjectProfileToItem()
         std::shared_ptr<AbstractProjectItem> item = m_itemModel->getBinItemByIndex(m_proxyModel->mapToSource(current));
         auto clip = std::static_pointer_cast<ProjectClip>(item);
         if (clip) {
-            QDomDocument doc;
-            ClipLoadTask::checkProfile(clip->clipId(), clip->toXml(doc, false), clip->originalProducer());
+            ClipLoadTask::checkProfile(clip->originalProducer());
         }
     }
 }

@@ -486,9 +486,8 @@ QPixmap ProjectClip::thumbnail(int width, int height)
     return m_thumbnail.pixmap(width, height);
 }
 
-bool ProjectClip::setProducer(std::shared_ptr<Mlt::Producer> producer, bool replaceProducer)
+bool ProjectClip::setProducer(std::shared_ptr<Mlt::Producer> producer)
 {
-    Q_UNUSED(replaceProducer)
     qDebug() << "################### ProjectClip::setproducer";
     QMutexLocker locker(&m_producerMutex);
     FileStatus::ClipStatus currentStatus = m_clipStatus;
@@ -532,7 +531,6 @@ bool ProjectClip::setProducer(std::shared_ptr<Mlt::Producer> producer, bool repl
     getFileHash();
     // set parent again (some info need to be stored in producer)
     updateParent(parentItem().lock());
-    ClipLoadTask::start({ObjectType::BinClip,m_binId.toInt()}, QDomElement(), true, -1, -1, this);
     AudioLevelsTask::start({ObjectType::BinClip, m_binId.toInt()}, this, false);
     pCore->bin()->reloadMonitorIfActive(clipId());
     for (auto &p : m_audioProducers) {
@@ -1796,6 +1794,26 @@ void ProjectClip::setRating(uint rating)
     pCore->currentDoc()->setModified(true);
 }
 
+int ProjectClip::getAudioMax(int stream)
+{
+    const QString key = QString("kdenlive:audio_max%1").arg(stream);
+    if (m_masterProducer->property_exists(key.toUtf8().constData())) {
+        return m_masterProducer->get_int(key.toUtf8().constData());
+    }
+    // Process audio max for the stream
+    const QString key2 = QString("_kdenlive:audio%1").arg(stream);
+    if (!m_masterProducer->property_exists(key2.toUtf8().constData())) {
+        return 0;
+    }
+    const QVector <uint8_t> audioData = *static_cast<QVector<uint8_t> *>(m_masterProducer->get_data(key2.toUtf8().constData()));
+    if (audioData.isEmpty()) {
+        return 0;
+    }
+    uint max = *std::max_element(audioData.constBegin(), audioData.constEnd());
+    m_masterProducer->set(key.toUtf8().constData(), int(max));
+    return int(max);
+}
+
 const QVector <uint8_t> ProjectClip::audioFrameCache(int stream)
 {
     QVector <uint8_t> audioLevels;
@@ -1806,7 +1824,7 @@ const QVector <uint8_t> ProjectClip::audioFrameCache(int stream)
             return audioLevels;
         }
     }
-    QString key = QString("_kdenlive:audio%1").arg(stream);
+    const QString key = QString("_kdenlive:audio%1").arg(stream);
     if (m_masterProducer->get_data(key.toUtf8().constData())) {
         const QVector <uint8_t> audioData = *static_cast<QVector<uint8_t> *>(m_masterProducer->get_data(key.toUtf8().constData()));
         return audioData;
@@ -2065,4 +2083,9 @@ void ProjectClip::updateProxyProducer(const QString &path)
     setProducerProperty(QStringLiteral("_overwriteproxy"), QString());
     setProducerProperty(QStringLiteral("resource"), path);
     reloadProducer(false, true);
+}
+
+void ProjectClip::importJsonMarkers(const QString &json)
+{
+    getMarkerModel()->importFromJson(json, true);
 }

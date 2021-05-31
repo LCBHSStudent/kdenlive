@@ -1640,13 +1640,30 @@ int TimelineController::spacerMinPos() const
     return TimelineFunctions::spacerMinPos();
 }
 
-bool TimelineController::requestSpacerEndOperation(int clipId, int startPosition, int endPosition, int affectedTrack, int guideStart)
+void TimelineController::spacerMoveGuides(QVector<int> ids, int offset)
+{
+    pCore->currentDoc()->getGuideModel()->moveMarkersWithoutUndo(ids, offset);
+}
+
+QVector<int> TimelineController::spacerSelection(int startFrame)
+{
+    return pCore->currentDoc()->getGuideModel()->getMarkersIdInRange(startFrame, -1);
+}
+
+int TimelineController::getGuidePosition(int id)
+{
+    return pCore->currentDoc()->getGuideModel()->getMarkerPos(id);
+}
+
+bool TimelineController::requestSpacerEndOperation(int clipId, int startPosition, int endPosition, int affectedTrack, QVector <int> selectedGuides, int guideStart)
 {
     QMutexLocker lk(&m_metaMutex);
     // Start undoable command
     std::function<bool(void)> undo = []() { return true; };
     std::function<bool(void)> redo = []() { return true; };
     if(guideStart > -1) {
+        // Move guides back to original position
+        pCore->currentDoc()->getGuideModel()->moveMarkersWithoutUndo(selectedGuides, startPosition - endPosition, false);
         moveGuidesInRange(guideStart, -1, endPosition - startPosition, undo, redo);
     }
     bool result = TimelineFunctions::requestSpacerEndOperation(m_model, clipId, startPosition, endPosition, affectedTrack, false, undo, redo);
@@ -3570,8 +3587,8 @@ QStringList TimelineController::getThumbKeys()
     for (const auto &clp : m_model->m_allClips) {
         const QString binId = getClipBinId(clp.first);
         std::shared_ptr<ProjectClip> binClip = pCore->bin()->getBinClip(binId);
-        result << binClip->hash() + QLatin1Char('#') + QString::number(clp.second->getIn()) + QStringLiteral(".png");
-        result << binClip->hash() + QLatin1Char('#') + QString::number(clp.second->getOut()) + QStringLiteral(".png");
+        result << binClip->hash() + QLatin1Char('#') + QString::number(clp.second->getIn()) + QStringLiteral(".jpg");
+        result << binClip->hash() + QLatin1Char('#') + QString::number(clp.second->getOut()) + QStringLiteral(".jpg");
     }
     result.removeDuplicates();
     return result;
