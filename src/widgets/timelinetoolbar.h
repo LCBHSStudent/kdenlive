@@ -3,6 +3,7 @@
 
 #include <QFrame>
 #include <QPushButton>
+#include <QLabel>
 
 class TimelineToolButton: public QPushButton {
     Q_OBJECT
@@ -13,6 +14,14 @@ public:
 		QWidget*		parent = nullptr
 	);
     static const QString defaultStyleSheet;
+};
+
+class TimelineTimecodeLabel: public QLabel {
+    Q_OBJECT
+public:
+    explicit TimelineTimecodeLabel(QWidget* parent = nullptr);
+protected:
+    void paintEvent(QPaintEvent*) override;
 };
 
 class ToolBtnLayoutManager;
