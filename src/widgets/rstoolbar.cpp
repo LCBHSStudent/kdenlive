@@ -6,6 +6,8 @@
 #include <QQmlContext>
 #include <QQuickItem>
 
+#include "assetcontroller.hpp"
+
 #ifdef DEBUG_BUILD
     const QUrl qmlPath("file:///A:/CraftRoot/build/kde/kdemultimedia/kdenlive/work/kde_based_editor/src/widgets/RSToolBar.qml");
 #else
@@ -20,7 +22,8 @@ RSToolBar::RSToolBar(QWidget* parent)
     kdeclarative.setDeclarativeEngine(engine());
     kdeclarative.setupEngine(engine());
     engine()->rootContext()->setContextObject(new KLocalizedContext(this));
-    
+    rootContext()->setContextProperty("assetCtrl", AssetController::instance().get());
+
     setAttribute(Qt::WA_AlwaysStackOnTop);
     setAttribute(Qt::WA_TranslucentBackground);
     

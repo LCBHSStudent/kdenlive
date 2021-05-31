@@ -13,10 +13,7 @@ Page {
 
     property alias ctentHeight: flicker.contentHeight
     property alias ctentY: flicker.contentY
-
-    layer.enabled: true
-    layer.samples: 10
-
+    
     Flickable {
         id: flicker
         clip: true
@@ -31,9 +28,14 @@ Page {
 
             ServiceControlBlock {
                 id: sizePositionBlock
-                serviceName: "size_position"
-                serviceEnum: 0
                 section: qsTr("位置与尺寸")
+                
+                onServiceSelectedChanged: {
+                    if (serviceSelected) {
+                        console.debug(assetCtrl.selectSizePositionAdjust())
+                    }
+                }
+                
                 content: Column {
                     SectionContentItem {
                         roleText: qsTr("位置")
@@ -89,11 +91,14 @@ Page {
                         roleText: qsTr("缩放")
                         centralPart: Item {
                             Row {
+                                spacing: 15
+                                anchors.left: parent.left
                                 anchors.verticalCenter: parent.verticalCenter
-                                StyledSlider {
-                                    
+                                PanelValueSlider {
+                                    anchors.verticalCenter: parent.verticalCenter
                                 }
                                 PanelValueField {
+                                    fieldWidth: 50
                                     textSuffix: "%"
                                 }
                             }
@@ -103,7 +108,18 @@ Page {
                     SectionContentItem {
                         roleText: qsTr("旋转")
                         centralPart: Item {
-
+                            Row {
+                                spacing: 15
+                                anchors.left: parent.left
+                                anchors.verticalCenter: parent.verticalCenter
+                                PanelValueSlider {
+                                    anchors.verticalCenter: parent.verticalCenter
+                                }
+                                PanelValueField {
+                                    fieldWidth: 50
+                                    textSuffix: "%"
+                                }
+                            }
                         }
                     }
 
@@ -152,7 +168,9 @@ Page {
 
                         enableKeyframe: false
                         centralPart: Item {
-
+                            SC.ColorPicker {
+                                anchors.verticalCenter: parent.verticalCenter
+                            }
                         }
                     }
                 }

@@ -11,6 +11,7 @@ Item {
     property alias suffix: suffix.text
     property alias margin: contentRow.spacing
     property alias value: field.text
+    property alias fieldWidth: field.implicitWidth
     
     property string textSuffix: ""
     
@@ -25,7 +26,8 @@ Item {
         id: contentRow
         anchors.verticalCenter: parent.verticalCenter
         ThemeText {
-            id: prefix        
+            id: prefix
+            visible: text.length
         }
         TextField {
             id: field
@@ -46,6 +48,7 @@ Item {
             background: Rectangle {
                 anchors.fill: parent
                 color: "#FF20202A"
+                radius: 2
             }
     
             color: "transparent"
@@ -101,7 +104,8 @@ Item {
         }
         
         ThemeText {
-            id: suffix        
+            id: suffix
+            visible: text.length
         }
     }
     

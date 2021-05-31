@@ -17,8 +17,6 @@ Item {
 
     property alias  section: sectionText.text
     property alias  content: contentBg.sectionContent
-    property string serviceName: ""
-    property int    serviceEnum: -1
     property bool   serviceSelected: false
 
 
@@ -75,6 +73,7 @@ Item {
 
         onPressed: {
             mouse.accepted = false
+            serviceSelected = true
         }
     }
 }
