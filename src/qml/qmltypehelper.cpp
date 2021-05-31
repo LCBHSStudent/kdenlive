@@ -5,6 +5,7 @@
 #include "qmlrichtext.h"
 #include "colorwheelitem.h"
 #include "colorpickeritem.h"
+#include "appconsts.h"
 
 #include <QtQml>
 
