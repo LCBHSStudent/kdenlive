@@ -34,6 +34,7 @@
 #include "transitions/view/mixstackview.hpp"
 
 #include "assets/view/assetparameterview.hpp"
+#include "utils/util.h"
 
 #include <mutex>
 #include <KColorScheme>
@@ -55,7 +56,7 @@
 std::unique_ptr<AssetController>& AssetController::instance() {
     std::once_flag init;
     std::call_once(init, [] {
-        s_instance.reset(new AssetController(reinterpret_cast<QObject*>(pCore->window())));
+        s_instance.reset(new AssetController(nullptr));
     });
     
     return s_instance;
@@ -138,14 +139,15 @@ void AssetController::selectEffectStack(
     if (showSplit) {
         
     }
-    
-    LOG_DEBUG() << title << showSplit << enableKeyframes;
 }
 
 void AssetController::clearAssetData(int itemId) {
     if (itemId == -1) {
         // closing project, reset panel
         clear();
+        return;
+    }
+    if (!(m_effectsModel || m_transModel || m_mixModel)) {
         return;
     }
     ObjectId id = m_effectsModel->getOwnerId();
@@ -200,6 +202,5 @@ void AssetController::clear() {
 
 bool AssetController::selectSizePositionAdjust() {
     const QString& id = KdenliveSettings::gpu_accel()? "movit.rect": "affine";
-    qDebug() << EffectsRepository::get()->exists(id);
-    return EffectsRepository::get()->exists(id);
+    return addEffect(id);
 }

@@ -14,9 +14,10 @@ class EffectStackModel;
  */
 class AssetController : public QObject {
     Q_OBJECT
-
+    
 public:
 	static std::unique_ptr<AssetController>& instance();
+    
 	Q_INVOKABLE ObjectId effectStackOwner();
 	Q_INVOKABLE bool addEffect(const QString& effectId);
     Q_INVOKABLE bool selectSizePositionAdjust();
@@ -42,7 +43,8 @@ signals:
 
 private:
 	void clear();
-	AssetController(QObject* parent = nullptr);
+	explicit AssetController(QObject* parent = nullptr);
+
 	inline static std::unique_ptr<AssetController> s_instance;
 	
 	std::shared_ptr<AssetParameterModel>	m_transModel	= { nullptr };
