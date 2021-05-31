@@ -18,6 +18,7 @@
  ***************************************************************************/
 
 #include "mainwindow.h"
+#include "assetcontroller.hpp"
 #include "assets/assetpanel.hpp"
 #include "bin/clipcreator.hpp"
 #include "bin/generators/generators.h"
@@ -191,6 +192,7 @@ static bool eventDebugCallback(void** data) {
 
 MainWindow::MainWindow(QWidget *parent)
     : KXmlGuiWindow(parent)
+    , m_assetCtrl(AssetController::instance())
 {
     hide();
 }
@@ -483,33 +485,32 @@ void MainWindow::init(const QString &mltPath) {
     connect(onlineResources, &ResourceWidget::addClip, this, &MainWindow::slotAddProjectClip);
     connect(onlineResources, &ResourceWidget::addLicenseInfo, this, &MainWindow::slotAddTextNote);
 
-    m_assetPanel = new AssetPanel(this);
 //    m_effectStackDock = addDock(i18n("Effect/Composition Stack"), QStringLiteral("effect_stack"), m_assetPanel);
     
-    connect(m_assetPanel, &AssetPanel::doSplitEffect, m_projectMonitor, &Monitor::slotSwitchCompare);
-    connect(m_assetPanel, &AssetPanel::doSplitBinEffect, m_clipMonitor, &Monitor::slotSwitchCompare);
-    connect(m_assetPanel, &AssetPanel::switchCurrentComposition, this, [&](int cid, const QString &compositionId) {
+    connect(m_assetCtrl.get(), &AssetController::doSplitEffect, m_projectMonitor, &Monitor::slotSwitchCompare);
+    connect(m_assetCtrl.get(), &AssetController::doSplitBinEffect, m_clipMonitor, &Monitor::slotSwitchCompare);
+    connect(m_assetCtrl.get(), &AssetController::switchCurrentComposition, this, [&](int cid, const QString &compositionId) {
         getMainTimeline()->controller()->getModel()->switchComposition(cid, compositionId);
     });
     
-    connect(m_timelineTabs, &TimelineTabs::showMixModel, m_assetPanel, &AssetPanel::showMix);
-    connect(m_timelineTabs, &TimelineTabs::showTransitionModel, m_assetPanel, &AssetPanel::showTransition);
-    connect(m_timelineTabs, &TimelineTabs::showItemEffectStack, m_assetPanel, &AssetPanel::showEffectStack);
+    connect(m_timelineTabs, &TimelineTabs::showMixModel, m_assetCtrl.get(), &AssetController::selectMix);
+    connect(m_timelineTabs, &TimelineTabs::showTransitionModel, m_assetCtrl.get(), &AssetController::selectTransition);
+    connect(m_timelineTabs, &TimelineTabs::showItemEffectStack, m_assetCtrl.get(), &AssetController::selectEffectStack);
 
     connect(m_timelineTabs, &TimelineTabs::showSubtitle, this, [&] (int id) {
         pCore->subtitleWidget()->setActiveSubtitle(id);
     });
 
     connect(m_timelineTabs, &TimelineTabs::updateZoom, this, &MainWindow::updateZoomSlider);
-    connect(pCore->bin(), &Bin::requestShowEffectStack, m_assetPanel, &AssetPanel::showEffectStack);
+    connect(pCore->bin(), &Bin::requestShowEffectStack, m_assetCtrl.get(), &AssetController::selectEffectStack);
     connect(pCore->bin(), &Bin::requestShowEffectStack, [&] () {
         // Don't raise effect stack on clip bin in case it is docked with bin or clip monitor
         // m_effectStackDock->raise();
     });
-    connect(this, &MainWindow::clearAssetPanel, m_assetPanel, &AssetPanel::clearAssetPanel, Qt::DirectConnection);
-    connect(this, &MainWindow::assetPanelWarning, m_assetPanel, &AssetPanel::assetPanelWarning);
-    connect(m_assetPanel, &AssetPanel::seekToPos, this, [this](int pos) {
-        ObjectId oId = m_assetPanel->effectStackOwner();
+    connect(this, &MainWindow::clearAssetPanel, m_assetCtrl.get(), &AssetController::clearAssetData, Qt::DirectConnection);
+    connect(this, &MainWindow::assetPanelWarning, m_assetCtrl.get(), &AssetController::assetControllerWarning);
+    connect(m_assetCtrl.get(), &AssetController::seekToPos, this, [this](int pos) {
+        ObjectId oId = m_assetCtrl->effectStackOwner();
         switch (oId.first) {
         case ObjectType::TimelineTrack:
         case ObjectType::TimelineClip:
@@ -529,7 +530,7 @@ void MainWindow::init(const QString &mltPath) {
 
     m_effectList2 = new EffectListWidget(this);
     connect(m_effectList2, &EffectListWidget::activateAsset, pCore->projectManager(), &ProjectManager::activateAsset);
-    connect(m_assetPanel, &AssetPanel::reloadEffect, m_effectList2, &EffectListWidget::reloadCustomEffect);
+    connect(m_assetCtrl.get(), &AssetController::reloadEffect, m_effectList2, &EffectListWidget::reloadCustomEffect);
 
     m_transitionList2 = new TransitionListWidget(this);
 
@@ -988,9 +989,6 @@ void MainWindow::slotThemeChanged(const QString &name)
     QColor background = plt.window().color();
     bool useDarkIcons = background.value() < 100;
 
-    if (m_assetPanel) {
-        m_assetPanel->updatePalette();
-    }
     if (m_effectList2) {
         // Trigger a repaint to have icons adapted
         m_effectList2->reset();
@@ -1185,8 +1183,8 @@ void MainWindow::slotConnectMonitors()
 
 void MainWindow::createSplitOverlay(std::shared_ptr<Mlt::Filter> filter)
 {
-    if (m_assetPanel->effectStackOwner().first == ObjectType::TimelineClip) {
-        getMainTimeline()->controller()->createSplitOverlay(m_assetPanel->effectStackOwner().second, filter);
+    if (m_assetCtrl->effectStackOwner().first == ObjectType::TimelineClip) {
+        getMainTimeline()->controller()->createSplitOverlay(m_assetCtrl->effectStackOwner().second, filter);
         m_projectMonitor->activateSplit();
     } else {
         pCore->displayMessage(i18n("Select a clip to compare effect"), ErrorMessage);
@@ -1506,7 +1504,7 @@ void MainWindow::setupActions()
     toolbar->setIconSize(QSize(small, small));
     toolbar->layout()->setContentsMargins(0, 0, 0, 0);
     statusBar()->setContentsMargins(0, 0, 0, 0);
-
+    
     addAction(QStringLiteral("normal_mode"), m_normalEditTool);
     addAction(QStringLiteral("overwrite_mode"), m_overwriteEditTool);
     addAction(QStringLiteral("insert_mode"), m_insertEditTool);
@@ -3160,13 +3158,13 @@ void MainWindow::slotAddEffect(QAction *result)
 
 void MainWindow::addEffect(const QString &effectId)
 {
-    if (m_assetPanel->effectStackOwner().first == ObjectType::TimelineClip) {
+    if (m_assetCtrl->effectStackOwner().first == ObjectType::TimelineClip) {
         // Add effect to the current timeline selection
         QVariantMap effectData;
         effectData.insert(QStringLiteral("kdenlive/effect"), effectId);
         pCore->window()->getMainTimeline()->controller()->addAsset(effectData);
-    } else if (m_assetPanel->effectStackOwner().first == ObjectType::TimelineTrack || m_assetPanel->effectStackOwner().first == ObjectType::BinClip || m_assetPanel->effectStackOwner().first == ObjectType::Master) {
-        if (!m_assetPanel->addEffect(effectId)) {
+    } else if (m_assetCtrl->effectStackOwner().first == ObjectType::TimelineTrack || m_assetCtrl->effectStackOwner().first == ObjectType::BinClip || m_assetCtrl->effectStackOwner().first == ObjectType::Master) {
+        if (!m_assetCtrl->addEffect(effectId)) {
             pCore->displayMessage(i18n("Cannot add effect to clip"), ErrorMessage);
         }
     } else {

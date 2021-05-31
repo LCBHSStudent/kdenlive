@@ -45,7 +45,7 @@
 #include "statusbarmessagelabel.h"
 #include "utils/otioconvertions.h"
 
-class AssetPanel;
+class AssetController;
 class AudioGraphSpectrum;
 class EffectBasket;
 class EffectListWidget;
@@ -185,11 +185,11 @@ private:
     TransitionListWidget *m_transitionList2;
     EffectListWidget *m_effectList2;
 
-    AssetPanel *m_assetPanel{nullptr};
-
     Monitor *m_clipMonitor{nullptr};
 
     Monitor *m_projectMonitor{nullptr};
+    
+    std::unique_ptr<AssetController>& m_assetCtrl;
     
     ClipMonitorFrame* m_clipMonitorFrame = nullptr;
     ProjectMonitorFrame* m_projectMonitorFrame = nullptr;
