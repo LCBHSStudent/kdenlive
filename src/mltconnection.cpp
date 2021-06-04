@@ -55,6 +55,20 @@ static void mlt_log_handler(void *service, int mlt_level, const char *format, va
     qDebug() << "MLT:" << message;
 }
 
+#ifdef Q_OS_WIN32
+
+#include <stdlib.h>
+#include <signal.h>
+#include <windows.h>
+#include <imagehlp.h>
+
+void SignalHandler(int signal) {
+    if (signal == SIGSEGV) {
+        return;
+    }
+}
+
+#endif
 
 std::unique_ptr<MltConnection> MltConnection::m_self;
 MltConnection::MltConnection(const QString &mltPath)
@@ -63,10 +77,21 @@ MltConnection::MltConnection(const QString &mltPath)
     // TODO: make configurable
     setenv("MLT_NO_VDPAU", "1", 1);
 
+    // 添加此事件处理器以防止debug模式下loadLibrary函数
+    // 加载【除.dll文件外的其他二进制文件 eg: .sym .debug】产生的sigsegv信号
+#ifdef Q_OS_WIN32
+    using SignalHandlerPointer = void(*)(int);
+
+    SignalHandlerPointer previousHandler;
+    previousHandler = signal(SIGSEGV, SignalHandler);
+#endif
     // After initialising the MLT factory, set the locale back from user default to C
     // to ensure numbers are always serialised with . as decimal point.
     m_repository = std::unique_ptr<Mlt::Repository>(Mlt::Factory::init());
-
+#ifdef Q_OS_WIN32
+    signal(SIGSEGV, previousHandler);
+#endif
+    
 #ifdef Q_OS_FREEBSD
     setlocale(MLT_LC_CATEGORY, nullptr);
 #else
