@@ -24,6 +24,7 @@ RSToolBar::RSToolBar(QWidget* parent)
     engine()->rootContext()->setContextObject(new KLocalizedContext(this));
     rootContext()->setContextProperty("assetCtrl", AssetController::instance().get());
 
+    setWindowFlag(Qt::WindowStaysOnTopHint);
     setAttribute(Qt::WA_AlwaysStackOnTop);
     setAttribute(Qt::WA_TranslucentBackground);
     

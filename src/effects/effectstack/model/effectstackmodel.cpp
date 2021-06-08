@@ -1230,6 +1230,22 @@ bool EffectStackModel::hasFilter(const QString &effectId) const
     });
 }
 
+int EffectStackModel::filterIndex(const QString& effectId) const {
+    READ_LOCK();
+    return rootItem->accumulate(-1, [effectId, this](int b, std::shared_ptr<TreeItem> it) {
+        if (b >= 0) return b;
+        auto item = std::static_pointer_cast<AbstractEffectItem>(it);
+        if (item->effectItemType() == EffectItemType::Group) {
+            return -1;
+        }
+        auto sourceEffect = std::static_pointer_cast<EffectItemModel>(it);
+        if (effectId == sourceEffect->getAssetId()) {
+            getIndexFromItem(sourceEffect);
+        }
+        return -1;
+    });
+}
+
 double EffectStackModel::getFilterParam(const QString &effectId, const QString &paramName)
 {
     READ_LOCK();

@@ -99,6 +99,10 @@ public:
 
     /** @brief Returns true if the stack contains an effect with the given Id */
     Q_INVOKABLE bool hasFilter(const QString &effectId) const;
+
+    /** @brief 返回过滤器下标，若不存在返回 {-1} */
+    Q_INVOKABLE int filterIndex(const QString& effectId) const;
+    
     // TODO: this break the encapsulation, remove
     Q_INVOKABLE double getFilterParam(const QString &effectId, const QString &paramName);
     /** @brief get the active effect's keyframe model */

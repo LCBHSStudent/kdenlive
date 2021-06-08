@@ -34,6 +34,7 @@
 #include "transitions/view/mixstackview.hpp"
 
 #include "assets/view/assetparameterview.hpp"
+#include "monitor/monitor.h"
 #include "utils/util.h"
 
 #include <mutex>
@@ -64,7 +65,20 @@ std::unique_ptr<AssetController>& AssetController::instance() {
 
 AssetController::AssetController(QObject* parent)
     : QObject(parent)
-{}
+{
+    connect(this, &AssetController::saveStack, this, &AssetController::slotSaveStack);
+    connect(this, &AssetController::activateEffect, this, [=](int row) {
+        m_effectsModel->setActiveEffect(row);
+    });
+    connect(this, &AssetController::seekToPos, this, [this](int pos) {
+        if (!m_effectsModel) return;
+        // at this point, the effects returns a pos relative to the clip. We need to convert it to a global time
+        int clipIn = pCore->getItemPosition(m_effectsModel->getOwnerId());
+        emit seekToPos(pos + clipIn);
+    });
+    connect(pCore.get(), &Core::updateEffectZone, this, &AssetController::slotUpdateEffectZone);
+    connect(this, &AssetController::showEffectZone, pCore.get(), &Core::showEffectZone);
+}
 
 void AssetController::selectTransition(
     int                                         tid, 
@@ -109,7 +123,6 @@ void AssetController::selectEffectStack(
     }
     ObjectId id = effectsModel->getOwnerId();
     
-    clear();
     QString title;
     bool showSplit = false;
     bool enableKeyframes = false;
@@ -139,6 +152,56 @@ void AssetController::selectEffectStack(
     if (showSplit) {
         
     }
+    if (enableKeyframes) {
+        
+    }
+    
+    m_effectsModel.reset();
+    m_effectsModel = effectsModel;
+    
+    connect(this, &AssetController::deleteEffect, m_effectsModel.get(), &EffectStackModel::removeEffect);
+    
+    connect(this, &AssetController::createGroup, m_effectsModel.get(), &EffectStackModel::slotCreateGroup);
+    
+    connect(
+        m_effectsModel.get(), &EffectStackModel::dataChanged,
+        this, &AssetController::slotEffectModelDataUpdated
+    );
+    
+    slotLoadEffectParameters();    
+}
+
+void AssetController::slotEffectModelDataUpdated(
+    const QModelIndex&  topLeft,
+    const QModelIndex&  bottomRight,
+    const QVector<int>& roles
+) {
+//    LOG_DEBUG() << topLeft << bottomRight << roles;
+//    QMutexLocker lock(&m_lock);
+    
+//    Q_UNUSED(roles);
+//    Q_ASSERT(!topLeft.parent().isValid());
+    
+//    // [SIGSEGV] here
+//    auto type = m_effectsModel->data(m_effectsModel->index(topLeft.row(), 0), AssetParameterModel::TypeRole).value<ParamType>();
+    
+//    if (type == ParamType::ColorWheel) {
+//        // do some special works
+//        return;
+//    }
+//    size_t max = roles.size() - 1;
+//    if (bottomRight.isValid()) {
+//        max = qMin(max, size_t(bottomRight.row()));
+//    }
+//    Q_ASSERT(max < roles.size());
+//    for (auto i = size_t(topLeft.row()); i <= max; ++i) {
+//        // refresh argument controllers
+//    }
+    if (!topLeft.isValid() || !bottomRight.isValid()) {
+        
+        return;
+    }
+    
 }
 
 void AssetController::clearAssetData(int itemId) {
@@ -147,22 +210,26 @@ void AssetController::clearAssetData(int itemId) {
         clear();
         return;
     }
-    if (!(m_effectsModel || m_transModel || m_mixModel)) {
-        return;
+
+    if (m_effectsModel) {
+        ObjectId id = m_effectsModel->getOwnerId();
+        if ((id.first == ObjectType::TimelineClip/* || id.first == ObjectType::BinClip*/) && id.second == itemId) {
+            clear();
+            return;
+        }
     }
-    ObjectId id = m_effectsModel->getOwnerId();
-    if (id.first == ObjectType::TimelineClip && id.second == itemId) {
-        clear();
-        return;
+    if (m_transModel) {
+        ObjectId id = m_transModel->getOwnerId();
+        if (id.first == ObjectType::TimelineComposition && id.second == itemId) {
+            clear();
+            return;
+        }
     }
-    id = m_transModel->getOwnerId();
-    if (id.first == ObjectType::TimelineComposition && id.second == itemId) {
-        clear();
-        return;
-    }
-    id = m_mixModel->getOwnerId();
-    if (id.first == ObjectType::TimelineMix && id.second == itemId) {
-        clear();
+    if (m_mixModel) {
+        ObjectId id = m_mixModel->getOwnerId();
+        if (id.first == ObjectType::TimelineMix && id.second == itemId) {
+            clear();
+        }
     }
 }
 
@@ -195,12 +262,110 @@ bool AssetController::addEffect(const QString& effectId) {
 }
 
 void AssetController::clear() {
-    m_effectsModel.reset();
-    m_transModel.reset();
-    m_mixModel.reset();
+    
 }
 
 bool AssetController::selectSizePositionAdjust() {
     const QString& id = KdenliveSettings::gpu_accel()? "movit.rect": "affine";
+    if (m_effectsModel) {
+        auto index = m_effectsModel->filterIndex(id);
+        if (index >= 0) {
+            m_effectsModel->setActiveEffect(index);
+            return true;
+        }
+    }
     return addEffect(id);
+}
+
+QVariant AssetController::getFilterParam(QString key) const {
+    if (m_effectsModel) {
+        
+    } else {
+        
+    }
+    return QVariant();
+}
+
+QVariant AssetController::setFilterParam(QString key, QVariant value) {
+    if (m_effectsModel) {
+        
+    } else {
+        
+    }
+    return QVariant();
+}
+
+void AssetController::clearAssetParameterModel(bool isTransitionModel) {
+    if (isTransitionModel) {
+        if (m_transModel) {
+            
+        }
+    } else {
+        if (m_mixModel) {
+            
+        }
+    }
+}
+
+void AssetController::clearEffectStackModel() {
+    if (m_effectsModel) {
+        
+    }
+}
+
+void AssetController::slotLoadEffectParameters() {
+    int max = m_effectsModel->rowCount();
+    LOG_DEBUG() << "model effects count: " << max;
+    
+    if (max == 0) {
+        // blank stack
+        ObjectId item = m_effectsModel->getOwnerId();
+        pCore->getMonitor(item.first == ObjectType::BinClip ? Kdenlive::ClipMonitor : Kdenlive::ProjectMonitor)->slotShowEffectScene(MonitorSceneDefault);
+        return;
+    }
+    int active = qBound(0, m_effectsModel->getActiveEffect(), max - 1);
+    bool hasLift = false;
+    QModelIndex activeIndex;
+    
+    for (int i = 0; i < max; i++) {
+        std::shared_ptr<AbstractEffectItem> item = m_effectsModel->getEffectStackRow(i);
+        
+        if (item->childCount() > 0) {
+            // group, create sub stack
+            continue;
+        }
+        std::shared_ptr<EffectItemModel> effectModel = std::static_pointer_cast<EffectItemModel>(item);
+        // We need to rebuild the effect view
+        if (effectModel->getAssetId() == QLatin1String("lift_gamma_gain")) {
+            hasLift = true;
+        }
+        
+        QModelIndex ix = m_effectsModel->getIndexFromItem(effectModel);
+        if (active == i) {
+            effectModel->setActive(true);
+            activeIndex = ix;
+            
+            auto type = effectModel->data(activeIndex, AssetParameterModel::TypeRole).value<ParamType>();
+            if (type == ParamType::Geometry) {
+                pCore->getMonitor(m_effectsModel->getOwnerId().first == ObjectType::BinClip ? Kdenlive::ClipMonitor : Kdenlive::ProjectMonitor)->slotShowEffectScene(MonitorSceneGeometry);
+            }
+        }
+        
+    }
+    if (!hasLift) {
+        // 需要重建视图?
+    }
+    if (activeIndex.isValid()) {
+        m_effectsModel->setActiveEffect(activeIndex.row());
+    }
+    
+    qDebug() << "MUTEX UNLOCK!!!!!!!!!!!! loadEffects";
+}
+
+void AssetController::slotSaveStack() {
+    
+}
+
+void AssetController::slotUpdateEffectZone(const QPoint p, bool withUndo) {
+    
 }
