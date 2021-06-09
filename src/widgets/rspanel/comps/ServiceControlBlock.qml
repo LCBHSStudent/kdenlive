@@ -17,8 +17,10 @@ Item {
 
     property alias  section: sectionText.text
     property alias  content: contentBg.sectionContent
+    property string serviceName: ""
     property bool   serviceSelected: false
-
+    
+    signal refreshParams(var kv)
 
     ThemeText {
         id: sectionText
@@ -74,6 +76,21 @@ Item {
         onPressed: {
             mouse.accepted = false
             serviceSelected = true
+        }
+    }
+    
+    onServiceSelectedChanged: {
+        if (serviceSelected) {
+            console.debug(assetCtrl.selectService(serviceName))
+        }
+    }
+    
+    Connections {
+        target: assetCtrl
+        function onRefreshParams(serviceId, kv) {
+            if (serviceId === serviceName) {
+                blockRoot.refreshParams(kv)
+            }
         }
     }
 }

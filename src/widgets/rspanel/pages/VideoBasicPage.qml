@@ -14,6 +14,9 @@ Page {
     property alias ctentHeight: flicker.contentHeight
     property alias ctentY: flicker.contentY
     
+    
+    property string geometry: "0 0 %width %height 100"
+    
     Flickable {
         id: flicker
         clip: true
@@ -29,11 +32,10 @@ Page {
             ServiceControlBlock {
                 id: sizePositionBlock
                 section: qsTr("位置与尺寸")
+                serviceName: "affine"
                 
-                onServiceSelectedChanged: {
-                    if (serviceSelected) {
-                        console.debug(assetCtrl.selectSizePositionAdjust())
-                    }
+                onRefreshParams: {
+                    console.debug(kv)
                 }
                 
                 content: Column {
@@ -44,12 +46,20 @@ Page {
                                 anchors.verticalCenter: parent.verticalCenter
                                 anchors.left: parent.left
                                 PanelValueField {
+                                    id: posX
                                     prefix: "X"
                                     margin: 10
+                                    onValueChanged: {
+                                        assetCtrl.setFilterParam()
+                                    }
                                 }
                                 PanelValueField {
+                                    id: posY
                                     prefix: "，Y"
                                     margin: 10
+                                    onValueChanged: {
+                                        assetCtrl.setFilterParam()
+                                    }
                                 }
                             }
                         }
