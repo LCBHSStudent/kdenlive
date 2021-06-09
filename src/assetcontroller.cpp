@@ -174,34 +174,21 @@ void AssetController::selectEffectStack(
 void AssetController::slotEffectModelDataUpdated(
     const QModelIndex&  topLeft,
     const QModelIndex&  bottomRight,
-    const QVector<int>& roles
+    const QVector<int>& 
 ) {
-//    LOG_DEBUG() << topLeft << bottomRight << roles;
-//    QMutexLocker lock(&m_lock);
-    
-//    Q_UNUSED(roles);
-//    Q_ASSERT(!topLeft.parent().isValid());
-    
-//    // [SIGSEGV] here
-//    auto type = m_effectsModel->data(m_effectsModel->index(topLeft.row(), 0), AssetParameterModel::TypeRole).value<ParamType>();
-    
-//    if (type == ParamType::ColorWheel) {
-//        // do some special works
-//        return;
-//    }
-//    size_t max = roles.size() - 1;
-//    if (bottomRight.isValid()) {
-//        max = qMin(max, size_t(bottomRight.row()));
-//    }
-//    Q_ASSERT(max < roles.size());
-//    for (auto i = size_t(topLeft.row()); i <= max; ++i) {
-//        // refresh argument controllers
-//    }
     if (!topLeft.isValid() || !bottomRight.isValid()) {
-        
         return;
     }
     
+    std::shared_ptr<EffectItemModel> effectItem = std::static_pointer_cast<EffectItemModel>(m_effectsModel->getEffectStackRow(topLeft.row()));
+    
+    QVector<QPair<QString, QVariant>> currentValues = effectItem->getAllParameters();
+    QMap<QString, QString> values;
+    for (const auto &param : qAsConst(currentValues)) {
+        values.insert(param.first, param.second.toString());
+    }
+    
+    emit refreshParams(effectItem->getAssetId(), values);
 }
 
 void AssetController::clearAssetData(int itemId) {
@@ -265,34 +252,40 @@ void AssetController::clear() {
     
 }
 
-bool AssetController::selectSizePositionAdjust() {
-    const QString& id = KdenliveSettings::gpu_accel()? "movit.rect": "affine";
+bool AssetController::selectService(const QString &serviceId) {
+    if (!EffectsRepository::get()->exists(serviceId)) {
+        return false;
+    }
     if (m_effectsModel) {
-        auto index = m_effectsModel->filterIndex(id);
+        auto index = m_effectsModel->filterIndex(serviceId);
         if (index >= 0) {
             m_effectsModel->setActiveEffect(index);
             return true;
         }
     }
-    return addEffect(id);
+    return addEffect(serviceId);
 }
 
 QVariant AssetController::getFilterParam(QString key) const {
     if (m_effectsModel) {
-        
-    } else {
+        std::shared_ptr<EffectItemModel> effectModel = std::static_pointer_cast<EffectItemModel>(m_effectsModel->getEffectStackRow(m_effectsModel->getActiveEffect())) ;
+        effectModel->filter().get(key.toUtf8().constData());
         
     }
+    
     return QVariant();
 }
 
-QVariant AssetController::setFilterParam(QString key, QVariant value) {
+void AssetController::setFilterParam(QString key, QVariant value) {
     if (m_effectsModel) {
-        
-    } else {
-        
+        std::shared_ptr<EffectItemModel> effectModel = std::static_pointer_cast<EffectItemModel>(m_effectsModel->getEffectStackRow(m_effectsModel->getActiveEffect()));
+        if (key == "rect") {
+            effectModel->setParameter(key, value.toString());
+        }
+        else {
+            effectModel->setParameter(key, value.toInt());
+        }
     }
-    return QVariant();
 }
 
 void AssetController::clearAssetParameterModel(bool isTransitionModel) {
@@ -345,9 +338,11 @@ void AssetController::slotLoadEffectParameters() {
             effectModel->setActive(true);
             activeIndex = ix;
             
-            auto type = effectModel->data(activeIndex, AssetParameterModel::TypeRole).value<ParamType>();
-            if (type == ParamType::Geometry) {
-                pCore->getMonitor(m_effectsModel->getOwnerId().first == ObjectType::BinClip ? Kdenlive::ClipMonitor : Kdenlive::ProjectMonitor)->slotShowEffectScene(MonitorSceneGeometry);
+            for (auto i = 0; i < effectModel->rowCount(); i++) {
+                auto type = effectModel->data(effectModel->index(i), AssetParameterModel::TypeRole).value<ParamType>();
+                if (type == ParamType::Geometry || type == ParamType::AnimatedRect) {
+                    pCore->getMonitor(m_effectsModel->getOwnerId().first == ObjectType::BinClip ? Kdenlive::ClipMonitor : Kdenlive::ProjectMonitor)->slotShowEffectScene(MonitorSceneGeometry);
+                }
             }
         }
         

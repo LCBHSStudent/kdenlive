@@ -21,9 +21,11 @@ class AssetController : public QObject {
 public:
 	static std::unique_ptr<AssetController>& instance();
     
+    Q_PROPERTY(QVariantMap filterKV MEMBER m_filterKV NOTIFY filterKVChanged)
+    
 	Q_INVOKABLE ObjectId effectStackOwner();
 	Q_INVOKABLE bool addEffect(const QString& effectId);
-    Q_INVOKABLE bool selectSizePositionAdjust();
+    Q_INVOKABLE bool selectService(const QString& serviceId);
 	
 public slots:
 	/** @brief 选中转场 */
@@ -39,9 +41,11 @@ public slots:
 	/** @brief 获取过滤器参数 */
     QVariant getFilterParam(QString key) const;
     /** @brief 设置过滤器参数 */
-    QVariant setFilterParam(QString key, QVariant value);
+    void setFilterParam(QString key, QVariant value);
     
 signals:
+    /** @brief 过滤器值改变 */
+    void filterKVChanged();
     /** @brief 设置激活首效果为当前效果 */
     void activateEffect(int row);
     /** @brief 从xml添加效果  */
@@ -61,7 +65,7 @@ signals:
     /** @brief 删除指定效果项目 */
     void deleteEffect(std::shared_ptr<EffectItemModel> effect);
     /** @brief 刷新效果参数 */
-    void refreshParams();
+    void refreshParams(QString serviceId, QMap<QString, QString> kv);
     /** @brief 分割时间线素材效果 */
 	void doSplitEffect(bool);
     /** @brief 分割项目资源库效果 */
