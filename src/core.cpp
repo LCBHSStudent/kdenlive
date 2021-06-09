@@ -33,6 +33,7 @@ the Free Software Foundation, either version 3 of the License, or
 #include "dialogs/textbasededit.h"
 #include "widgets/customtooltip.h"
 #include "widgets/clippropertieswidget.h"
+#include "dialogs/proxytest.h"
 #include <mlt++/MltRepository.h>
 
 #include <KMessageBox>
@@ -1068,4 +1069,9 @@ bool Core::eventFilter(QObject* target, QEvent* e) {
         return false;
     }
     }
+}
+
+void Core::testProxies() {
+    QScopedPointer<ProxyTest> dialog(new ProxyTest(QApplication::activeWindow()));
+    dialog->exec();
 }

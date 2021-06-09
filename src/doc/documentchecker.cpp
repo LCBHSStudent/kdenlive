@@ -1404,6 +1404,28 @@ void DocumentChecker::fixClipItem(QTreeWidgetItem *child, const QDomNodeList &pr
                 updateProperty(trans.at(i).toElement(), lumaSearchPairs.value(service), QString());
             }
         }
+    } else if (t == TITLE_FONT_ELEMENT) {
+        // Parse all title producers
+        for (int i = 0; i < producers.count(); ++i) {
+            e = producers.item(i).toElement();
+            QString service = Xml::getXmlProperty(e, QStringLiteral("mlt_service"));
+            // Fix clip
+            if (service == QLatin1String("kdenlivetitle")) {
+                QString xml = Xml::getXmlProperty(e, QStringLiteral("xmldata"));
+                QStringList fonts = TitleWidget::extractFontList(xml);
+                bool updated = false;
+                for (const auto &f : fonts) {
+                    if (m_missingFonts.contains(f)) {
+                        updated = true;
+                        QString replacementFont = QFontInfo(QFont(f)).family();
+                        xml.replace(QString("font=\"%1\"").arg(f), QString("font=\"%1\"").arg(replacementFont));
+                    }
+                }
+                if (updated) {
+                    Xml::setXmlProperty(e, QStringLiteral("xmldata"), xml);
+                }
+            }
+        }
     }
 }
 
@@ -1490,16 +1512,12 @@ void DocumentChecker::slotDeleteSelected()
     if (!deletedIds.isEmpty()) {
         QDomElement e;
         QDomNodeList producers = m_doc.elementsByTagName(QStringLiteral("producer"));
-
         QDomNode mlt = m_doc.elementsByTagName(QStringLiteral("mlt")).at(0);
-
         for (int i = 0; i < producers.count(); ++i) {
             e = producers.item(i).toElement();
-            if (deletedIds.contains(e.attribute(QStringLiteral("id")).section(QLatin1Char('_'), 0, 0)) ||
-                deletedIds.contains(e.attribute(QStringLiteral("id")).section(QLatin1Char(':'), 1, 1).section(QLatin1Char('_'), 0, 0))) {
-                // Remove clip
-                mlt.removeChild(e);
-                --i;
+            if (deletedIds.contains(Xml::getXmlProperty(e, QStringLiteral("kdenlive:id")))) {
+                // Mark clip for deletion
+                Xml::setXmlProperty(e, QStringLiteral("kdenlive:remove"), QStringLiteral("1"));
             }
         }
 
@@ -1507,17 +1525,9 @@ void DocumentChecker::slotDeleteSelected()
             QDomNodeList entries = playlists.at(i).toElement().elementsByTagName(QStringLiteral("entry"));
             for (int j = 0; j < entries.count(); ++j) {
                 e = entries.item(j).toElement();
-                if (deletedIds.contains(e.attribute(QStringLiteral("producer")).section(QLatin1Char('_'), 0, 0)) ||
-                    deletedIds.contains(e.attribute(QStringLiteral("producer")).section(QLatin1Char(':'), 1, 1).section(QLatin1Char('_'), 0, 0))) {
-                    // Replace clip with blank
-                    while (e.childNodes().count() > 0) {
-                        e.removeChild(e.firstChild());
-                    }
-                    e.setTagName(QStringLiteral("blank"));
-                    e.removeAttribute(QStringLiteral("producer"));
-                    int length = e.attribute(QStringLiteral("out")).toInt() - e.attribute(QStringLiteral("in")).toInt();
-                    e.setAttribute(QStringLiteral("length"), length);
-                    j--;
+                if (deletedIds.contains(Xml::getXmlProperty(e, QStringLiteral("kdenlive:id")))) {
+                    // Mark clip for deletion
+                    Xml::setXmlProperty(e, QStringLiteral("kdenlive:remove"), QStringLiteral("1"));
                 }
             }
         }

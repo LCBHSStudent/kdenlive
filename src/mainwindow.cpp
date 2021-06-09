@@ -1869,6 +1869,16 @@ void MainWindow::setupActions()
 
     KStandardAction::paste(this, SLOT(slotPaste()), actionCollection());
 
+    // Keyframe actions
+    m_assetPanel = new AssetPanel(this);
+    KActionCategory *kfActions = new KActionCategory(i18n("Effect Keyframes"), actionCollection());
+    addAction(QStringLiteral("keyframe_add"), i18n("Add/Remove Keyframe"), m_assetPanel, SLOT(slotAddRemoveKeyframe()),
+                                     QIcon::fromTheme(QStringLiteral("keyframe-add")), QKeySequence(), kfActions);
+    addAction(QStringLiteral("keyframe_next"), i18n("Go to next keyframe"), m_assetPanel, SLOT(slotNextKeyframe()),
+                                     QIcon::fromTheme(QStringLiteral("keyframe-next")), QKeySequence(), kfActions);
+    addAction(QStringLiteral("keyframe_previous"), i18n("Go to previous keyframe"), m_assetPanel, SLOT(slotPreviousKeyframe()),
+                                     QIcon::fromTheme(QStringLiteral("keyframe-previous")), QKeySequence(), kfActions);
+
     /*act = KStandardAction::copy(this, SLOT(slotCopy()), actionCollection());
     clipActionCategory->addAction(KStandardAction::name(KStandardAction::Copy), act);
     act->setEnabled(false);
@@ -2196,6 +2206,10 @@ void MainWindow::slotEditProjectSettings()
         if (project->getDocumentProperty(QStringLiteral("proxyimagesize")) != QString::number(w->proxyImageSize())) {
             modified = true;
             project->setDocumentProperty(QStringLiteral("proxyimagesize"), QString::number(w->proxyImageSize()));
+        }
+        if (project->getDocumentProperty(QStringLiteral("proxyresize")) != QString::number(w->proxyResize())) {
+            modified = true;
+            project->setDocumentProperty(QStringLiteral("proxyresize"), QString::number(w->proxyResize()));
         }
         if (QString::number(int(w->useProxy())) != project->getDocumentProperty(QStringLiteral("enableproxy"))) {
             project->setDocumentProperty(QStringLiteral("enableproxy"), QString::number(int(w->useProxy())));
