@@ -364,3 +364,7 @@ void AssetController::slotSaveStack() {
 void AssetController::slotUpdateEffectZone(const QPoint p, bool withUndo) {
     
 }
+
+void AssetController::attachEffectItemControllerToQml() {
+    
+}

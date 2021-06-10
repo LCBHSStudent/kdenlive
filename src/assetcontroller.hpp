@@ -4,6 +4,7 @@
 class AssetParameterModel;
 class EffectStackModel;
 class EffectItemModel;
+class QQuickItem;
 
 #include "definitions.h"
 #include <memory>
@@ -44,6 +45,8 @@ public slots:
     void setFilterParam(QString key, QVariant value);
     
 signals:
+    /** @brief 请求附加效果项目为属性 */
+    void requestAttach(QQuickItem* item);
     /** @brief 过滤器值改变 */
     void filterKVChanged();
     /** @brief 设置激活首效果为当前效果 */
@@ -90,6 +93,8 @@ private slots:
     void slotSaveStack();
     void slotUpdateEffectZone(const QPoint p, bool withUndo);
     
+    void attachEffectItemControllerToQml();
+    
 private:
 	inline static std::unique_ptr<AssetController> s_instance;
 	
@@ -97,9 +102,10 @@ private:
 	std::shared_ptr<AssetParameterModel>	m_mixModel		= { nullptr };
 	std::shared_ptr<EffectStackModel>		m_effectsModel	= { nullptr };
     
-    QVariantMap m_filterKV = {};
+    QVariantMap m_filterKV      = {};
     
-    QMutex m_lock = {};
+    QMutex      m_lock          = {};
+    QQuickItem* m_cachedItem    = nullptr;
 };
 
 #endif

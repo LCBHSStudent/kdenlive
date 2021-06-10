@@ -1870,14 +1870,15 @@ void MainWindow::setupActions()
     KStandardAction::paste(this, SLOT(slotPaste()), actionCollection());
 
     // Keyframe actions
-    m_assetPanel = new AssetPanel(this);
-    KActionCategory *kfActions = new KActionCategory(i18n("Effect Keyframes"), actionCollection());
-    addAction(QStringLiteral("keyframe_add"), i18n("Add/Remove Keyframe"), m_assetPanel, SLOT(slotAddRemoveKeyframe()),
-                                     QIcon::fromTheme(QStringLiteral("keyframe-add")), QKeySequence(), kfActions);
-    addAction(QStringLiteral("keyframe_next"), i18n("Go to next keyframe"), m_assetPanel, SLOT(slotNextKeyframe()),
-                                     QIcon::fromTheme(QStringLiteral("keyframe-next")), QKeySequence(), kfActions);
-    addAction(QStringLiteral("keyframe_previous"), i18n("Go to previous keyframe"), m_assetPanel, SLOT(slotPreviousKeyframe()),
-                                     QIcon::fromTheme(QStringLiteral("keyframe-previous")), QKeySequence(), kfActions);
+    // TODO[20210610] connect to assetcontroller 
+//    m_assetPanel = new AssetPanel(this);
+//    KActionCategory *kfActions = new KActionCategory(i18n("Effect Keyframes"), actionCollection());
+//    addAction(QStringLiteral("keyframe_add"), i18n("Add/Remove Keyframe"), m_assetPanel, SLOT(slotAddRemoveKeyframe()),
+//                                     QIcon::fromTheme(QStringLiteral("keyframe-add")), QKeySequence(), kfActions);
+//    addAction(QStringLiteral("keyframe_next"), i18n("Go to next keyframe"), m_assetPanel, SLOT(slotNextKeyframe()),
+//                                     QIcon::fromTheme(QStringLiteral("keyframe-next")), QKeySequence(), kfActions);
+//    addAction(QStringLiteral("keyframe_previous"), i18n("Go to previous keyframe"), m_assetPanel, SLOT(slotPreviousKeyframe()),
+//                                     QIcon::fromTheme(QStringLiteral("keyframe-previous")), QKeySequence(), kfActions);
 
     /*act = KStandardAction::copy(this, SLOT(slotCopy()), actionCollection());
     clipActionCategory->addAction(KStandardAction::name(KStandardAction::Copy), act);
