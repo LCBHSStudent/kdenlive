@@ -8,6 +8,8 @@ set (RELEASE_SERVICE_VERSION_MAJOR "0")
 set (RELEASE_SERVICE_VERSION_MINOR "0")
 set (RELEASE_SERVICE_VERSION_MICRO "1")
 
+set(SMARTIP_PWD ${CMAKE_CURRENT_SOURCE_DIR})
+
 set(SMARTIP_EDITOR_VERSION "${RELEASE_SERVICE_VERSION_MAJOR}.${RELEASE_SERVICE_VERSION_MINOR}.${RELEASE_SERVICE_VERSION_MICRO}")
 
 project(SmartIP-Editor VERSION ${SMARTIP_EDITOR_VERSION})
@@ -47,6 +49,7 @@ include(ECMQtDeclareLoggingCategory)
 include(ECMEnableSanitizers)
 include(ECMAddQch)
 add_definitions(-DTRANSLATION_DOMAIN=\"kdenlive\")
+
 find_package(KF5 REQUIRED COMPONENTS Archive Bookmarks CoreAddons Config ConfigWidgets
                             DBusAddons KIO WidgetsAddons NotifyConfig NewStuff XmlGui Notifications GuiAddons TextWidgets IconThemes Declarative Solid
                  OPTIONAL_COMPONENTS DocTools FileMetaData Crash Purpose)

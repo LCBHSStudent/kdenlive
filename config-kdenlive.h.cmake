@@ -10,6 +10,8 @@
 
 #define FFMPEG_SUFFIX "@FFMPEG_SUFFIX@"
 
+#define SMARTIP_PWD "@SMARTIP_PWD@"
+
 #cmakedefine HAVE_MALLOC_H 1
 #cmakedefine HAVE_PTHREAD_H 1
 

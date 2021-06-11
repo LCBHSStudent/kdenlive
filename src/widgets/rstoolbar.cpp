@@ -1,5 +1,6 @@
 #include "rstoolbar.h"
 
+#include <config-kdenlive.h>
 #include <KLocalizedContext>
 #include <KDeclarative/KDeclarative>
 
@@ -9,7 +10,7 @@
 #include "assetcontroller.hpp"
 
 #ifdef DEBUG_BUILD
-    const QUrl qmlPath("file:///A:/CraftRoot/build/kde/kdemultimedia/kdenlive/work/kde_based_editor/src/widgets/RSToolBar.qml");
+    const QUrl qmlPath("file:///" SMARTIP_PWD "/src/widgets/RSToolBar.qml");
 #else
     const QUrl qmlPath("qrc:/qml/RSToolBar.qml");
 #endif

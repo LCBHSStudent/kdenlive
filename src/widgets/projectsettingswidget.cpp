@@ -14,6 +14,7 @@
 #include <QQmlEngine>
 #include <QQmlContext>
 #include <QQuickItem>
+#include <config-kdenlive.h>
 
 #include "macros.hpp"
 
@@ -21,7 +22,7 @@ constexpr int __dropshadowMargin = 0;
 
 
 #ifdef DEBUG_BUILD
-    static const char* qmlPath = "file:///A:/CraftRoot/build/kde/kdemultimedia/kdenlive/work/kde_based_editor/src/widgets/ProjectSettings.qml";
+    static const char* qmlPath = "file:///" SMARTIP_PWD "/src/widgets/ProjectSettings.qml";
 #else
     static const char* qmlPath = "qrc:/qml/ProjectSettings.qml";
 #endif

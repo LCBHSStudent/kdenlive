@@ -28,6 +28,8 @@
 #include <QQuickWidget>
 #include <QQuickItem>
 
+#include <config-kdenlive.h>
+
 #include "macros.hpp"
 
 #include <QQmlEngine>
@@ -130,7 +132,7 @@ void QmlManager::setScene(Kdenlive::MonitorId id, MonitorSceneType type, QSize p
     default:
 #ifdef DEBUG_BUILD
         m_view->setSource(
-            QUrl(id == Kdenlive::ClipMonitor? QStringLiteral("file:///A:/CraftRoot/build/kde/kdemultimedia/kdenlive/work/kde_based_editor/src/monitor/view/kdenliveclipmonitor.qml"): QStringLiteral("file:///A:/CraftRoot/build/kde/kdemultimedia/kdenlive/work/kde_based_editor/src/monitor/view/kdenlivemonitor.qml")));
+            QUrl(id == Kdenlive::ClipMonitor? QStringLiteral("file:///" SMARTIP_PWD "/src/monitor/view/kdenliveclipmonitor.qml"): QStringLiteral("file:///" SMARTIP_PWD "/src/monitor/view/kdenlivemonitor.qml")));
 #else
         m_view->setSource(
             QUrl(id == Kdenlive::ClipMonitor? QStringLiteral("qrc:/qml/kdenliveclipmonitor.qml") : QStringLiteral("qrc:/qml/kdenlivemonitor.qml")));
