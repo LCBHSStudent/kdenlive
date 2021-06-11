@@ -5149,6 +5149,10 @@ void MainWindow::resizeEvent(QResizeEvent*) {
 void MainWindow::setWindowModified(bool isModified) {
     QWidget::setWindowModified(isModified);
     
+    if (m_editorToolBar == nullptr) {
+        return;
+    }
+    
     auto title = "项目 " + windowTitle();
     auto index = title.lastIndexOf(".sip");
     if (index == -1) {
