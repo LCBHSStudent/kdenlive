@@ -235,9 +235,6 @@ private:
     QAction *m_buttonSpacerTool;
     QAction *m_buttonSnap;
     QAction *m_saveAction;
-    QSlider *m_zoomSlider;
-    QAction *m_zoomIn;
-    QAction *m_zoomOut;
     QAction *m_loopZone;
     QAction *m_playZone;
     QAction *m_loopClip;
@@ -305,10 +302,6 @@ public slots:
     /** @brief Add/remove Dock tile bar depending on state (tabbed, floating, ...) */
     void slotUpdateDockLocation(Qt::DockWidgetArea dockLocationArea);
     void configureToolbars() override;
-    /** @brief Decreases the timeline zoom level by 1. */
-    void slotZoomIn(bool zoomOnMouse = false);
-    /** @brief Increases the timeline zoom level by 1. */
-    void slotZoomOut(bool zoomOnMouse = false);
     /** @brief Enable or disable the use of timeline zone for edits. */
     void slotSwitchTimelineZone(bool toggled);
     /** @brief Open the online services search dialog. */
@@ -341,23 +334,7 @@ private slots:
     /** @brief if modified is true adds "modified" to the caption and enables the save button.
      * (triggered by KdenliveDoc::setModified()) */
     void slotUpdateDocumentState(bool modified);
-
-    /** @brief Sets the timeline zoom slider to @param value.
-     *
-     * Also disables zoomIn and zoomOut actions if they cannot be used at the moment. */
-    void slotSetZoom(int value, bool zoomOnMouse = false);
-    /** @brief Makes the timeline zoom level fit the timeline content. */
-    void slotFitZoom();
-    /** @brief Updates the zoom slider tooltip to fit @param zoomlevel. */
-    void slotUpdateZoomSliderToolTip(int zoomlevel);
-    /** @brief Timeline was zoom, update slider to reflect that */
-    void updateZoomSlider(int value);
-
-    /** @brief Displays the zoom slider tooltip.
-     * @param zoomlevel (optional) The zoom level to show in the tooltip.
-     *
-     * Adopted from Dolphin (src/statusbar/dolphinstatusbar.cpp) */
-    void slotShowZoomSliderToolTip(int zoomlevel = -1);
+    
     /** @brief Deletes item in timeline, project tree or effect stack depending on focus. */
     void slotDeleteItem();
     void slotAddClipMarker();

@@ -192,8 +192,6 @@ void TimelineWidget::setModel(const std::shared_ptr<TimelineItemModel> &model, M
 
     setSource(QUrl(QStringLiteral("qrc:/qml/timeline.qml")));
     connect(rootObject(), SIGNAL(mousePosChanged(int)), pCore->window(), SLOT(slotUpdateMousePosition(int)));
-    connect(rootObject(), SIGNAL(zoomIn(bool)), pCore->window(), SLOT(slotZoomIn(bool)));
-    connect(rootObject(), SIGNAL(zoomOut(bool)), pCore->window(), SLOT(slotZoomOut(bool)));
     connect(rootObject(), SIGNAL(processingDrag(bool)), pCore->window(), SIGNAL(enableUndo(bool)));
     connect(m_proxy, &TimelineController::seeked, proxy, &MonitorProxy::setPosition);
     rootObject()->setProperty("dar", pCore->getCurrentDar());

@@ -410,7 +410,7 @@ void MainWindow::init(const QString &mltPath) {
     __plusLayout->setSpacing(0);
     
     
-    m_timelineToolBar = new TimelineToolBar(this);
+    m_timelineToolBar = new TimelineToolBar(m_timelineTabs, this);
     
     __plusLayout->addWidget(m_timelineToolBar);
     __plusLayout->addWidget(m_timelineTabs);
@@ -502,7 +502,6 @@ void MainWindow::init(const QString &mltPath) {
         pCore->subtitleWidget()->setActiveSubtitle(id);
     });
 
-    connect(m_timelineTabs, &TimelineTabs::updateZoom, this, &MainWindow::updateZoomSlider);
     connect(pCore->bin(), &Bin::requestShowEffectStack, m_assetCtrl.get(), &AssetController::selectEffectStack);
     connect(pCore->bin(), &Bin::requestShowEffectStack, [&] () {
         // Don't raise effect stack on clip bin in case it is docked with bin or clip monitor
@@ -1447,22 +1446,6 @@ void MainWindow::setupActions()
 
     m_buttonFitZoom->setCheckable(false);
 
-    m_zoomSlider = new QSlider(Qt::Horizontal, this);
-    m_zoomSlider->setRange(0, 20);
-    m_zoomSlider->setPageStep(1);
-    m_zoomSlider->setInvertedAppearance(true);
-    m_zoomSlider->setInvertedControls(true);
-
-    m_zoomSlider->setMaximumWidth(150);
-    m_zoomSlider->setMinimumWidth(100);
-
-    m_zoomIn = KStandardAction::zoomIn(this, SLOT(slotZoomIn()), actionCollection());
-    m_zoomOut = KStandardAction::zoomOut(this, SLOT(slotZoomOut()), actionCollection());
-
-    connect(m_zoomSlider, SIGNAL(valueChanged(int)), this, SLOT(slotSetZoom(int)));
-    connect(m_zoomSlider, &QAbstractSlider::sliderMoved, this, &MainWindow::slotShowZoomSliderToolTip);
-    connect(m_buttonFitZoom, &QAction::triggered, this, &MainWindow::slotFitZoom);
-
     // timeline tool bar
     KToolBar *toolbar = new KToolBar(QStringLiteral("statusToolBar"), this, Qt::BottomToolBarArea);
     toolbar->setMovable(false);
@@ -1490,9 +1473,6 @@ void MainWindow::setupActions()
     toolbar->addAction(m_buttonSnap);
     toolbar->addSeparator();
     toolbar->addAction(m_buttonFitZoom);
-    toolbar->addAction(m_zoomOut);
-    toolbar->addWidget(m_zoomSlider);
-    toolbar->addAction(m_zoomIn);
 
     int small = style()->pixelMetric(QStyle::PM_SmallIconSize);
     statusBar()->setMaximumHeight(2 * small);
@@ -2552,7 +2532,6 @@ void MainWindow::connectDocument()
         m_renderWidget->updateDocumentPath();
         m_renderWidget->setRenderProfile(project->getRenderProperties());
     }
-    m_zoomSlider->setValue(project->zoom().x());
     m_commandStack->setActiveStack(project->commandStack().get());
     setWindowTitle(project->description());
     setWindowModified(project->isModified());
@@ -3186,61 +3165,6 @@ void MainWindow::addEffect(const QString &effectId)
     } else {
         pCore->displayMessage(i18n("Select an item to add effect"), ErrorMessage);
     }
-}
-
-void MainWindow::slotZoomIn(bool zoomOnMouse)
-{
-    slotSetZoom(m_zoomSlider->value() - 1, zoomOnMouse);
-    slotShowZoomSliderToolTip();
-}
-
-void MainWindow::slotZoomOut(bool zoomOnMouse)
-{
-    slotSetZoom(m_zoomSlider->value() + 1, zoomOnMouse);
-    slotShowZoomSliderToolTip();
-}
-
-void MainWindow::slotFitZoom()
-{
-    emit m_timelineTabs->fitZoom();
-}
-
-void MainWindow::slotSetZoom(int value, bool zoomOnMouse)
-{
-    value = qBound(m_zoomSlider->minimum(), value, m_zoomSlider->maximum());
-    emit m_timelineTabs->changeZoom(value, zoomOnMouse);
-    updateZoomSlider(value);
-}
-
-void MainWindow::updateZoomSlider(int value)
-{
-    slotUpdateZoomSliderToolTip(value);
-    KdenliveDoc *project = pCore->currentDoc();
-    if (project) {
-        project->setZoom(value);
-    }
-    m_zoomOut->setEnabled(value < m_zoomSlider->maximum());
-    m_zoomIn->setEnabled(value > m_zoomSlider->minimum());
-    QSignalBlocker blocker(m_zoomSlider);
-    m_zoomSlider->setValue(value);
-}
-
-void MainWindow::slotShowZoomSliderToolTip(int zoomlevel)
-{
-    if (zoomlevel != -1) {
-        slotUpdateZoomSliderToolTip(zoomlevel);
-    }
-
-    QPoint global = m_zoomSlider->rect().topLeft();
-    global.ry() += m_zoomSlider->height() / 2;
-    QHelpEvent toolTipEvent(QEvent::ToolTip, QPoint(0, 0), m_zoomSlider->mapToGlobal(global));
-    QApplication::sendEvent(m_zoomSlider, &toolTipEvent);
-}
-
-void MainWindow::slotUpdateZoomSliderToolTip(int zoomlevel)
-{
-    int max = m_zoomSlider->maximum() + 1;
-    m_zoomSlider->setToolTip(i18n("Zoom Level: %1/%2", max - zoomlevel, max));
 }
 
 void MainWindow::customEvent(QEvent *e)

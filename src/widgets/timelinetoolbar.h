@@ -5,6 +5,8 @@
 #include <QPushButton>
 #include <QLabel>
 
+class TimelineTabs;
+
 class TimelineToolButton: public QPushButton {
     Q_OBJECT
 public:
@@ -24,19 +26,23 @@ protected:
     void paintEvent(QPaintEvent*) override;
 };
 
+/**
+ * @brief 时间线工具栏
+ * @abstract 放置时间线上方工具按钮或自定义widget 由ToolBtnLayoutManager管理布局
+ */
 class ToolBtnLayoutManager;
 class TimelineToolBar: public QFrame {
 	Q_OBJECT
 public:
-    explicit TimelineToolBar(QWidget* parent = nullptr);
+    explicit TimelineToolBar(TimelineTabs* tabs, QWidget* parent = nullptr);
 	~TimelineToolBar() override = default;
-	
+    
 protected:
 	void resizeEvent(QResizeEvent*) override;
 	
 private:
-	ToolBtnLayoutManager* m_manager = nullptr;
-	
+	ToolBtnLayoutManager*   m_manager = nullptr;
+	TimelineTabs*           m_timelineTabs = nullptr;
 };
 
 #endif // TIMELINETOOLBAR_H

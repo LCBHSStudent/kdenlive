@@ -225,6 +225,7 @@ void ProjectManager::newFile(QString profileName, bool showProjectSettings)
     m_project = doc;
     pCore->monitorManager()->activateMonitor(Kdenlive::ProjectMonitor);
     updateTimeline(0);
+    pCore->window()->getMainTimeline()->slotChangeZoom(doc->zoom().x(), false);
     pCore->window()->connectDocument();
     pCore->mixer()->setModel(m_mainTimelineModel);
     bool disabled = m_project->getDocumentProperty(QStringLiteral("disabletimelineeffects")) == QLatin1String("1");
@@ -904,7 +905,7 @@ bool ProjectManager::updateTimeline(int pos, int scrollPos)
     pCore->taskManager.slotCancelJobs();
     pCore->window()->getMainTimeline()->loading = true;
     pCore->window()->slotSwitchTimelineZone(m_project->getDocumentProperty(QStringLiteral("enableTimelineZone")).toInt() == 1);
-
+    
     QScopedPointer<Mlt::Producer> xmlProd(new Mlt::Producer(pCore->getCurrentProfile()->profile(), "xml-string",
                                                             m_project->getAndClearProjectXml().constData()));
 
