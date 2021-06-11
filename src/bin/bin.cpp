@@ -1414,6 +1414,9 @@ Bin::Bin(std::shared_ptr<ProjectItemModel> model, QWidget *parent)
         }
     )");
     m_toolbar->addWidget(autoPlayNext);
+    connect(autoPlayNext, &QCheckBox::clicked, this, [autoPlayNext] {
+        KdenliveSettings::setAutoPlayNext(autoPlayNext->isChecked());
+    });
     
     m_toolbarSpacer = new QWidget(m_toolbar);
     m_toolbarSpacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);

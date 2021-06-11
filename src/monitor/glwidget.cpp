@@ -37,6 +37,7 @@
 #include "timeline2/view/qmltypes/thumbnailprovider.h"
 
 #include "core.h"
+#include "bin/bin.h"
 #include "glwidget.h"
 #include "kdenlivesettings.h"
 #include "monitorproxy.h"
@@ -704,7 +705,12 @@ bool GLWidget::checkFrameNumber(int pos, int offset, bool isPlaying)
         if (isPlaying && pos >= maxPos) {
             m_consumer->purge();
             if (!m_isLoopMode) {
-                return false;
+                if (KdenliveSettings::autoPlayNext()) {
+                    pCore->bin()->slotSelectNext();
+                    getControllerProxy()->setPlaying(true);
+                    return true;
+                }
+                else return false;
             }
             m_producer->seek(m_isZoneMode ? m_proxy->zoneIn() : m_loopIn);
             m_producer->set_speed(1.0);

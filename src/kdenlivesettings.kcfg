@@ -5,6 +5,10 @@
       http://www.kde.org/standards/kcfg/1.0/kcfg.xsd" >
   <kcfgfile/>
   <group name="bin">
+    <entry name="autoPlayNext" type="Bool">
+      <label>Bin auto play next clip checkbox.</label>
+      <default>true</default>
+    </entry>
     <entry name="treeviewheaders" type="String">
       <label>Bin treeview headers state.</label>
       <default></default>
