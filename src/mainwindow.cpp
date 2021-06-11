@@ -315,8 +315,6 @@ void MainWindow::init(const QString &mltPath) {
     setDockOptions(dockOptions() | QMainWindow::AllowNestedDocks | QMainWindow::AllowTabbedDocks);
     setDockOptions(dockOptions() | QMainWindow::GroupedDragging);
     setTabPosition(Qt::AllDockWidgetAreas, QTabWidget::TabPosition(KdenliveSettings::tabposition()));
-    m_timelineToolBar = new TimelineToolBar(this);
-    
     
     m_timelineToolBarContainer = new TimelineContainer(this);
     
@@ -366,13 +364,6 @@ void MainWindow::init(const QString &mltPath) {
         }
     );
 
-    // TODO deprecated, replace with Bin methods if necessary
-    /*connect(m_projectList, SIGNAL(loadingIsOver()), this, SLOT(slotElapsedTime()));
-    connect(m_projectList, SIGNAL(updateRenderStatus()), this, SLOT(slotCheckRenderStatus()));
-    connect(m_projectList, SIGNAL(updateProfile(QString)), this, SLOT(slotUpdateProjectProfile(QString)));
-    connect(m_projectList, SIGNAL(refreshClip(QString,bool)), pCore->monitorManager(), SLOT(slotRefreshCurrentMonitor(QString)));
-    connect(m_clipMonitor, SIGNAL(zoneUpdated(QPoint)), m_projectList, SLOT(slotUpdateClipCut(QPoint)));*/
-
     connect(m_clipMonitor, &Monitor::passKeyPress, this, &MainWindow::triggerKey);
     m_clipMonitorFrame = new ClipMonitorFrame(m_clipMonitor, this);    
     
@@ -388,6 +379,13 @@ void MainWindow::init(const QString &mltPath) {
     });
     m_projectMonitorFrame = new ProjectMonitorFrame(m_projectMonitor, this);
     
+    
+    // TODO deprecated, replace with Bin methods if necessary
+    /*connect(m_projectList, SIGNAL(loadingIsOver()), this, SLOT(slotElapsedTime()));
+    connect(m_projectList, SIGNAL(updateRenderStatus()), this, SLOT(slotCheckRenderStatus()));
+    connect(m_projectList, SIGNAL(updateProfile(QString)), this, SLOT(slotUpdateProjectProfile(QString)));
+    connect(m_projectList, SIGNAL(refreshClip(QString,bool)), pCore->monitorManager(), SLOT(slotRefreshCurrentMonitor(QString)));
+    connect(m_clipMonitor, SIGNAL(zoneUpdated(QPoint)), m_projectList, SLOT(slotUpdateClipCut(QPoint)));*/ 
     
     auto __toolPlusFrame = new QWidget(this);
     auto toolPlusFrameLayout = new QVBoxLayout(__toolPlusFrame);
@@ -410,6 +408,9 @@ void MainWindow::init(const QString &mltPath) {
     auto __plusLayout = new QVBoxLayout(tabsPlusToolbar);
     __plusLayout->setContentsMargins(0, 0, 0, 0);
     __plusLayout->setSpacing(0);
+    
+    
+    m_timelineToolBar = new TimelineToolBar(this);
     
     __plusLayout->addWidget(m_timelineToolBar);
     __plusLayout->addWidget(m_timelineTabs);

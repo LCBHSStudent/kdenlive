@@ -5,6 +5,8 @@
 
 #include "macros.hpp"
 #include "appconsts.h"
+#include "monitor/monitor.h"
+#include "monitor/monitorproxy.h"
 
 #include <KLocalizedString>
 
@@ -31,6 +33,7 @@ public:
     
     // 假定Widget为固定大小
     struct PosInfo {
+        bool        checkable = false;
         bool        isRelative = false;
         int         spacing = 0;
         double      spacingFactor = 1.0f;
@@ -39,6 +42,10 @@ public:
 
     void addInfo(const PosInfo& info) {
         if (info.w) {
+            auto btn = dynamic_cast<QPushButton*>(info.w);
+            if (btn != nullptr) {
+                btn->setCheckable(info.checkable);
+            }
             info.w->setParent(m_containerWidget);            
         }
         m_managedWidgetList.append(info);
@@ -107,11 +114,23 @@ void TimelineTimecodeLabel::paintEvent(QPaintEvent*) {
     
 }
 
+#define ADD_NEW_BTN(ICON_NAME, TOOL_TIP) \
+    info.w = new TimelineToolButton(ICON_NAME, i18n(TOOL_TIP), this); \
+    m_manager->addInfo(info);
+
+#define GET_KDE_ACTION(__ENUM__) \
+    pCore->window()->actionCollection()->action(KStandardAction::name(KStandardAction::StandardAction::__ENUM__))
+
+#define ACTION_COLL(__name__) \
+    pCore->window()->actionCollection()->action(QStringLiteral(__name__))
+
 TimelineToolBar::TimelineToolBar(QWidget* parent)
     : QFrame(parent)
     , m_manager(new ToolBtnLayoutManager(static_cast<QWidget*>(this)))
 {
     using PosInfo = ToolBtnLayoutManager::PosInfo;
+    
+    auto controller = pCore->getMonitor(Kdenlive::ProjectMonitor)->getControllerProxy();
     
     setFixedHeight(40);
     
@@ -121,73 +140,89 @@ TimelineToolBar::TimelineToolBar(QWidget* parent)
         .w = new TimelineToolButton("undo", i18n("上一步"), this)
     };
     m_manager->addInfo(info);
+    auto undo = GET_KDE_ACTION(Undo);
+    connect(undo, &QAction::changed, this, [info, undo] {
+        static_cast<TimelineToolButton*>(info.w)->setEnabled(undo->isEnabled());
+    });
+    connect(static_cast<TimelineToolButton*>(info.w), &TimelineToolButton::clicked, undo, &QAction::triggered);    
     
-    info.w = new TimelineToolButton("redo", i18n("下一步"), this);
     info.spacingFactor = 0.00417f;
-    m_manager->addInfo(info);
+    ADD_NEW_BTN("redo", "下一步");
+    auto redo = GET_KDE_ACTION(Redo);
+    connect(redo, &QAction::changed, this, [info, redo] {
+        static_cast<TimelineToolButton*>(info.w)->setEnabled(redo->isEnabled());
+    });
+    connect(static_cast<TimelineToolButton*>(info.w), &TimelineToolButton::clicked, redo, &QAction::triggered);    
     
-    info.w = new TimelineToolButton("record_audio", i18n("录音"), this);
-    m_manager->addInfo(info);
+    ADD_NEW_BTN("record_audio", "录音");
     
-    info.w = new TimelineToolButton("audio_to_text", i18n("音频文字互转"), this);
-    m_manager->addInfo(info);
+    ADD_NEW_BTN("audio_to_text", "音频文字互转");
     
-    info.w = new TimelineToolButton("record_stream", i18n("直播剪辑/录屏"), this);
-    m_manager->addInfo(info);
+    ADD_NEW_BTN("record_stream", "直播剪辑/录屏");
     
-    info.w = new TimelineToolButton("keyframes", i18n("关键帧"), this);
-    m_manager->addInfo(info);
+    ADD_NEW_BTN("keyframes", "关键帧");
+
+    ADD_NEW_BTN("speed_adjust", "变速");
     
-    info.w = new TimelineToolButton("speed_adjust", i18n("变速"), this);
-    m_manager->addInfo(info);
+    auto addGuide = ACTION_COLL("add_guide");
+    ADD_NEW_BTN("mark", "标记");
+    connect(static_cast<TimelineToolButton*>(info.w), &TimelineToolButton::clicked, addGuide, &QAction::triggered);    
     
-    info.w = new TimelineToolButton("mark", i18n("标记"), this);
-    m_manager->addInfo(info);
+    ADD_NEW_BTN("clip", "裁剪");
     
-    info.w = new TimelineToolButton("clip", i18n("裁剪"), this);
-    m_manager->addInfo(info);
+    ADD_NEW_BTN("gb", "绿屏抠图");
     
-    info.w = new TimelineToolButton("gb", i18n("绿屏抠图"), this);
-    m_manager->addInfo(info);
+    ADD_NEW_BTN("snapshot", "快照");
     
-    info.w = new TimelineToolButton("snapshot", i18n("快照"), this);
-    m_manager->addInfo(info);
-    
-    info.w = new TimelineToolButton("mask", i18n("蒙版"), this);
-    m_manager->addInfo(info);
+    ADD_NEW_BTN("mask", "蒙版");
     
     info.spacingFactor = 0.12f;
-    info.w = new TimelineToolButton("prev_keypoint", i18n("跳到上一个关键位置"), this);
-    m_manager->addInfo(info);
+    ADD_NEW_BTN("prev_keypoint", "跳到上一个关键位置");
+    connect(static_cast<TimelineToolButton*>(info.w), &TimelineToolButton::clicked, controller, &MonitorProxy::seekPreviousKeyframe);
     
     info.spacingFactor = 0.003125f;
-    info.w = new TimelineToolButton("prev_frame", i18n("前一帧"), this);
-    m_manager->addInfo(info);
+    ADD_NEW_BTN("prev_frame", "前一帧");
+    connect(static_cast<TimelineToolButton*>(info.w), &TimelineToolButton::clicked, this, [controller] {
+        emit controller->requestSeek(controller->getPosition() - 1);
+    });
     
-    info.w = new TimelineToolButton("play", i18n("播放"), this);
-    m_manager->addInfo(info);
+    ADD_NEW_BTN("play", "播放");
+    connect(static_cast<TimelineToolButton*>(info.w), &TimelineToolButton::clicked, this, [controller] {
+        controller->setPlaying(!controller->playing());
+    });   
+    connect(controller, &MonitorProxy::playingChanged, this, [info, controller] () {
+        static QIcon playIcon(":/classic/components/ptcontroller/play.png");
+        static QIcon pauseIcon(":/classic/components/ptcontroller/pause.png");
+        auto btn = static_cast<TimelineToolButton*>(info.w);
+        
+        if (controller->playing()) {
+            btn->setIcon(pauseIcon);
+        } else {
+            btn->setIcon(playIcon);
+        }
+    });
     
-    info.w = new TimelineToolButton("next_frame", i18n("后一帧"), this);
-    m_manager->addInfo(info);
     
-    info.w = new TimelineToolButton("next_keypoint", i18n("跳到下一个关键位置"), this);
-    m_manager->addInfo(info);
+    ADD_NEW_BTN("next_frame", "后一帧");
+    connect(static_cast<TimelineToolButton*>(info.w), &TimelineToolButton::clicked, this, [controller] {
+        emit controller->requestSeek(controller->getPosition() + 1);
+    });
+    
+    ADD_NEW_BTN("next_keypoint", "跳到下一个关键位置");
+    connect(static_cast<TimelineToolButton*>(info.w), &TimelineToolButton::clicked, controller, &MonitorProxy::seekNextKeyframe);
     
     info.spacingFactor = 0.00417f;
-    info.w = new TimelineToolButton("volume", i18n("音量"), this);
-    m_manager->addInfo(info);
+    ADD_NEW_BTN("volume", "音量");
     
-    info.w = new TimelineToolButton("fullscreen", i18n("全屏"), this);
-    m_manager->addInfo(info);
+    ADD_NEW_BTN("fullscreen", "全屏");
+    connect(static_cast<TimelineToolButton*>(info.w), &TimelineToolButton::clicked, pCore->getMonitor(Kdenlive::ProjectMonitor), &Monitor::slotSwitchFullScreen);    
     
-    info.w = new TimelineToolButton("scale_level", i18n("缩放级别"), this);
-    m_manager->addInfo(info);
     
-    info.w = new TimelineToolButton("safe_margin", i18n("安全边距"), this);
-    m_manager->addInfo(info);
+    ADD_NEW_BTN("scale_level", "缩放级别");
     
-    info.w = new TimelineToolButton("grid", i18n("网格"), this);
-    m_manager->addInfo(info);
+    ADD_NEW_BTN("safe_margin", "安全边距");
+    
+    ADD_NEW_BTN("grid", "网格");
     
     info.spacingFactor = 0.0125f;
     info.w = new QPushButton(i18n("渲染"), this);
