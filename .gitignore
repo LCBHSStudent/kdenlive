@@ -5,3 +5,4 @@ po
 *.patch
 packaging/flatpak/.flatpak-builder
 /gitbook/_book/
+/gitbook/git/
