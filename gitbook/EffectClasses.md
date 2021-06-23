@@ -6,4 +6,3 @@
 
 ​		EffectStackModel继承自树状模型TreeModel
 
-### 
