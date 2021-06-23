@@ -11,12 +11,6 @@
 #include <QQuickItem>
 #include <mutex>
 
-constexpr int __rsToolBar_fixedWidth    = 515;
-constexpr int __rsToolBar_topMargin     = 19;
-constexpr int __rsToolBar_bottomMargin  = 5;
-constexpr int __qmlTabItemHeight        = 46;
-constexpr int __qmlTabBarWidth          = 103;
-
 ProjectMonitorFrame::ProjectMonitorFrame(Monitor* monitor, QWidget* parent)
     : QFrame(parent)
     , m_rsToolBar(new RSToolBar(this))
@@ -33,16 +27,11 @@ ProjectMonitorFrame::ProjectMonitorFrame(Monitor* monitor, QWidget* parent)
     layout->setSpacing(0);
     
     setLayout(layout);
-    
-    m_rsToolBar->rootObject()->setProperty("tabBarWidth", __qmlTabBarWidth);
-    m_rsToolBar->rootObject()->setProperty("tabItemHeight", __qmlTabItemHeight);
-    
-    setMinimumHeight(__qmlTabItemHeight * 8 + __rsToolBar_topMargin + __rsToolBar_bottomMargin);
 } 
 
 void ProjectMonitorFrame::resizeEvent(QResizeEvent*) {
-    m_rsToolBar->resize(__rsToolBar_fixedWidth, height() - __rsToolBar_topMargin - __rsToolBar_bottomMargin);
-    m_rsToolBar->move(width() - __rsToolBar_fixedWidth, __rsToolBar_topMargin);
+    m_rsToolBar->resize(m_rsToolBar->width(), height() - __rsToolBar_topMargin - __rsToolBar_bottomMargin);
+    m_rsToolBar->move(width() - m_rsToolBar->width(), __rsToolBar_topMargin);
     
     layout()->setContentsMargins(0.191 * width(), __rsToolBar_topMargin - 1, 0.265 * width(), 0.0775 * height());
 }

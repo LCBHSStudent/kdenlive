@@ -24,7 +24,11 @@ RSToolBar::RSToolBar(QWidget* parent)
     kdeclarative.setupEngine(engine());
     engine()->rootContext()->setContextObject(new KLocalizedContext(this));
     rootContext()->setContextProperty("assetCtrl", AssetController::instance().get());
-
+    rootContext()->setContextProperty("rstoolbar", this);
+    
+    setMinimumHeight(__qmlTabItemHeight * 8 + __rsToolBar_topMargin + __rsToolBar_bottomMargin);
+    resize(__qmlTabBarWidth, parentWidget()->height() - __rsToolBar_topMargin - __rsToolBar_bottomMargin);
+    
     setWindowFlag(Qt::WindowStaysOnTopHint);
     setAttribute(Qt::WA_AlwaysStackOnTop);
     setAttribute(Qt::WA_TranslucentBackground);
@@ -34,9 +38,15 @@ RSToolBar::RSToolBar(QWidget* parent)
     setClearColor(Qt::transparent);
     
     setSource(qmlPath);
+
+    if (rootObject()) {
+        rootObject()->setProperty("tabBarWidth", __qmlTabBarWidth);
+        rootObject()->setProperty("tabItemHeight", __qmlTabItemHeight); 
+    }   
 }
 
 void RSToolBar::mousePressEvent(QMouseEvent* e) {
+    this->raise();
     QQuickWidget::mousePressEvent(e);
 }
 
@@ -55,22 +65,31 @@ void RSToolBar::keyReleaseEvent(QKeyEvent* ke) {
 #ifdef DEBUG_BUILD
         if (ke->key() == Qt::Key_Q && ke->modifiers() == Qt::AltModifier) {
             auto rootObj = rootObject();
-            int tabBarWidth = 0;
-            int tabItemHeight = 0;
             
-            if (rootObj != nullptr) {
-                tabBarWidth = rootObj->property("tabBarWidth").toInt();
-                tabItemHeight = rootObj->property("tabItemHeight").toInt();           
+            if (rootObj == nullptr) {
+                return;
             }
+            
             setSource(QUrl());
             engine()->clearComponentCache();
             setSource(qmlPath);
             
             rootObj = rootObject();
-            rootObj->setProperty("tabBarWidth", tabBarWidth);
-            rootObj->setProperty("tabItemHeight", tabItemHeight);     
+            rootObj->setProperty("tabBarWidth", __qmlTabBarWidth);
+            rootObj->setProperty("tabItemHeight", __qmlTabItemHeight);     
         }
 #endif
         ke->accept();
     }
+}
+
+
+void RSToolBar::slotSwitchPanelState(bool isOpen) {
+    constexpr int deltaX = __rsToolBar_fixedWidth - __qmlTabBarWidth;
+    if (isOpen) {
+        resize(__rsToolBar_fixedWidth, height());
+    } else {
+        resize(__qmlTabBarWidth, height());
+    }
+    move(x() + (isOpen? -deltaX: deltaX), y());
 }

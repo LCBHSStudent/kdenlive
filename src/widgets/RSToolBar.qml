@@ -21,11 +21,17 @@ Item {
         VideoPanel {}
     }
     
+    onCurrentTabChanged: {
+        if (currentTab === noCurTab) {
+            rstoolbar.slotSwitchPanelState(false)
+        } else {
+            rstoolbar.slotSwitchPanelState(true)
+        }
+    }
+    
     Loader {
         id: panel
-        width: parent.width
-        height: parent.height
-        x: rsBarRoot.width - tabBarWidth
+        anchors.fill: parent
         
         sourceComponent: {
             switch(currentTab) {
@@ -35,33 +41,12 @@ Item {
                 return null
             }
         }
-        
-        state: "close"
-        
-        states: [
-            State {
-                name: "close"
-                PropertyChanges {
-                    target: panel
-                    x: rsBarRoot.width - tabBarWidth
-                }
-            },
-            State {
-                name: "open"
-                PropertyChanges {
-                    target: panel
-                    x: 0
-                }
-            }
-
-        ]
     }
     
     Rectangle {
         anchors {
             top: parent.top
             right: parent.right
-            rightMargin: -radius
         }
 
         width: tabBarWidth + radius
@@ -146,10 +131,8 @@ Item {
                         onClicked: {
                             if (index === currentTab) {
                                 currentTab = noCurTab
-                                panel.state = "close"
                             } else {
                                 currentTab = index
-                                panel.state = "open"
                             }
                         }
                     }
