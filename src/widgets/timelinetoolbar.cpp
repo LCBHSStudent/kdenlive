@@ -307,9 +307,9 @@ TimelineToolBar::TimelineToolBar(TimelineTabs* tabs, QWidget* parent)
     info.w->adjustSize();
     m_manager->addInfo(info);
     
-    // 时间线缩窄
+    // 缩窄时间线
     info.spacingFactor = 0.191666666666667f;
-    ADD_NEW_BTN("timeline_narrow", "");
+    ADD_NEW_BTN("timeline_narrow", "缩窄时间线");
     auto zoomIn = static_cast<TimelineToolButton*>(info.w);
     
     // 设置时间线缩放滑动条
@@ -344,8 +344,8 @@ TimelineToolBar::TimelineToolBar(TimelineTabs* tabs, QWidget* parent)
     info.w = scaleSlider;
     m_manager->addInfo(info);
     
-    // 时间线拉长
-    ADD_NEW_BTN("timeline_boost", "");
+    // 拓宽时间线
+    ADD_NEW_BTN("timeline_boost", "拓宽时间线");
     auto zoomOut = static_cast<TimelineToolButton*>(info.w);
     
     // 时间线缩放条信号槽
@@ -354,8 +354,8 @@ TimelineToolBar::TimelineToolBar(TimelineTabs* tabs, QWidget* parent)
         if (project) {
             project->setZoom(value);
         }
-        zoomOut->setEnabled(value < scaleSlider->maximum());
-        zoomIn->setEnabled(value > scaleSlider->minimum());
+        zoomIn->setEnabled(value <= scaleSlider->maximum());
+        zoomOut->setEnabled(value >= scaleSlider->minimum());
         QSignalBlocker blocker(scaleSlider);
         scaleSlider->setValue(value);
     });
@@ -363,6 +363,7 @@ TimelineToolBar::TimelineToolBar(TimelineTabs* tabs, QWidget* parent)
     connect(scaleSlider, &QSlider::valueChanged, [this, scaleSlider](int value) {
         value = qBound(scaleSlider->minimum(), value, scaleSlider->maximum());        
         emit m_timelineTabs->changeZoom(value, false);
+        LOG_DEBUG() << "coco";
     });
     // zoomIn
     connect(zoomIn, &QPushButton::clicked, [this, scaleSlider] {

@@ -920,17 +920,17 @@ void MainWindow::init(const QString &mltPath) {
     
     // 设置无边框窗口辅助类
     m_framelessHelper = new FramelessHelper(this);
-    m_framelessHelper->setDraggableMargins(4, 4, 4, 4);
+    m_framelessHelper->setDraggableMargins(2, 2, 2, 0);
     m_framelessHelper->setMaximizedMargins(0, 0, 0, 0);
     m_framelessHelper->setTitleBarHeight(42);
     
-    setupMenuBar();
-    
-    // 设置顶端导航栏
     m_framelessHelper->addExcludeItem(new TopNavigationBar(menuBar()));
     m_framelessHelper->addExcludeItem(m_clipMonitorFrame);
     m_framelessHelper->addExcludeItem(m_clipMonitorFrame->closeBtn());
     
+    setupMenuBar();    
+    
+    // 设置顶端导航栏
     auto passer = new MenuBarEventPasser(menuBar());
     passer->setFixedSize(48 * menuBar()->actions().count(), menuBar()->height());
     passer->move(__ltLabelWidth, 0);
