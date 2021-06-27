@@ -74,16 +74,22 @@ void TabsWidget::addTab(QWidget* tabWidget, const QString& tabTitile) {
 
 void TabsWidget::selectTab(int index) {
     m_currentTabIdx = index;
+    
+    auto targetBtn = m_tabBtnGroup->buttons().at(index);
+    if (!targetBtn->isChecked()) {
+        targetBtn->setChecked(true);
+    }
+    
     fix();
 }
 
 void TabsWidget::resizeEvent(QResizeEvent *) {
-    if (m_tabs.size() > m_currentTabIdx && m_currentTabIdx >= 0) {
-        m_tabs.at(m_currentTabIdx)->resize(width() - __contentMargins * 2, height() - __tabBarHeight - __contentMargins * 2);
-        m_tabs.at(m_currentTabIdx)->move(__contentMargins, __tabBarHeight + __contentMargins);
-        m_tabContainer->resize(width() - __contentMargins * 2, __tabBarHeight);
-        m_tabContainer->move(__contentMargins, __contentMargins);                
-    }
+    fix();
+    
+    m_tabs.at(m_currentTabIdx)->resize(width() - __contentMargins * 2, height() - __tabBarHeight - __contentMargins * 2);
+    m_tabs.at(m_currentTabIdx)->move(__contentMargins, __tabBarHeight + __contentMargins);
+    m_tabContainer->resize(width() - __contentMargins * 2, __tabBarHeight);
+    m_tabContainer->move(__contentMargins, __contentMargins);   
 }
 
 void TabsWidget::fix() {    

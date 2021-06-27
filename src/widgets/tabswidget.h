@@ -15,7 +15,7 @@ public:
     
 protected:
     void resizeEvent(QResizeEvent*) override;
-    void showEvent(QShowEvent*) override;
+//    void showEvent(QShowEvent*) override;
     
     virtual void fix();
     

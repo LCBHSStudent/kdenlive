@@ -998,6 +998,8 @@ void MainWindow::init(const QString &mltPath) {
     
     projectBin->raise();
     projectBin->hide();
+    
+    m_effectTransWidget->selectTab(0);
 }
 
 void MainWindow::slotThemeChanged(const QString &name)
