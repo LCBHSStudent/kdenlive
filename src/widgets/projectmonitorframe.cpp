@@ -1,7 +1,7 @@
 #include "projectmonitorframe.h"
 
 #include "monitor/monitor.h"
-#include "widgets/rstoolbar.h"
+#include "assets/assetpanel.hpp"
 
 #include "macros.hpp"
 
@@ -11,9 +11,11 @@
 #include <QQuickItem>
 #include <mutex>
 
+constexpr auto __assetPanelTopMargin = 20;
+constexpr auto __assetPanelBottomMargin = 20;
+
 ProjectMonitorFrame::ProjectMonitorFrame(Monitor* monitor, QWidget* parent)
     : QFrame(parent)
-    , m_rsToolBar(new RSToolBar(this))
 {
     auto layout = new QVBoxLayout(this);
     
@@ -29,11 +31,16 @@ ProjectMonitorFrame::ProjectMonitorFrame(Monitor* monitor, QWidget* parent)
     setLayout(layout);
 } 
 
-void ProjectMonitorFrame::resizeEvent(QResizeEvent*) {
-    m_rsToolBar->resize(m_rsToolBar->width(), height() - __rsToolBar_topMargin - __rsToolBar_bottomMargin);
-    m_rsToolBar->move(width() - m_rsToolBar->width(), __rsToolBar_topMargin);
+void ProjectMonitorFrame::resizeEvent(QResizeEvent* e) { 
+    if (s_assetPanel) {
+        auto w = s_assetPanel->width();
+        s_assetPanel->setGeometry(
+            width() - w, __assetPanelTopMargin, 
+            w, height() - __assetPanelTopMargin - __assetPanelBottomMargin
+        );
+    }
     
-    layout()->setContentsMargins(0.191 * width(), __rsToolBar_topMargin - 1, 0.265 * width(), 0.0775 * height());
+    QFrame::resizeEvent(e);
 }
 
 void ProjectMonitorFrame::paintEvent(QPaintEvent*) {
@@ -48,4 +55,15 @@ void ProjectMonitorFrame::paintEvent(QPaintEvent*) {
     painter.setBrush(shadowGrad);
     painter.setPen(Qt::transparent);
     painter.drawRect(0, 0, width(), 5);
+}
+
+void ProjectMonitorFrame::setAssetPanel(AssetPanel* rPanel) {
+    rPanel->setParent(this);
+    rPanel->resize(400, 500);
+    rPanel->show();
+    
+    s_assetPanel = rPanel;
+    
+    QResizeEvent fake(size(), size());
+    resizeEvent(&fake);
 }

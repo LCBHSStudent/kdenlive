@@ -45,7 +45,7 @@
 #include "statusbarmessagelabel.h"
 #include "utils/otioconvertions.h"
 
-class AssetController;
+class AssetPanel;
 class AudioGraphSpectrum;
 class EffectBasket;
 class EffectListWidget;
@@ -65,6 +65,7 @@ class ClipMonitorFrame;
 class ProjectMonitorFrame;
 class CustomEditorToolBar;
 class KDualAction;
+class TabsWidget;
 
 class MltErrorEvent : public QEvent
 {
@@ -189,7 +190,7 @@ private:
 
     Monitor *m_projectMonitor{nullptr};
     
-    std::unique_ptr<AssetController>& m_assetCtrl;
+    AssetPanel *m_assetPanel;
     
     ClipMonitorFrame* m_clipMonitorFrame = nullptr;
     ProjectMonitorFrame* m_projectMonitorFrame = nullptr;
@@ -200,6 +201,7 @@ private:
     KSelectAction *m_timeFormatButton;
     KSelectAction *m_compositeAction;
 
+    TabsWidget* m_effectTransWidget = nullptr;
     TimelineTabs *m_timelineTabs{nullptr};
 
     KActionCategory *m_effectActions;

@@ -20,5 +20,6 @@ set(kdenlive_SRCS
   widgets/clippropertieswidget.cpp
   widgets/framelessmovablewidget.cpp
   widgets/colorpicker.cpp
+  widgets/tabswidget.cpp
   PARENT_SCOPE
 )

@@ -84,6 +84,7 @@
 #include "widgets/projectsettingswidget.h"
 #include "widgets/menubareventpasser.h"
 #include "widgets/clipmonitorframe.h"
+#include "widgets/tabswidget.h"
 #include <config-kdenlive.h>
 #include "dialogs/textbasededit.h"
 #include "project/dialogs/temporarydata.h"
@@ -192,7 +193,6 @@ static bool eventDebugCallback(void** data) {
 
 MainWindow::MainWindow(QWidget *parent)
     : KXmlGuiWindow(parent)
-    , m_assetCtrl(AssetController::instance())
 {
     hide();
 }
@@ -348,6 +348,7 @@ void MainWindow::init(const QString &mltPath) {
     KSharedConfigPtr config = KSharedConfig::openConfig();
     KConfigGroup mainConfig(config, QStringLiteral("MainWindow"));
 
+    // 这里包括了assetPanel的初始化
     setupActions();
     auto *layoutManager = new LayoutManagement(this);
 
@@ -378,7 +379,7 @@ void MainWindow::init(const QString &mltPath) {
         m_projectMonitor->slotLoopClip(inOut);
     });
     m_projectMonitorFrame = new ProjectMonitorFrame(m_projectMonitor, this);
-    
+    m_projectMonitorFrame->setAssetPanel(m_assetPanel);
     
     // TODO deprecated, replace with Bin methods if necessary
     /*connect(m_projectList, SIGNAL(loadingIsOver()), this, SLOT(slotElapsedTime()));
@@ -488,29 +489,36 @@ void MainWindow::init(const QString &mltPath) {
 
 //    m_effectStackDock = addDock(i18n("Effect/Composition Stack"), QStringLiteral("effect_stack"), m_assetPanel);
     
-    connect(m_assetCtrl.get(), &AssetController::doSplitEffect, m_projectMonitor, &Monitor::slotSwitchCompare);
-    connect(m_assetCtrl.get(), &AssetController::doSplitBinEffect, m_clipMonitor, &Monitor::slotSwitchCompare);
-    connect(m_assetCtrl.get(), &AssetController::switchCurrentComposition, this, [&](int cid, const QString &compositionId) {
+    connect(m_assetPanel, &AssetPanel::doSplitEffect, m_projectMonitor, &Monitor::slotSwitchCompare);
+    connect(m_assetPanel, &AssetPanel::doSplitBinEffect, m_clipMonitor, &Monitor::slotSwitchCompare);
+    connect(m_assetPanel, &AssetPanel::switchCurrentComposition, this, [&](int cid, const QString &compositionId) {
         getMainTimeline()->controller()->getModel()->switchComposition(cid, compositionId);
     });
-    
-    connect(m_timelineTabs, &TimelineTabs::showMixModel, m_assetCtrl.get(), &AssetController::selectMix);
-    connect(m_timelineTabs, &TimelineTabs::showTransitionModel, m_assetCtrl.get(), &AssetController::selectTransition);
-    connect(m_timelineTabs, &TimelineTabs::showItemEffectStack, m_assetCtrl.get(), &AssetController::selectEffectStack);
 
+    connect(m_timelineTabs, &TimelineTabs::showMixModel, m_assetPanel, &AssetPanel::showMix);
+    connect(m_timelineTabs, &TimelineTabs::showTransitionModel, m_assetPanel, &AssetPanel::showTransition);
+    connect(m_timelineTabs, &TimelineTabs::showTransitionModel, this, [&] () {
+        m_assetPanel->raise();
+    });
+    connect(m_timelineTabs, &TimelineTabs::showItemEffectStack, m_assetPanel, &AssetPanel::showEffectStack);
+    connect(m_timelineTabs, &TimelineTabs::showItemEffectStack, this, [&] () {
+        m_assetPanel->raise();
+    });
+    
+    
     connect(m_timelineTabs, &TimelineTabs::showSubtitle, this, [&] (int id) {
         pCore->subtitleWidget()->setActiveSubtitle(id);
     });
 
-    connect(pCore->bin(), &Bin::requestShowEffectStack, m_assetCtrl.get(), &AssetController::selectEffectStack);
+    connect(pCore->bin(), &Bin::requestShowEffectStack, m_assetPanel, &AssetPanel::showEffectStack);
     connect(pCore->bin(), &Bin::requestShowEffectStack, [&] () {
         // Don't raise effect stack on clip bin in case it is docked with bin or clip monitor
         // m_effectStackDock->raise();
     });
-    connect(this, &MainWindow::clearAssetPanel, m_assetCtrl.get(), &AssetController::clearAssetData, Qt::DirectConnection);
-    connect(this, &MainWindow::assetPanelWarning, m_assetCtrl.get(), &AssetController::assetControllerWarning);
-    connect(m_assetCtrl.get(), &AssetController::seekToPos, this, [this](int pos) {
-        ObjectId oId = m_assetCtrl->effectStackOwner();
+    connect(this, &MainWindow::clearAssetPanel, m_assetPanel, &AssetPanel::clearAssetPanel, Qt::DirectConnection);
+    connect(this, &MainWindow::assetPanelWarning, m_assetPanel, &AssetPanel::assetPanelWarning);
+    connect(m_assetPanel, &AssetPanel::seekToPos, this, [this](int pos) {
+        ObjectId oId = m_assetPanel->effectStackOwner();
         switch (oId.first) {
         case ObjectType::TimelineTrack:
         case ObjectType::TimelineClip:
@@ -526,14 +534,24 @@ void MainWindow::init(const QString &mltPath) {
             qDebug() << "ERROR unhandled object type";
             break;
         }
-    });
+    });   
+   
 
-    m_effectList2 = new EffectListWidget(this);
-    connect(m_effectList2, &EffectListWidget::activateAsset, pCore->projectManager(), &ProjectManager::activateAsset);
-    connect(m_assetCtrl.get(), &AssetController::reloadEffect, m_effectList2, &EffectListWidget::reloadCustomEffect);
-
-    m_transitionList2 = new TransitionListWidget(this);
-
+    // 设置左侧合成-效果工具栏
+    {
+        m_effectList2 = new EffectListWidget(this);
+        connect(m_effectList2, &EffectListWidget::activateAsset, pCore->projectManager(), &ProjectManager::activateAsset);
+        connect(m_assetPanel, &AssetPanel::reloadEffect, m_effectList2, &EffectListWidget::reloadCustomEffect);
+    
+        m_transitionList2 = new TransitionListWidget(this);
+        m_effectTransWidget = new TabsWidget(this);
+        m_effectTransWidget->resize(400, 500);
+        
+        m_effectTransWidget->addTab(m_transitionList2, i18n("合成"));
+        m_effectTransWidget->addTab(m_effectList2, i18n("效果"));
+    }
+    
+    
     m_undoView = new QUndoView(this);
     m_undoView->setEmptyLabel(i18n("新建/打开"));
     m_undoView->setGroup(m_commandStack);
@@ -918,17 +936,21 @@ void MainWindow::init(const QString &mltPath) {
         Qt::WindowTitleHint
     );
     
+    
+    
     // 设置无边框窗口辅助类
     m_framelessHelper = new FramelessHelper(this);
-    m_framelessHelper->setDraggableMargins(2, 2, 2, 0);
+    m_framelessHelper->setDraggableMargins(2, 2, 2, 1);
     m_framelessHelper->setMaximizedMargins(0, 0, 0, 0);
     m_framelessHelper->setTitleBarHeight(42);
     
+    // 设置菜单栏
+    setupMenuBar();
+    
+    // 添加事件暴露组件
     m_framelessHelper->addExcludeItem(new TopNavigationBar(menuBar()));
     m_framelessHelper->addExcludeItem(m_clipMonitorFrame);
-    m_framelessHelper->addExcludeItem(m_clipMonitorFrame->closeBtn());
-    
-    setupMenuBar();    
+    m_framelessHelper->addExcludeItem(m_clipMonitorFrame->closeBtn());    
     
     // 设置顶端导航栏
     auto passer = new MenuBarEventPasser(menuBar());
@@ -1183,8 +1205,8 @@ void MainWindow::slotConnectMonitors()
 
 void MainWindow::createSplitOverlay(std::shared_ptr<Mlt::Filter> filter)
 {
-    if (m_assetCtrl->effectStackOwner().first == ObjectType::TimelineClip) {
-        getMainTimeline()->controller()->createSplitOverlay(m_assetCtrl->effectStackOwner().second, filter);
+    if (m_assetPanel->effectStackOwner().first == ObjectType::TimelineClip) {
+        getMainTimeline()->controller()->createSplitOverlay(m_assetPanel->effectStackOwner().second, filter);
         m_projectMonitor->activateSplit();
     } else {
         pCore->displayMessage(i18n("Select a clip to compare effect"), ErrorMessage);
@@ -1851,15 +1873,14 @@ void MainWindow::setupActions()
     KStandardAction::paste(this, SLOT(slotPaste()), actionCollection());
 
     // Keyframe actions
-    // TODO[20210610] connect to assetcontroller 
-//    m_assetPanel = new AssetPanel(this);
-//    KActionCategory *kfActions = new KActionCategory(i18n("Effect Keyframes"), actionCollection());
-//    addAction(QStringLiteral("keyframe_add"), i18n("Add/Remove Keyframe"), m_assetPanel, SLOT(slotAddRemoveKeyframe()),
-//                                     QIcon::fromTheme(QStringLiteral("keyframe-add")), QKeySequence(), kfActions);
-//    addAction(QStringLiteral("keyframe_next"), i18n("Go to next keyframe"), m_assetPanel, SLOT(slotNextKeyframe()),
-//                                     QIcon::fromTheme(QStringLiteral("keyframe-next")), QKeySequence(), kfActions);
-//    addAction(QStringLiteral("keyframe_previous"), i18n("Go to previous keyframe"), m_assetPanel, SLOT(slotPreviousKeyframe()),
-//                                     QIcon::fromTheme(QStringLiteral("keyframe-previous")), QKeySequence(), kfActions);
+    m_assetPanel = new AssetPanel(this);
+    KActionCategory *kfActions = new KActionCategory(i18n("Effect Keyframes"), actionCollection());
+    addAction(QStringLiteral("keyframe_add"), i18n("Add/Remove Keyframe"), m_assetPanel, SLOT(slotAddRemoveKeyframe()),
+                                     QIcon::fromTheme(QStringLiteral("keyframe-add")), QKeySequence(), kfActions);
+    addAction(QStringLiteral("keyframe_next"), i18n("Go to next keyframe"), m_assetPanel, SLOT(slotNextKeyframe()),
+                                     QIcon::fromTheme(QStringLiteral("keyframe-next")), QKeySequence(), kfActions);
+    addAction(QStringLiteral("keyframe_previous"), i18n("Go to previous keyframe"), m_assetPanel, SLOT(slotPreviousKeyframe()),
+                                     QIcon::fromTheme(QStringLiteral("keyframe-previous")), QKeySequence(), kfActions);
 
     /*act = KStandardAction::copy(this, SLOT(slotCopy()), actionCollection());
     clipActionCategory->addAction(KStandardAction::name(KStandardAction::Copy), act);
@@ -3141,8 +3162,7 @@ void MainWindow::slotAddTransition(QAction *result)
     */
 }
 
-void MainWindow::slotAddEffect(QAction *result)
-{
+void MainWindow::slotAddEffect(QAction *result) {
     qDebug() << "// EFFECTS MENU TRIGGERED: " << result->data().toString();
     if (!result) {
         return;
@@ -3151,15 +3171,14 @@ void MainWindow::slotAddEffect(QAction *result)
     addEffect(effectId);
 }
 
-void MainWindow::addEffect(const QString &effectId)
-{
-    if (m_assetCtrl->effectStackOwner().first == ObjectType::TimelineClip) {
+void MainWindow::addEffect(const QString &effectId) {
+    if (m_assetPanel->effectStackOwner().first == ObjectType::TimelineClip) {
         // Add effect to the current timeline selection
         QVariantMap effectData;
         effectData.insert(QStringLiteral("kdenlive/effect"), effectId);
         pCore->window()->getMainTimeline()->controller()->addAsset(effectData);
-    } else if (m_assetCtrl->effectStackOwner().first == ObjectType::TimelineTrack || m_assetCtrl->effectStackOwner().first == ObjectType::BinClip || m_assetCtrl->effectStackOwner().first == ObjectType::Master) {
-        if (!m_assetCtrl->addEffect(effectId)) {
+    } else if (m_assetPanel->effectStackOwner().first == ObjectType::TimelineTrack || m_assetPanel->effectStackOwner().first == ObjectType::BinClip || m_assetPanel->effectStackOwner().first == ObjectType::Master) {
+        if (!m_assetPanel->addEffect(effectId)) {
             pCore->displayMessage(i18n("Cannot add effect to clip"), ErrorMessage);
         }
     } else {
@@ -5068,6 +5087,10 @@ bool MainWindow::eventFilter(QObject* tgt, QEvent* e) {
 void MainWindow::resizeEvent(QResizeEvent*) {
     m_windCtrlBtnFrame->move(width() - m_windCtrlBtnFrame->width(), 0);
     pCore->bin()->setMaximumSize(width() * 0.4, height() * 0.6);
+    
+    if (!m_effectTransWidget->isHidden()) {
+        m_effectTransWidget->move(20, 87);
+    }
 }
 
 void MainWindow::setWindowModified(bool isModified) {
