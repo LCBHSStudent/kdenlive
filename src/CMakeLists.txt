@@ -6,7 +6,9 @@ set_package_properties(LibV4L2 PROPERTIES
     TYPE RUNTIME
     PURPOSE "Required for better webcam support")
 
-if (CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
+option(USE_GPROF "enable gprof library embedding" OFF)
+
+if (USE_GPROF)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pg")
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pg")
     set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -pg")
