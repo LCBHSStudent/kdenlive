@@ -2543,7 +2543,7 @@ void MainWindow::connectDocument()
     trackView->projectView()->setContextMenu(m_timelineContextMenu, m_timelineClipActions, m_timelineContextTransitionMenu, m_clipTypeGroup,
     static_cast<CustomMenu *>(factory()->container(QStringLiteral("marker_menu"), this)));
     */
-
+    getMainTimeline()->controller()->updateZoom(project->zoom().x());
     getMainTimeline()->controller()->clipActions = kdenliveCategoryMap.value(QStringLiteral("timelineselection"))->actions();
     connect(m_projectMonitor, SIGNAL(zoneUpdated(QPoint)), project, SLOT(setModified()));
     connect(m_clipMonitor, SIGNAL(zoneUpdated(QPoint)), project, SLOT(setModified()));
