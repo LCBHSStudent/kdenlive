@@ -176,7 +176,7 @@ void CustomEditorToolBar::resizeEvent(QResizeEvent*) {
     MOVE_DOCSTR_LABEL;
 }
 
-void CustomEditorToolBar::setDocumentString(const QString &docStr) {
+void CustomEditorToolBar::setDocumentString(const QString &docStr) {    
     m_documentStr->setText(docStr);
     m_documentStr->adjustSize();
     

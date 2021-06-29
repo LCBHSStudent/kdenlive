@@ -2543,7 +2543,10 @@ void MainWindow::connectDocument()
     trackView->projectView()->setContextMenu(m_timelineContextMenu, m_timelineClipActions, m_timelineContextTransitionMenu, m_clipTypeGroup,
     static_cast<CustomMenu *>(factory()->container(QStringLiteral("marker_menu"), this)));
     */
-    getMainTimeline()->controller()->updateZoom(project->zoom().x());
+    
+    emit m_timelineTabs->changeZoom(project->zoom().x(), false);
+    emit m_timelineTabs->updateZoom(project->zoom().x());
+    
     getMainTimeline()->controller()->clipActions = kdenliveCategoryMap.value(QStringLiteral("timelineselection"))->actions();
     connect(m_projectMonitor, SIGNAL(zoneUpdated(QPoint)), project, SLOT(setModified()));
     connect(m_clipMonitor, SIGNAL(zoneUpdated(QPoint)), project, SLOT(setModified()));
@@ -5097,10 +5100,6 @@ void MainWindow::resizeEvent(QResizeEvent*) {
 
 void MainWindow::setWindowModified(bool isModified) {
     QWidget::setWindowModified(isModified);
-    
-    if (m_editorToolBar == nullptr) {
-        return;
-    }
     
     auto title = "项目 " + windowTitle();
     auto index = title.lastIndexOf(".sip");
