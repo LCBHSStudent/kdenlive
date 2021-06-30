@@ -6,3 +6,5 @@ po
 packaging/flatpak/.flatpak-builder
 /gitbook/_book/
 /gitbook/git/
+/gitbook/book.json
+/gitbook/node_modules/
